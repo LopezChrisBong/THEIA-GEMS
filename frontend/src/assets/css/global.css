@@ -36,8 +36,8 @@ html {
 
 /* Make sure background clips correctly */
 .rounded-table thead tr th {
-  background-color: #8e6e25; /* your orange */
-  color: #ffffff !important;
+  background-color: #ffffff; /* your orange */
+  color: #8e6e25 !important;
   font-weight: 600;
 }
 

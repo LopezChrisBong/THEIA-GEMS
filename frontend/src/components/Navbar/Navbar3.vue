@@ -166,7 +166,7 @@ export default {
   data() {
     return {
       drawer: true,
-      rail: true,
+      rail: false,
       links: [],
       userType: null,
       notification_items: [],
@@ -220,19 +220,19 @@ export default {
           else if (userTypeID === 2 && roleID === 5)
             this.userType = "superadmin";
           else this.userType = "employee";
-        }
+        },
       );
     },
 
     getMyNotifs() {
       this.axiosCall("/notifications/getMyNotifs", "GET").then(
-        (res) => (this.notification_items = res.data)
+        (res) => (this.notification_items = res.data),
       );
     },
 
     getMyNewNotifsCount() {
       this.axiosCall("/notifications/getMyNewNotifsCount", "GET").then(
-        (res) => (this.notif_cnt = res.data)
+        (res) => (this.notif_cnt = res.data),
       );
     },
 

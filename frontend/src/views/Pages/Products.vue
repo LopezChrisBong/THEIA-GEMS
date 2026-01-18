@@ -3,7 +3,7 @@
     <v-card class="mt-2">
       <v-row>
         <v-col cols="12">
-          <AccountVerificationDataTable />
+          <ProductsDataTable />
         </v-col>
       </v-row>
     </v-card>
@@ -13,10 +13,11 @@
 </template>
 
 <script>
-import AccountVerificationDataTable from "../../components/Utils/AccountVerificationDataTable.vue";
+import ProductsDataTable from "../../components/Utils/ProductsDataTable.vue";
 export default {
+  name: "productPage",
   components: {
-    AccountVerificationDataTable,
+    ProductsDataTable,
   },
   created() {
     if (this.$store.state.expiryDate < Date.now()) {
