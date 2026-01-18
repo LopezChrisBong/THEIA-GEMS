@@ -76,7 +76,7 @@
 
 <script>
 export default {
-  name: "PosDashboard",
+  name: "OwnerDashboard",
 
   data() {
     return {

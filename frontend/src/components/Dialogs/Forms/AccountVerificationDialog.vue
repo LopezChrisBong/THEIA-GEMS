@@ -18,7 +18,7 @@
           <v-card-text style="max-height: 700px" class="">
             <v-container>
               <v-row>
-                <v-col cols="12">
+                <!-- <v-col cols="12">
                   <v-autocomplete
                     v-model="verifyModel.usertypeID"
                     :rules="userId == 3 ? [formRules.required] : []"
@@ -44,7 +44,7 @@
                     :items="userRoleList"
                   >
                   </v-autocomplete>
-                </v-col>
+                </v-col> -->
 
                 <v-col cols="12">
                   <v-autocomplete
@@ -216,7 +216,7 @@ export default {
             // this.$refs.PositionFormref.reset();
             this.closeD();
           }
-        }
+        },
       );
       // }
     },

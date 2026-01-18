@@ -93,9 +93,21 @@ export class AssignedModulesService {
 }
 
 
-  findAll() {
-    return this.assmodRep.find();
-  }
+  // findAll() {
+  //   // return this.assmodRep.find();
+
+  // }
+
+  async findAll() {
+  const modules = await this.dataSource
+    .createQueryBuilder(AssignedModule, 'am')
+    .where('am.id NOT IN (:...excludedIds)', {
+      excludedIds: [1, 4],
+    })
+    .getMany();
+
+  return modules;
+ }
 
   // async getMyAssignedModules(user: any) {
   //   let us = await this.dataSource

@@ -80,7 +80,7 @@
 
             <!-- STEP 2: ROLE & MODULE -->
             <v-row v-if="step.id === 2">
-              <v-col cols="12">
+              <!-- <v-col cols="12">
                 <v-autocomplete
                   v-model="verifyModel.usertypeID"
                   :items="usertypeList"
@@ -104,7 +104,7 @@
                   variant="outlined"
                   rounded="lg"
                 />
-              </v-col>
+              </v-col> -->
 
               <v-col cols="12">
                 <v-autocomplete
@@ -328,7 +328,7 @@ export default {
             this.emailError = "";
           }
           this.emailChecking = false;
-        }
+        },
       );
     },
     initialize() {
@@ -364,10 +364,10 @@ export default {
             // suffix: this.suffix,
             email: this.email,
             password: this.password,
-            usertypeID: this.verifyModel.usertypeID,
+            usertypeID: 2,
             assignedModuleID: this.verifyModel.assignedModuleID,
             isAdminApproved: 1,
-            user_roleID: this.verifyModel.user_roleID,
+            user_roleID: 2,
           };
           console.log(data);
           this.axiosCall("/auth/addAccount", "POST", data).then((res) => {
@@ -405,7 +405,7 @@ export default {
         this.axiosCall(
           "/auth/changePassIDCred/" + this.data.id,
           "POST",
-          data
+          data,
         ).then((res) => {
           if (res.data.status == 200) {
             this.fadeAwayMessage.message = res.data.msg;
@@ -435,7 +435,7 @@ export default {
           "/" +
           JSON.stringify(data),
         "POST",
-        data
+        data,
       ).then((res) => {
         if (res.data.status == 200) {
           this.fadeAwayMessage.show = true;
@@ -470,11 +470,7 @@ export default {
       } else if (this.step.id == 1) {
         this.step = { id: 2, name: "Accounts Modules" };
       } else if (this.step.id == 2) {
-        if (
-          this.verifyModel.user_roleID == null ||
-          this.verifyModel.assignedModuleID == null ||
-          this.verifyModel.usertypeID == null
-        ) {
+        if (this.verifyModel.assignedModuleID == null) {
           this.fadeAwayMessage.show = true;
           this.fadeAwayMessage.type = "error";
           this.fadeAwayMessage.message =
