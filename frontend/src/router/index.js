@@ -18,6 +18,8 @@ import Users from "../views/Pages/Users.vue";
 import UserModules from "../views/Pages/UserModules.vue";
 import ModulesList from "../views/Pages/ModulesList.vue";
 import NotFound from "../views/Pages/NotFound.vue";
+import PointOfSale from '../views/Pages/Cashier/PointOfSale.vue';
+import Products from '../views/Pages/Products.vue';
 // Vue.use(VueRouter);
 
 const routes = [
@@ -184,7 +186,25 @@ const routes = [
         component: Profile,
         meta: { title: "My Profile", authRequired: true },
       },
+      {
+        path: "acc_verify",
+        component: AccountVerification,
+        meta: { title: "Account Verification", authRequired: true },
+      },
 
+      {
+        path: "point-of-sale",
+        component: PointOfSale,
+        meta: { title: "Point of Sale", authRequired: true },
+      },
+      {
+        path: "product-list",
+        component: Products,
+        meta: { title: "Product List", authRequired: true },
+      },
+
+
+      
     ],
   },
  

@@ -13,7 +13,7 @@
         <v-col cols="12" md="6" class="d-flex justify-end gap-2">
           <v-text-field
             v-model="search"
-            label="Search users"
+            label="Search"
             prepend-inner-icon="mdi-magnify"
             variant="outlined"
             density="compact"
@@ -53,6 +53,7 @@
         <template v-slot:[`item.actions`]="{ item }">
           <div>
             <v-btn
+              v-if="item.id != 1 && item.id != 19"
               size="small"
               variant="outlined"
               color="#8e6e25"
@@ -65,6 +66,7 @@
             </v-btn>
 
             <v-btn
+              v-if="item.id != 1 && item.id != 19"
               size="small"
               variant="outlined"
               color="error"
@@ -428,7 +430,7 @@ export default {
           this.fadeAwayMessage.message = "Account deleted successfully!";
           this.dialogConfirmDelete = false;
           this.initialize();
-        }
+        },
       );
     },
   },

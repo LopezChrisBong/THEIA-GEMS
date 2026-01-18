@@ -11,7 +11,7 @@
         <v-col cols="12" md="6" class="d-flex justify-end gap-2">
           <v-text-field
             v-model="search"
-            label="Search users"
+            label="Search"
             prepend-inner-icon="mdi-magnify"
             variant="outlined"
             density="compact"
@@ -221,7 +221,7 @@ export default {
           this.fadeAwayMessage.show = true;
           this.itemData = null;
           this.initialize();
-        }
+        },
       );
     },
   },
