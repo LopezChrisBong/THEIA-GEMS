@@ -65,6 +65,21 @@
                   >
                   </v-autocomplete>
                 </v-col>
+                <v-col cols="12" v-if="showBranchField">
+                  <v-autocomplete
+                    v-model="userModel.branchId"
+                    dense
+                    outlined
+                    class="rounded-lg"
+                    item-text="branchName"
+                    item-value="branchId"
+                    label="Assigned Branch"
+                    color="#93CB5B"
+                    :items="branchList"
+                    clearable
+                  >
+                  </v-autocomplete>
+                </v-col>
               </v-row>
             </v-container>
           </v-form>
@@ -117,12 +132,14 @@ export default {
         id: null,
         usertypeID: null,
         user_roleID: null,
+        branchId: null,
       },
       userRoleList: [
         { id: 1, role: "Admin" },
         { id: 2, role: "Staff" },
       ],
       usertypeList: [],
+      branchList: [],
 
       fadeAwayMessage: {
         show: false,
@@ -133,14 +150,27 @@ export default {
       },
     };
   },
+  computed: {
+    showBranchField() {
+      // Hide branch field for superadmin (user_roleID == 5) and owner usertype
+      const usertypeDesc = this.usertypeList.find(
+        (ut) => ut.id == this.userModel.usertypeID
+      )?.description?.toLowerCase();
+      const isSuperadmin = this.userModel.user_roleID == 5;
+      const isOwner = usertypeDesc === "owner" || usertypeDesc === "superadmin";
+      return !isSuperadmin && !isOwner;
+    },
+  },
   watch: {
     data: {
       handler(data) {
         if (data.id) {
           this.getUserType();
+          this.getBranches();
           this.userModel.id = data.id;
           this.userModel.usertypeID = data.usertypeID.toString();
           this.userModel.user_roleID = data.user_roleID;
+          this.userModel.branchId = data.branchId;
           this.dialog = true;
           this.name = data.mname
             ? data.lname + ", " + data.fname + " " + data.mname[0]
@@ -159,6 +189,14 @@ export default {
       });
     },
 
+    getBranches() {
+      this.axiosCall("/branches", "GET").then((res) => {
+        if (res.data) {
+          this.branchList = res.data;
+        }
+      });
+    },
+
     close() {
       this.eventHub.$emit("closeUsersDialog", true);
     },
@@ -169,6 +207,7 @@ export default {
           user_roleID:
             this.userModel.usertypeID == 2 ? null : this.userModel.user_roleID,
           usertypeID: this.userModel.usertypeID,
+          branchId: this.showBranchField ? this.userModel.branchId : null,
         };
         this.axiosCall("/user-details/updateUserTypeRole", "POST", data).then(
           (res) => {

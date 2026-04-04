@@ -7,7 +7,7 @@
           <v-col cols="8" class="pa-4">
             <v-card class="pos-card" rounded="xl">
               <v-card-title class="d-flex justify-space-between align-center">
-                <span class="title">Sunrise Mart POS System</span>
+                <span class="title">THEIA GEMS POS System</span>
                 <span class="time">10:25</span>
               </v-card-title>
 
@@ -32,13 +32,13 @@
               <v-row class="px-6 pb-4">
                 <v-col cols="6">
                   <div class="summary">
-                    Sub Total: <strong>₱5848.60</strong>
+                    Sub Total: <strong></strong>
                   </div>
-                  <div class="summary">Tax (12%): <strong>₱120.48</strong></div>
-                  <div class="summary">Item Count: <strong>6</strong></div>
+                  <!-- <div class="summary">Tax (12%): <strong>₱120.48</strong></div> -->
+                  <div class="summary">Item Count: <strong>{{ items.reduce((count, item) => count + item.qty, 0) }}</strong></div>
                 </v-col>
                 <v-col cols="6" class="text-right">
-                  <div class="grand-total">₱5818.60</div>
+                  <div class="grand-total">₱{{ items.reduce((sum, item) => sum + item.amount, 0) }} </div>
                   <div class="grand-label">Grand Total</div>
                 </v-col>
               </v-row>
@@ -46,7 +46,7 @@
           </v-col>
 
           <!-- RIGHT: ACTIONS & KEYPAD -->
-          <v-col cols="4" class="pa-4">
+          <!-- <v-col cols="4" class="pa-4">
             <v-row dense>
               <v-col cols="6" v-for="btn in actions" :key="btn.label">
                 <v-btn block height="70" :color="btn.color" class="action-btn">
@@ -66,7 +66,7 @@
                 </v-col>
               </v-row>
             </v-card>
-          </v-col>
+          </v-col> -->
         </v-row>
       </v-container>
     </v-main>
@@ -82,18 +82,21 @@ const headers = [
 ];
 
 const items = [
-  { name: "Energy Drink", qty: 2, price: 75, amount: 150 },
-  { name: "Instant Noodles", qty: 5, price: 20, amount: 100 },
+  { name: "Necklace GLD", qty: 1, price: 75000, amount: 75000 },
+  { name: "Ring SLV", qty: 2, price: 15000, amount: 30000 },
+  { name: "Bracelet BRZ", qty: 1, price: 5000, amount: 5000 },
+  { name: "Earrings GLD", qty: 3, price: 12000, amount: 36000 },
+  { name: "Watch STN", qty: 1, price: 25000, amount: 25000 },
 ];
 
-const actions = [
-  { label: "Add Customer", icon: "mdi-account-plus", color: "#d6a89c" },
-  { label: "Discount", icon: "mdi-sale", color: "#846313" },
-  { label: "Cash Pay", icon: "mdi-cash", color: "#d6a89c" },
-  { label: "Void Item", icon: "mdi-delete", color: "red" },
-];
+// const actions = [
+//   { label: "Add Customer", icon: "mdi-account-plus", color: "#d6a89c" },
+//   { label: "Discount", icon: "mdi-sale", color: "#846313" },
+//   { label: "Cash Pay", icon: "mdi-cash", color: "#d6a89c" },
+//   { label: "Void Item", icon: "mdi-delete", color: "red" },
+// ];
 
-const keypad = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0];
+// const keypad = [1, 2, 3, 4, 5, 6, 7, 8, 9, 0];
 </script>
 
 <style scoped>
