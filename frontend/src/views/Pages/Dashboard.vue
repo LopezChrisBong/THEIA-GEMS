@@ -54,7 +54,7 @@
             <thead>
               <tr>
                 <th>Invoice</th>
-                <th>Customer</th>
+                <!-- <th>Customer</th> -->
                 <th>Total</th>
                 <th>Date</th>
               </tr>
@@ -62,7 +62,7 @@
             <tbody>
               <tr v-for="(t, i) in transactions" :key="i">
                 <td>{{ t.id }}</td>
-                <td>{{ t.customer }}</td>
+                <!-- <td>{{ t.customer }}</td> -->
                 <td>{{ t.total }}</td>
                 <td>{{ t.date }}</td>
               </tr>
