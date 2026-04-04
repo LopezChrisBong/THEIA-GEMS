@@ -19,7 +19,27 @@ import UserModules from "../views/Pages/UserModules.vue";
 import ModulesList from "../views/Pages/ModulesList.vue";
 import NotFound from "../views/Pages/NotFound.vue";
 import PointOfSale from '../views/Pages/Cashier/PointOfSale.vue';
-import Products from '../views/Pages/Products.vue';
+import Branches from '../views/Pages/Branches.vue';
+import Categories from '../views/Pages/Categories.vue';
+import Suppliers from '@/views/Pages/Suppliers.vue';
+import JewelryItems from '@/views/Pages/JewelryItems.vue';
+import StoneTypes from '@/views/Pages/StoneTypes.vue';
+import JewelryTypes from '@/views/Pages/JewelryTypes.vue';
+import DesignModels from '@/views/Pages/DesignModels.vue';
+import ConsignmentItems from '@/views/Pages/ConsignmentItems.vue';
+import Transfers from '@/views/Pages/Transfers.vue';
+import TransferItems from '@/components/transfer-items/TransferItems.vue';
+import Customers from '@/views/Pages/Customers.vue';
+import Sales from '@/views/Pages/Sales.vue';
+import SaleItems from '@/components/sale-items/SaleItems.vue';
+import Payments from '@/views/Pages/Payments.vue';
+import LayawayPlans from '@/views/Pages/LayawayPlans.vue';
+import LayawayPayments from '@/components/layaway-payments/LayawayPayments.vue';
+import PaymentReminders from '@/views/Pages/PaymentReminders.vue';
+import PromotionalMessages from '@/views/Pages/PromotionalMessages.vue';
+import InventoryLogs from '@/views/Pages/InventoryLogs.vue';
+import Receipts from '@/views/Pages/Receipts.vue';
+// import OPCR from "../views/Pages/OPCR.vue";
 // Vue.use(VueRouter);
 
 const routes = [
@@ -69,58 +89,26 @@ const routes = [
         component: Dashboard,
         meta: { title: "Dashboard", authRequired: true },
       },
-  
-     
-   
       {
         path: "user-type",
         component: UserType,
         meta: { title: "Utilities - Type of Users", authRequired: true },
       },
-      
       {
         path: "acc_verify",
         component: AccountVerification,
         meta: { title: "Account Verification", authRequired: true },
       },
-      
       {
         path: "user-modules",
         component: UserModules,
         meta: { title: "User Modules", authRequired: true },
       },
-       {
+      {
         path: "modules-list",
         component: ModulesList,
         meta: { title: "List of Modules", authRequired: true },
       },
-      
-      // {
-      //   path: "opcr",
-      //   component: OPCR,
-      //   meta: {
-      //     title: "Office Performance and Commitment Review(OPCR)",
-      //     authRequired: true,
-      //   },
-      //   beforeEnter: (to, from, next) => {
-      //     if (
-      //       store.state.user.user.user_roleID != 2 &&
-      //       store.state.user.user.user_roleID != 5 &&
-      //       store.state.user.user.user_roleID != 10
-      //     ) {
-      //       console.log(to.name, from.name);
-      //       next();
-      //     } else {
-      //       next("/");
-      //     }
-      //   },
-      // },
-
-      // {
-      //   path: "404",
-      //   component: NotFound,
-      //   meta: { authRequired: true },
-      // },
     ],
   },
   //superadmin]
@@ -135,7 +123,6 @@ const routes = [
         component: Dashboard,
         meta: { title: "Dashboard", authRequired: true },
       },
-      
       {
         path: "user-type",
         component: UserType,
@@ -174,7 +161,6 @@ const routes = [
     meta: { RouteForEmployee: true, authRequired: true },
     component: MainLayout,
     children: [
-      
       {
         path: "/employee",
         alias: "/employee/dashboard",
@@ -191,85 +177,119 @@ const routes = [
         component: AccountVerification,
         meta: { title: "Account Verification", authRequired: true },
       },
-
       {
         path: "point-of-sale",
         component: PointOfSale,
         meta: { title: "Point of Sale", authRequired: true },
       },
       {
-        path: "product-list",
-        component: Products,
-        meta: { title: "Product List", authRequired: true },
+        path: "items",
+        component: JewelryItems,
+        meta: { title: "Items", authRequired: true },
       },
-
-
-      
+      {
+        path: "stone-types",
+        component: StoneTypes,
+        meta: { title: "Stone Types", authRequired: true },
+      },
+      {
+        path: "jewelry-types",
+        component: JewelryTypes,
+        meta: { title: "Jewelry Types", authRequired: true },
+      },
+      {
+        path: "design-models",
+        component: DesignModels,
+        meta: { title: "Design Models", authRequired: true },
+      },
+      {
+        path: "branch",
+        component: Branches,
+        meta: { title: "Branches", authRequired: true },
+      },
+      {
+        path: "categories",
+        component: Categories,
+        meta: { title: "Categories", authRequired: true },
+      },
+      {
+        path: "suppliers",
+        component: Suppliers,
+        meta: { title: "Suppliers", authRequired: true },
+      },
+      {
+        path: "consignment-items",
+        component: ConsignmentItems,
+        meta: { title: "Consignment Items", authRequired: true },
+      },
+      {
+        path: "inventory-logs",
+        component: InventoryLogs,
+        meta: { title: "Inventory Logs", authRequired: true },
+      },
+      {
+        path: "Transfers",
+        component: Transfers,
+        meta: { title: "Transfers", authRequired: true },
+      },
+      {
+        path: "transfer-items",
+        component: TransferItems,
+        meta: { title: "Transfer Items", authRequired: true },
+      },
+      {
+        path: "customers",
+        component: Customers,
+        meta: { title: "Customers", authRequired: true },
+      },
+      {
+        path: "sales",
+        component: Sales,
+        meta: { title: "Sales", authRequired: true },
+      },
+      {
+        path: "sale-items",
+        component: SaleItems,
+        meta: { title: "Sale Items", authRequired: true },
+      },
+      {
+        path: "payments",
+        component: Payments,
+        meta: { title: "Payments", authRequired: true },
+      },
+      {
+        path: "layaway-plans",
+        component: LayawayPlans,
+        meta: { title: "Layaway Plans", authRequired: true },
+      },
+      {
+        path: "layaway-payments",
+        component: LayawayPayments,
+        meta: { title: "Layaway Payments", authRequired: true },
+      },
+      {
+        path: "payment-reminders",
+        component: PaymentReminders,
+        meta: { title: "Payment Reminders", authRequired: true },
+      },
+      {
+        path: "promotional-messages",
+        component: PromotionalMessages,
+        meta: { title: "Promotional Messages", authRequired: true },
+      },
+      {
+        path: "receipts",
+        component: Receipts,
+        meta: { title: "Receipts", authRequired: true },
+      },
     ],
   },
- 
 ];
 
-// const router = createRouter({
-//   history: createWebHistory(),
-//   base: process.env.BASE_URL,
-//   routes,
-// })
 const router = createRouter({
   history: createWebHistory(process.env.BASE_URL),
   routes,
 })
-
-// router.beforeEach((to, from, next) => {
-//   // let user = store.state.user;
-//   const isAuthenticated = store.getters.getIsAuthenticated;
-//   console.log(to);
-//   if (to.matched.some((record) => record.meta.authRequired == true)) {
-//     if (isAuthenticated) {
-//       let pt = to.fullPath;
-//       let ptSplit = pt.split("/");
-
-//       if (store.state.user.user.usertypeID == 1) {
-//         if (ptSplit[1].toLowerCase() == "admin") {
-//           if (!to.matched.length) {
-//             next("/admin/dashboard");
-//           } else {
-//             next();
-//           }
-//         } else {
-//           next("/admin/dashboard");
-//         }
-//       } else {
-//         if (store.state.user.user.user_roleID == 5) {
-//           if (ptSplit[1].toLowerCase() == "superadmin") {
-//             if (!to.matched.length) {
-//               next("/superadmin/dashboard");
-//             } else {
-//               next();
-//             }
-//           } else {
-//             next("/superadmin/dashboard");
-//           }
-//         } else {
-//           if (ptSplit[1].toLowerCase() == "employee") {
-//             if (!to.matched.length) {
-//               next("/employee/dashboard");
-//             } else {
-//               next();
-//             }
-//           } else {
-//             next("/employee/dashboard");
-//           }
-//         }
-//       }
-//     } else {
-//       next("/");
-//     }
-//   } else {
-//    next();
-//   }
-// });
-
 
 router.beforeEach((to, from, next) => {
   const isAuthenticated = store.getters.getIsAuthenticated;
@@ -282,7 +302,7 @@ router.beforeEach((to, from, next) => {
     }
 
     if (!user) {
-      return next(false); 
+      return next(false);
     }
 
     const baseRoute = to.path.split("/")[1];
@@ -309,8 +329,5 @@ router.beforeEach((to, from, next) => {
 
   next();
 });
-
-
-
 
 export default router;

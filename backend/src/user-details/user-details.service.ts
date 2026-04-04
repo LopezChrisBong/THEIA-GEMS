@@ -8,6 +8,7 @@ import {
   Users,
   UserType,
 } from 'src/entities';
+import { Branch } from 'src/branches/entities/branch.entity';
 
 import { UserTypeService } from 'src/user-type/user-type.service';
 import { Brackets, DataSource, Repository } from 'typeorm';
@@ -62,6 +63,16 @@ export class UserDetailsService {
           user_roleID: updateVU.user_roleID,
           assignedModuleID: updateVU.assignedModuleID,
         });
+
+        // Update branchId in UserDetail if provided
+        if (updateVU.branchId !== undefined) {
+          await queryRunner.manager.update(
+            UserDetail,
+            { userID: updateVU.userID },
+            { branchId: updateVU.branchId },
+          );
+        }
+
         // await queryRunner.manager.update(
         //   Employee,
         //   { user_detailID: updateVU.id },
@@ -710,9 +721,12 @@ export class UserDetailsService {
         'ud.mname as mname',
         'ud.lname as lname',
         'u.user_roleID as user_roleID',
+        'ud.branch_id as branchId',
+        'b.branchName as branchName',
       ])
       .leftJoin(UserDetail, 'ud', 'u.id = ud.userID')
       .leftJoin(UserType, 'ut', 'u.usertypeID = ut.id')
+      .leftJoin(Branch, 'b', 'ud.branch_id = b.id')
       .where('u.isValidated = 1')
       .andWhere('u.isAdminApproved = 1')
       .andWhere('ud.id != 2')
@@ -1111,6 +1125,15 @@ export class UserDetailsService {
         user_roleID: userTypeRole.user_roleID,
         usertypeID: userTypeRole.usertypeID,
       });
+
+      // Update branchId in UserDetail if provided
+      if (userTypeRole.branchId !== undefined) {
+        await queryRunner.manager.update(
+          UserDetail,
+          { userID: userTypeRole.id },
+          { branchId: userTypeRole.branchId },
+        );
+      }
 
       await queryRunner.commitTransaction();
       return {

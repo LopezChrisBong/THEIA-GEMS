@@ -10,4 +10,7 @@ export class UserTypeRole {
     @ApiProperty()
     usertypeID: number
 
+    @ApiProperty({ required: false })
+    branchId?: number
+
 }

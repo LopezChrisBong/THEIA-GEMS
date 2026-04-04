@@ -61,6 +61,21 @@
                   </v-autocomplete>
                 </v-col>
 
+                <v-col cols="12">
+                  <v-autocomplete
+                    v-model="verifyModel.branchId"
+                    density="comfortable"
+                    class="rounded-lg"
+                    item-value="branchId"
+                    item-title="branchName"
+                    label="Assigned Branch"
+                    color="#93CB5B"
+                    :items="branchList"
+                    clearable
+                  >
+                  </v-autocomplete>
+                </v-col>
+
                 <!-- <v-col cols="12" v-if="userId == 3">
                   <v-autocomplete
                     v-model="verifyModel.newStatus"
@@ -130,10 +145,12 @@ export default {
         assignedModuleID: null,
         user_roleID: null,
         newStatus: null,
+        branchId: null,
       },
       userRoleList: [],
       usertypeList: [],
       assignedModulesList: [],
+      branchList: [],
       fadeAwayMessage: {
         show: false,
         type: "success",
@@ -159,6 +176,7 @@ export default {
           this.verifyModel.user_roleID = data.user_user_roleID;
           this.verifyModel.assignedModuleID = data.user_assignedModuleID;
           this.verifyModel.newStatus = data.status;
+          this.verifyModel.branchId = data.branchId;
           // this.verifyModel.date_hired = data.emp_date_hired;
         }
       },
@@ -171,6 +189,7 @@ export default {
       this.getUserType();
       this.getAssignedModules();
       this.getUseRoles();
+      this.getBranches();
     },
     getUserType() {
       this.axiosCall("/user-type/getAllUsertype", "GET").then((res) => {
@@ -196,6 +215,7 @@ export default {
         assignedModuleID: this.verifyModel.assignedModuleID,
         status: this.verifyModel.newStatus,
         update_type: this.action == "Verify" ? 1 : 2,
+        branchId: this.verifyModel.branchId,
       };
 
       this.axiosCall("/user-details/updateVerifiedUser", "POST", data).then(
@@ -232,6 +252,13 @@ export default {
       this.axiosCall("/user-role", "GET").then((res) => {
         console.log("UserRole", res.data);
         this.userRoleList = res.data;
+      });
+    },
+    getBranches() {
+      this.axiosCall("/branches", "GET").then((res) => {
+        if (res.data) {
+          this.branchList = res.data;
+        }
       });
     },
   },
