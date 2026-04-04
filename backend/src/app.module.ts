@@ -17,6 +17,30 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { UserRoleModule } from './user-role/user-role.module';
 import { SysModulesModule } from './sys-modules/sys-modules.module';
 import { AssignedModulesModule } from './assigned-modules/assigned-modules.module';
+import { BranchesModule } from './branches/branches.module';
+import { CategoriesModule } from './categories/categories.module';
+import { SuppliersModule } from './suppliers/suppliers.module';
+import { ConsignmentItemsModule } from './consignment-items/consignment-items.module';
+import { TransfersModule } from './transfers/transfers.module';
+import { TransferItemsModule } from './transfer-items/transfer-items.module';
+import { CustomersModule } from './customers/customers.module';
+import { SalesModule } from './sales/sales.module';
+import { SaleItemsModule } from './sale-items/sale-items.module';
+import { PaymentsModule } from './payments/payments.module';
+import { LayawayPlansModule } from './layaway-plans/layaway-plans.module';
+import { LayawayPaymentsModule } from './layaway-payments/layaway-payments.module';
+import { PaymentRemindersModule } from './payment-reminders/payment-reminders.module';
+import { PromotionalMessagesModule } from './promotional-messages/promotional-messages.module';
+import { ReceiptsModule } from './receipts/receipts.module';
+import { InventoryLogsModule } from './inventory-logs/inventory-logs.module';
+import { TransactionLogsModule } from './transaction-logs/transaction-logs.module';
+import { UserActivityLogsModule } from './user-activity-logs/user-activity-logs.module';
+import { SystemSettingsModule } from './system-settings/system-settings.module';
+import { StoneTypesModule } from './stone-types/stone-types.module';
+import { JewelryTypesModule } from './jewelry-types/jewelry-types.module';
+import { DesignModelsModule } from './design-models/design-models.module';
+import { JewelryItemsModule } from './jewelry-items/jewelry-items.module';
+import { JewelryItemImagesModule } from './jewelry-item-images/jewelry-item-images.module';
 
 @Module({
   imports: [
@@ -24,7 +48,7 @@ import { AssignedModulesModule } from './assigned-modules/assigned-modules.modul
     TypeOrmModule.forRoot({
       type: 'mysql',
       host: process.env.DATABASE_HOST,
-      port:  parseInt(process.env.DATABASE_PORT || '3306'),
+      port: parseInt(process.env.DATABASE_PORT || '3306'),
       username: process.env.DATABASE_USER,
       password: process.env.DATABASE_PASSWORD,
       database: process.env.DATABASE_NAME,
@@ -47,6 +71,30 @@ import { AssignedModulesModule } from './assigned-modules/assigned-modules.modul
     UserRoleModule,
     SysModulesModule,
     AssignedModulesModule,
+    BranchesModule,
+    CategoriesModule,
+    SuppliersModule,
+    ConsignmentItemsModule,
+    TransfersModule,
+    TransferItemsModule,
+    CustomersModule,
+    SalesModule,
+    SaleItemsModule,
+    PaymentsModule,
+    LayawayPlansModule,
+    LayawayPaymentsModule,
+    PaymentRemindersModule,
+    PromotionalMessagesModule,
+    ReceiptsModule,
+    InventoryLogsModule,
+    TransactionLogsModule,
+    UserActivityLogsModule,
+    SystemSettingsModule,
+    StoneTypesModule,
+    JewelryTypesModule,
+    DesignModelsModule,
+    JewelryItemsModule,
+    JewelryItemImagesModule,
   ],
 
   controllers: [AppController],

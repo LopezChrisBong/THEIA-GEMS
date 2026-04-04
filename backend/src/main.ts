@@ -68,7 +68,16 @@ async function bootstrap() {
   const document1 = SwaggerModule.createDocument(app, config1);
   SwaggerModule.setup('api', app, document1);
   app.useGlobalPipes(new ValidationPipe());
-  // app.use(express.static(__dirname + '/imgAsset'));
+
+  // Ensure uploads directory exists
+  const uploadsDir = join(process.cwd(), 'uploads', 'jewelry-items');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+
+  // Serve uploaded files statically
+  app.use('/uploads', express.static(join(process.cwd(), 'uploads')));
+
   app.use(json({ limit: '50mb' }));
   app.use(urlencoded({ extended: true, limit: '50mb' }));
 

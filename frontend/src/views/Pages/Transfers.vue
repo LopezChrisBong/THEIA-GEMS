@@ -1,23 +1,22 @@
 <template>
   <div class="mx-2">
     <v-card class="mt-2">
-      <v-row>
+      <v-row class="px-2">
         <v-col cols="12">
-          <ProductsDataTable />
+          <TransfersDataTable />
         </v-col>
       </v-row>
     </v-card>
-
-    <!-- <AccountVerificationDialog :data="typeData" :action="action" /> -->
   </div>
 </template>
 
 <script>
-import ProductsDataTable from "../../components/Utils/ProductsDataTable.vue";
+import TransfersDataTable from "../../components/Utils/TransfersDataTable.vue";
+
 export default {
-  name: "productPage",
+  name: "TransfersPage",
   components: {
-    ProductsDataTable,
+    TransfersDataTable,
   },
   created() {
     if (this.$store.state.expiryDate < Date.now()) {
@@ -30,6 +29,7 @@ export default {
   data: () => ({
     typeData: [],
     action: null,
+    reload: false,
   }),
   methods: {},
 };

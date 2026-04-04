@@ -34,6 +34,11 @@ export class RegisterUserDto {
     @ApiProperty()
     user_roleID
 
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsNumber()
+    branchId?: number;
+
     @ApiProperty()
     @IsEmail()
     @IsNotEmpty()
