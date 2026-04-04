@@ -17,6 +17,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { UserRoleModule } from './user-role/user-role.module';
 import { SysModulesModule } from './sys-modules/sys-modules.module';
 import { AssignedModulesModule } from './assigned-modules/assigned-modules.module';
+import { SmsModule } from './sms/sms.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { AssignedModulesModule } from './assigned-modules/assigned-modules.modul
     UserRoleModule,
     SysModulesModule,
     AssignedModulesModule,
+    SmsModule,
   ],
 
   controllers: [AppController],
