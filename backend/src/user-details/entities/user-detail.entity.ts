@@ -1,5 +1,6 @@
 import { Users } from 'src/auth/entities/auth.entity';
 import { UserType } from 'src/user-type/entities/user-type.entity';
+import { Branch } from 'src/branches/entities/branch.entity';
 import {
   Column,
   CreateDateColumn,
@@ -303,6 +304,17 @@ export class UserDetail {
     type: 'int',
   })
   userID: number;
+
+  @Column({
+    nullable: true,
+    type: 'int',
+    name: 'branch_id',
+  })
+  branchId: number;
+
+  @ManyToOne(() => Branch, { nullable: true })
+  @JoinColumn({ name: 'branch_id' })
+  branch: Branch;
 
   @Column({
     type: 'varchar',

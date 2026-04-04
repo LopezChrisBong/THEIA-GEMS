@@ -90,6 +90,10 @@ export class Helper {
     cb(null, join(process.cwd(), '/../upload_application_tor/'));
   }
 
+  static jewelryItemImagePath(req, file, cb) {
+    cb(null, join(process.cwd(), '/uploads/jewelry-items/'));
+  }
+
   static esign_filepath(req, file, cb) {
     cb(null, join(process.cwd(), '/../uploadedEsigImg/'));
   }

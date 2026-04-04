@@ -62,6 +62,13 @@
           }}
         </template>
 
+        <template v-slot:[`item.branchName`]="{ item }">
+          <v-chip v-if="item.branchName" color="primary" small outlined>
+            {{ item.branchName }}
+          </v-chip>
+          <span v-else class="text-grey">-</span>
+        </template>
+
         <template v-slot:[`item.actions`]="{ item }">
           <v-btn small color="grey" icon @click="editItem(item)">
             <v-icon>mdi-pencil-outline</v-icon>
@@ -151,6 +158,7 @@ export default {
       { text: "Name", value: "lname", align: "start" },
       { text: "User Type", value: "usertype_desc", align: "start" },
       { text: "User Role", value: "user_roleID", align: "start" },
+      { text: "Branch", value: "branchName", align: "start" },
       {
         text: "Actions",
         value: "actions",
