@@ -117,6 +117,19 @@
                   rounded="lg"
                 />
               </v-col>
+
+              <v-col cols="12">
+                <v-autocomplete
+                  v-model="verifyModel.branchId"
+                  :items="branchList"
+                  item-title="branchName"
+                  item-value="branchId"
+                  label="Assigned Branch"
+                  variant="outlined"
+                  rounded="lg"
+                  clearable
+                />
+              </v-col>
             </v-row>
 
             <!-- STEP 3: CREDENTIALS -->
@@ -257,10 +270,12 @@ export default {
         assignedModuleID: null,
         user_roleID: null,
         newStatus: null,
+        branchId: null,
       },
       userRoleList: [],
       usertypeList: [],
       assignedModulesList: [],
+      branchList: [],
       fadeAwayMessage: {
         show: false,
         type: "success",
@@ -287,6 +302,7 @@ export default {
           this.verifyModel.user_roleID = data.user_user_roleID;
           this.verifyModel.assignedModuleID = data.user_assignedModuleID;
           this.verifyModel.newStatus = data.status;
+          this.verifyModel.branchId = data.branchId;
           this.fname = data.fname;
           this.lname = data.lname;
           this.mname = data.mname;
@@ -304,6 +320,7 @@ export default {
           this.verifyModel.user_roleID = null;
           this.verifyModel.assignedModuleID = null;
           this.verifyModel.newStatus = data.status;
+          this.verifyModel.branchId = null;
         }
       },
       deep: true,
@@ -336,6 +353,7 @@ export default {
       this.getUserType();
       this.getAssignedModules();
       this.getUseRoles();
+      this.getBranches();
     },
     getUserType() {
       this.axiosCall("/user-type/getAllUsertype", "GET").then((res) => {
@@ -368,6 +386,7 @@ export default {
             assignedModuleID: this.verifyModel.assignedModuleID,
             isAdminApproved: 1,
             user_roleID: 2,
+            branchId: this.verifyModel.branchId,
           };
           console.log(data);
           this.axiosCall("/auth/addAccount", "POST", data).then((res) => {
@@ -501,6 +520,13 @@ export default {
         this.userRoleList = res.data;
       });
     },
+    getBranches() {
+      this.axiosCall("/branches", "GET").then((res) => {
+        if (res.data) {
+          this.branchList = res.data;
+        }
+      });
+    },
     refresh() {
       this.fname = null;
       this.lname = null;
@@ -511,6 +537,7 @@ export default {
       this.verifyModel.user_roleID = null;
       this.verifyModel.assignedModuleID = null;
       this.verifyModel.usertypeID = null;
+      this.verifyModel.branchId = null;
     },
   },
 };

@@ -129,6 +129,7 @@ export class AuthService {
         lname: registerUser.lname,
         suffix: registerUser.suffix,
         userID: newUserSaved.id,
+        branchId: registerUser.branchId,
       });
 
       await queryRunner.manager.save(newUserDetail);

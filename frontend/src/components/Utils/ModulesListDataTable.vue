@@ -29,7 +29,7 @@
             elevation="1"
             @click="addnew()"
           >
-            Add User
+            Add Module
           </v-btn>
         </v-col>
       </v-row>

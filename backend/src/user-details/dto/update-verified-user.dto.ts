@@ -39,4 +39,7 @@ export class UpdateVerifiedUser {
 
   @ApiProperty()
   update_type: number;
+
+  @ApiProperty({ required: false })
+  branchId?: number;
 }
