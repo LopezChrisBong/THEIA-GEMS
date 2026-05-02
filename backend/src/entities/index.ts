@@ -5,6 +5,7 @@ import { Category } from 'src/categories/entities/category.entity';
 import { ConsignmentItem } from 'src/consignment-items/entities/consignment-item.entity';
 import { Customer } from 'src/customers/entities/customer.entity';
 import { Notifications } from 'src/notifications/entities/notification.entity';
+import { Sms } from 'src/sms/entities/sms.entity';
 import { Supplier } from 'src/suppliers/entities/supplier.entity';
 import { SysModule } from 'src/sys-modules/entities/sys-module.entity';
 import { Transfer } from 'src/transfers/entities/transfer.entity';
@@ -38,6 +39,7 @@ const entities = [
   SysModule,
   AssignedModule,
   Notifications,
+  Sms,
   Branch,
   Category,
   Supplier,
@@ -72,6 +74,7 @@ export {
   SysModule,
   AssignedModule,
   Notifications,
+  Sms,
   Branch,
   Category,
   Supplier,

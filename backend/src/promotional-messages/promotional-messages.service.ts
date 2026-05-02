@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThanOrEqual, IsNull } from 'typeorm';
+import { Repository, LessThanOrEqual, IsNull, DataSource } from 'typeorm';
 import {
   PromotionalMessage,
   MessageStatus,
@@ -9,12 +9,16 @@ import {
 } from './entities/promotional-message.entity';
 import { CreatePromotionalMessageDto } from './dto/create-promotional-message.dto';
 import { UpdatePromotionalMessageDto } from './dto/update-promotional-message.dto';
+import { SmsService } from 'src/sms/sms.service';
+import { Customer } from 'src/entities';
 
 @Injectable()
 export class PromotionalMessagesService {
   constructor(
     @InjectRepository(PromotionalMessage)
     private readonly promotionalMessageRepository: Repository<PromotionalMessage>,
+    private readonly SMSServices: SmsService,
+    private readonly dataSource: DataSource,
   ) {}
 
   async create(
@@ -25,6 +29,32 @@ export class PromotionalMessagesService {
       ...rest,
       scheduledDate: scheduledDate ? new Date(scheduledDate) : null,
     });
+    let customer = await this.dataSource
+      .createQueryBuilder(Customer, 'ct')
+      .select(['ct.*', "CONCAT(ct.first_name, ' ', ct.last_name) as fullname"])
+      .where('ct.id = :customerID', { customerID: rest.customerId })
+      .getRawOne();
+    if (rest.sendMethod == 'sms') {
+      let message =
+        'Subject: THEIA GEMS ' + rest.messageType === 'promotional'
+          ? 'PROMOTIONAL'
+          : rest.messageType === 'reminder'
+            ? 'REMINDER'
+            : 'ANNOUNCEMENT' + '\n';
+      message += '\nHi ' + customer.fullname + ',\n';
+      message += '\n' + rest.messageContent + '\n';
+      // message += '\nDate: ' + date + '\n';
+      // message += 'Time: ' + time + '\n';
+      message +=
+        '\nFor questions or clarifications, message us on our (sample email).\n';
+      let sms = {
+        recipient: '09070804101', //string
+        //  recipient: customer.phone.toString(),
+        message: message, //string
+      };
+      await this.SMSServices.sendSmsSemaphore(sms);
+    }
+
     return this.promotionalMessageRepository.save(message);
   }
 
@@ -41,7 +71,9 @@ export class PromotionalMessagesService {
       relations: ['customer', 'creator'],
     });
     if (!message) {
-      throw new NotFoundException(`Promotional message with ID ${id} not found`);
+      throw new NotFoundException(
+        `Promotional message with ID ${id} not found`,
+      );
     }
     return message;
   }
@@ -116,7 +148,9 @@ export class PromotionalMessagesService {
     const message = await this.findOne(id);
     Object.assign(message, updatePromotionalMessageDto);
     if (updatePromotionalMessageDto.scheduledDate) {
-      message.scheduledDate = new Date(updatePromotionalMessageDto.scheduledDate);
+      message.scheduledDate = new Date(
+        updatePromotionalMessageDto.scheduledDate,
+      );
     }
     return this.promotionalMessageRepository.save(message);
   }

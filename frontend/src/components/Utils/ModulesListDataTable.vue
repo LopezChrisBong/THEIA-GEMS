@@ -50,7 +50,7 @@
         @pagination="pagination"
       >
         <template v-slot:[`item.icon`]="{ item }">
-          <v-icon color="primary">{{ item.icon }}</v-icon>
+          <v-icon color="#8e6e25">{{ item.icon }}</v-icon>
         </template>
 
         <template v-slot:[`item.actions`]="{ item }">

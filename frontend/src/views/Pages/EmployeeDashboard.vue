@@ -1,133 +1,146 @@
 <template>
-  <v-container fluid class="dashboard-bg pa-6">
+  <v-container fluid class="pa-6">
     <!-- HEADER -->
-    <v-row class="mb-6">
-      <v-col cols="12" class="d-flex justify-space-between align-center">
-        <div>
-          <h2 class="title">POS Dashboard</h2>
-          <span class="subtitle">Welcome back, Admin</span>
-        </div>
-        <v-btn color="primary" rounded="xl" elevation="4">
-          <v-icon start>mdi-plus</v-icon>
-          New Sale
-        </v-btn>
-      </v-col>
-    </v-row>
+    <div class="mb-6">
+      <h2 class="font-weight-bold">POS Dashboard</h2>
+      <p class="text-caption text-grey">Sales overview & performance</p>
+    </div>
 
-    <!-- STATS -->
-    <v-row dense class="mb-6">
-      <v-col cols="12" md="3" v-for="stat in stats" :key="stat.title">
-        <v-card rounded="xl" class="stat-card pa-4">
-          <v-icon size="36" class="mb-2" :color="stat.color">{{
-            stat.icon
-          }}</v-icon>
-          <div class="stat-title">{{ stat.title }}</div>
-          <div class="stat-value">{{ stat.value }}</div>
+    <!-- KPI CARDS -->
+    <v-row>
+      <v-col v-for="(kpi, i) in kpis" :key="i" cols="12" sm="6" md="3">
+        <v-card elevation="3" rounded="xl" class="pa-4">
+          <div class="d-flex align-center">
+            <v-avatar size="44" :color="kpi.color" variant="tonal">
+              <v-icon>{{ kpi.icon }}</v-icon>
+            </v-avatar>
+
+            <div class="ml-4">
+              <div class="text-caption text-grey">{{ kpi.title }}</div>
+              <div class="text-h6 font-weight-bold">
+                {{ kpi.value }}
+              </div>
+            </div>
+          </div>
         </v-card>
       </v-col>
     </v-row>
 
-    <!-- MAIN CONTENT -->
-    <v-row dense>
-      <!-- SALES OVERVIEW -->
+    <!-- CHARTS -->
+    <v-row class="mt-4">
       <v-col cols="12" md="8">
-        <v-card rounded="xl" class="pa-6">
-          <div class="section-title mb-4">Sales Overview</div>
-          <div class="chart-placeholder">Chart goes here</div>
+        <v-card elevation="2" rounded="xl" class="pa-4">
+          <h4 class="font-weight-medium mb-2">Sales Trend</h4>
+          <div class="chart-placeholder">Line Chart (Daily / Monthly)</div>
         </v-card>
       </v-col>
 
-      <!-- RECENT TRANSACTIONS -->
       <v-col cols="12" md="4">
-        <v-card rounded="xl" class="pa-6">
-          <div class="section-title mb-4">Recent Transactions</div>
-          <v-list density="compact">
-            <v-list-item v-for="(tx, i) in transactions" :key="i">
-              <v-list-item-title>{{ tx.ref }}</v-list-item-title>
-              <v-list-item-subtitle>₱{{ tx.amount }}</v-list-item-subtitle>
-              <template #append>
-                <span class="tx-time">{{ tx.time }}</span>
-              </template>
-            </v-list-item>
-          </v-list>
+        <v-card elevation="2" rounded="xl" class="pa-4">
+          <h4 class="font-weight-medium mb-2">Top Categories</h4>
+          <div class="chart-placeholder">Donut Chart</div>
+        </v-card>
+      </v-col>
+    </v-row>
+
+    <!-- TABLE -->
+    <v-row class="mt-4">
+      <v-col cols="12">
+        <v-card elevation="2" rounded="xl">
+          <v-card-title>Recent Transactions</v-card-title>
+          <v-divider />
+
+          <v-table>
+            <thead>
+              <tr>
+                <th>Invoice</th>
+                <!-- <th>Customer</th> -->
+                <th>Total</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(t, i) in transactions" :key="i">
+                <td>{{ t.id }}</td>
+                <!-- <td>{{ t.customer }}</td> -->
+                <td>{{ t.total }}</td>
+                <td>{{ t.date }}</td>
+              </tr>
+            </tbody>
+          </v-table>
         </v-card>
       </v-col>
     </v-row>
   </v-container>
 </template>
 
-<script setup>
-const stats = [
-  {
-    title: "Today Sales",
-    value: "₱18,540",
-    icon: "mdi-cash",
-    color: "#d6a89c",
-  },
-  {
-    title: "Transactions",
-    value: "126",
-    icon: "mdi-receipt",
-    color: "#846313",
-  },
-  { title: "Products", value: "342", icon: "mdi-cube", color: "#d6a89c" },
-  { title: "Low Stock", value: "8", icon: "mdi-alert", color: "red" },
-];
+<script>
+export default {
+  name: "OwnerDashboard",
 
-const transactions = [
-  { ref: "INV-10021", amount: "450.00", time: "2 min ago" },
-  { ref: "INV-10020", amount: "1,250.00", time: "10 min ago" },
-  { ref: "INV-10019", amount: "320.00", time: "30 min ago" },
-];
+  data() {
+    return {
+      kpis: [
+        {
+          title: "Total Sales",
+          value: "₱124,560",
+          icon: "mdi-cash",
+          color: "green",
+        },
+        {
+          title: "Orders",
+          value: "1,248",
+          icon: "mdi-cart",
+          color: "blue",
+        },
+        {
+          title: "Customers",
+          value: "684",
+          icon: "mdi-account-group",
+          color: "purple",
+        },
+        {
+          title: "Profit",
+          value: "₱32,140",
+          icon: "mdi-trending-up",
+          color: "orange",
+        },
+      ],
+
+      transactions: [
+        {
+          id: "INV-001",
+          customer: "Juan Dela Cruz",
+          total: "₱1,240",
+          date: "2026-01-02",
+        },
+        {
+          id: "INV-002",
+          customer: "Maria Santos",
+          total: "₱560",
+          date: "2026-01-02",
+        },
+        {
+          id: "INV-003",
+          customer: "Pedro Reyes",
+          total: "₱2,100",
+          date: "2026-01-01",
+        },
+      ],
+    };
+  },
+};
 </script>
 
 <style scoped>
-.dashboard-bg {
-  background: #f4ebe8;
-}
-
-.title {
-  color: #846313;
-  font-weight: 600;
-}
-
-.subtitle {
-  color: #6f5a2c;
-}
-
-.stat-card {
-  background: #ffffff;
-  box-shadow: 0 8px 24px rgba(132, 99, 19, 0.12);
-}
-
-.stat-title {
-  font-size: 0.9rem;
-  color: #846313;
-}
-
-.stat-value {
-  font-size: 1.6rem;
-  font-weight: 700;
-  color: #3b2f2a;
-}
-
-.section-title {
-  font-weight: 600;
-  color: #846313;
-}
-
 .chart-placeholder {
-  height: 240px;
+  height: 260px;
   border-radius: 16px;
-  background: #f8f1ee;
+  background: linear-gradient(135deg, #f5f5f5, #eeeeee);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #846313;
-}
-
-.tx-time {
-  font-size: 0.75rem;
-  color: #846313;
+  color: #888;
+  font-size: 0.9rem;
 }
 </style>

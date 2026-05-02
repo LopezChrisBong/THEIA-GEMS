@@ -17,6 +17,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { UserRoleModule } from './user-role/user-role.module';
 import { SysModulesModule } from './sys-modules/sys-modules.module';
 import { AssignedModulesModule } from './assigned-modules/assigned-modules.module';
+import { SmsModule } from './sms/sms.module';
 import { BranchesModule } from './branches/branches.module';
 import { CategoriesModule } from './categories/categories.module';
 import { SuppliersModule } from './suppliers/suppliers.module';
@@ -71,6 +72,7 @@ import { JewelryItemImagesModule } from './jewelry-item-images/jewelry-item-imag
     UserRoleModule,
     SysModulesModule,
     AssignedModulesModule,
+    SmsModule,
     BranchesModule,
     CategoriesModule,
     SuppliersModule,
