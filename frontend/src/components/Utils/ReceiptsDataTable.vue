@@ -1,184 +1,110 @@
 <template>
-  <v-container fluid>
-    <!-- Header Section -->
-    <v-card flat class="mb-4 pa-4 rounded-xl header-card">
-      <v-row align="center">
-        <v-col cols="12" md="6">
-          <h2 class="mb-1 font-weight-medium">Receipts</h2>
-          <small class="text-medium-emphasis">
-            Manage sales receipts and print history
-          </small>
-        </v-col>
+  <v-container fluid class="theia-view">
+    <div class="page-header">
+      <div>
+        <div class="page-heading">Receipts</div>
+        <div class="page-sub">Manage sales receipts and print history</div>
+      </div>
+      <div class="header-actions">
+        <div class="search-wrap">
+          <v-icon size="14" color="#9A7858">mdi-magnify</v-icon>
+          <input v-model="search" type="text" placeholder="Search receipts..." class="search-input-proto" />
+        </div>
+        <button class="btn-add" @click="addNew()">
+          <v-icon size="13" color="white">mdi-plus</v-icon>
+          New Receipt
+        </button>
+      </div>
+    </div>
 
-        <v-col cols="12" md="6" class="d-flex justify-end gap-2">
-          <v-text-field
-            v-model="search"
-            label="Search"
-            prepend-inner-icon="mdi-magnify"
-            variant="outlined"
-            density="compact"
-            hide-details
-            clearable
-            class="search-input"
-          />
+    <div class="cust-table-card">
+      <div class="filter-row">
+        <button class="filter-chip" :class="{ on: filterPrint === null }" @click="filterPrint = null">All</button>
+        <button class="filter-chip" :class="{ on: filterPrint === 'printed' }" @click="filterPrint = 'printed'">Printed</button>
+        <button class="filter-chip" :class="{ on: filterPrint === 'not_printed' }" @click="filterPrint = 'not_printed'">Not Printed</button>
+        <div class="filter-spacer" />
+      </div>
 
-          <v-btn
-            color="#8e6e25"
-            prepend-icon="mdi-plus"
-            rounded="lg"
-            elevation="1"
-            @click="addNew()"
-          >
-            New Receipt
-          </v-btn>
-        </v-col>
-      </v-row>
-    </v-card>
+      <div class="tbl-wrap">
+        <table class="cust-table" v-if="!loading">
+          <thead>
+            <tr>
+              <th>Receipt #</th>
+              <th>Sale</th>
+              <th>Branch</th>
+              <th>Status</th>
+              <th>Printed At</th>
+              <th>Printed By</th>
+              <th>Reprints</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in filteredData" :key="item.id">
+              <td class="mono">{{ item.receiptNumber }}</td>
+              <td>
+                <span v-if="item.sale" class="cust-name">{{ item.sale.saleNumber }}</span>
+                <br v-if="item.sale">
+                <span v-if="item.sale" class="dim">₱{{ formatNumber(item.sale.totalAmount) }}</span>
+                <span v-if="!item.sale" class="dim">—</span>
+              </td>
+              <td>
+                <span v-if="item.branch" class="repeat-badge r-primary">{{ item.branch.branchName }}</span>
+                <span v-else class="dim">—</span>
+              </td>
+              <td>
+                <span class="repeat-badge" :class="item.printedAt ? 'r-printed' : 'r-not-printed'">
+                  {{ item.printedAt ? 'Printed' : 'Not Printed' }}
+                </span>
+              </td>
+              <td class="dim">{{ formatDateTime(item.printedAt) }}</td>
+              <td>
+                <span v-if="item.printer">{{ item.printer.firstName }} {{ item.printer.lastName }}</span>
+                <span v-else class="dim">—</span>
+              </td>
+              <td class="text-center">
+                <span class="repeat-badge" :class="getReprintClass(item.reprintCount)">{{ item.reprintCount || 0 }}</span>
+              </td>
+              <td>
+                <div class="act-btns">
+                  <button class="act-btn print-btn" title="Print" @click="printReceipt(item)"><v-icon size="14">mdi-printer</v-icon></button>
+                  <button class="act-btn" title="Edit" @click="editItem(item)"><v-icon size="14">mdi-pencil-outline</v-icon></button>
+                  <button class="act-btn del" title="Delete" @click="deleteItem(item)"><v-icon size="14">mdi-delete-outline</v-icon></button>
+                </div>
+              </td>
+            </tr>
+            <tr v-if="filteredData.length === 0">
+              <td colspan="8">
+                <div class="empty-state">
+                  <div class="empty-icon"><v-icon size="20" color="#9B6B3A">mdi-receipt-text-outline</v-icon></div>
+                  <div class="empty-title">No receipts found</div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <div v-if="loading" class="empty-state">
+          <v-progress-circular indeterminate color="#9B6B3A" size="32" />
+          <div class="empty-title">Loading receipts...</div>
+        </div>
+      </div>
+    </div>
 
-    <!-- Data Table -->
-    <v-card elevation="2" rounded="xl">
-      <v-data-table
-        :headers="headers"
-        :items="data"
-        :search="search"
-        :items-per-page="10"
-        :loading="loading"
-        loading-text="Loading receipts..."
-        class="rounded-table"
-        density="comfortable"
-        @update:options="options"
-        @pagination="pagination"
-      >
-        <template v-slot:[`item.receiptNumber`]="{ item }">
-          <span class="font-weight-medium">{{ item.receiptNumber }}</span>
-        </template>
-
-        <template v-slot:[`item.sale`]="{ item }">
-          <div v-if="item.sale">
-            <span class="font-weight-medium">{{ item.sale.saleNumber }}</span>
-            <br>
-            <small class="text-medium-emphasis">₱{{ formatNumber(item.sale.totalAmount) }}</small>
-          </div>
-          <span v-else class="text-medium-emphasis">—</span>
-        </template>
-
-        <template v-slot:[`item.branch`]="{ item }">
-          <span v-if="item.branch">{{ item.branch.branchName }}</span>
-          <span v-else class="text-medium-emphasis">—</span>
-        </template>
-
-        <template v-slot:[`item.printStatus`]="{ item }">
-          <v-chip
-            :color="item.printedAt ? 'success' : 'warning'"
-            size="small"
-            variant="flat"
-          >
-            {{ item.printedAt ? 'Printed' : 'Not Printed' }}
-          </v-chip>
-        </template>
-
-        <template v-slot:[`item.printedAt`]="{ item }">
-          <span v-if="item.printedAt">{{ formatDateTime(item.printedAt) }}</span>
-          <span v-else class="text-medium-emphasis">—</span>
-        </template>
-
-        <template v-slot:[`item.printer`]="{ item }">
-          <span v-if="item.printer">{{ item.printer.firstName }} {{ item.printer.lastName }}</span>
-          <span v-else class="text-medium-emphasis">—</span>
-        </template>
-
-        <template v-slot:[`item.reprintCount`]="{ item }">
-          <v-chip
-            :color="getReprintColor(item.reprintCount)"
-            size="small"
-            variant="outlined"
-          >
-            {{ item.reprintCount || 0 }}
-          </v-chip>
-        </template>
-
-        <template v-slot:[`item.actions`]="{ item }">
-          <v-btn
-            size="small"
-            variant="outlined"
-            color="primary"
-            @click="printReceipt(item)"
-            class="mx-1"
-          >
-            <v-icon start size="18"> mdi-printer </v-icon>
-            Print
-          </v-btn>
-
-          <v-btn
-            size="small"
-            variant="outlined"
-            color="#8e6e25"
-            @click="editItem(item)"
-            class="mx-1"
-          >
-            <v-icon start size="18"> mdi-pencil-outline </v-icon>
-            Edit
-          </v-btn>
-
-          <v-btn
-            size="small"
-            variant="outlined"
-            class="mx-1"
-            color="red"
-            @click="deleteItem(item)"
-          >
-            <v-icon start size="18"> mdi-delete-outline </v-icon>
-            Delete
-          </v-btn>
-        </template>
-
-        <template #no-data>
-          <v-alert type="info" class="ma-4" icon="mdi-information">
-            No receipts found.
-          </v-alert>
-        </template>
-      </v-data-table>
-    </v-card>
-
-    <!-- Dialogs -->
     <ReceiptsDialog :data="updateData" :action="action" />
 
     <v-dialog v-model="dialogConfirmDelete" max-width="500">
-      <v-card>
-        <v-card-title class="text-h6">Confirm Deletion</v-card-title>
-        <v-card-text class="text-body-1">
-          Are you sure you want to delete this receipt?
-        </v-card-text>
+      <v-card style="border-radius: 16px; border: 1px solid rgba(155,107,58,0.16);">
+        <v-card-title class="text-h6" style="font-family: 'Cormorant Garamond', serif;">Confirm Deletion</v-card-title>
+        <v-card-text style="color: #6B4A30;">Are you sure you want to delete this receipt?</v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn
-            variant="text"
-            color="grey"
-            @click="dialogConfirmDelete = false"
-          >
-            Cancel
-          </v-btn>
-          <v-btn
-            color="error"
-            class="white--text"
-            @click="confirmDelete"
-            :loading="deleting"
-          >
-            Confirm
-          </v-btn>
+          <button class="btn-cancel-proto" @click="dialogConfirmDelete = false">Cancel</button>
+          <button class="btn-danger-proto" @click="confirmDelete" :disabled="deleting">{{ deleting ? 'Deleting...' : 'Delete' }}</button>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
-    <!-- Fade Message -->
-    <fade-away-message-component
-      displayType="variation2"
-      v-model="fadeAwayMessage.show"
-      :message="fadeAwayMessage.message"
-      :header="fadeAwayMessage.header"
-      :top="fadeAwayMessage.top"
-      :type="fadeAwayMessage.type"
-    />
+    <fade-away-message-component displayType="variation2" v-model="fadeAwayMessage.show" :message="fadeAwayMessage.message" :header="fadeAwayMessage.header" :top="fadeAwayMessage.top" :type="fadeAwayMessage.type" />
   </v-container>
 </template>
 
@@ -187,195 +113,103 @@ import ReceiptsDialog from "../../components/Dialogs/Forms/ReceiptsDialog.vue";
 import eventBus from "@/eventBus";
 
 export default {
-  components: {
-    ReceiptsDialog,
-  },
-
+  components: { ReceiptsDialog },
   data: () => ({
-    search: "",
-    headers: [
-      { title: "ID", value: "id", align: "start", width: 70 },
-      { title: "Receipt #", value: "receiptNumber", align: "start", width: 160 },
-      { title: "Sale", value: "sale", align: "start", width: 160 },
-      { title: "Branch", value: "branch", align: "start" },
-      { title: "Status", value: "printStatus", align: "center", width: 120 },
-      { title: "Printed At", value: "printedAt", align: "center", width: 160 },
-      { title: "Printed By", value: "printer", align: "start", width: 140 },
-      { title: "Reprints", value: "reprintCount", align: "center", width: 90 },
-      {
-        title: "Actions",
-        value: "actions",
-        align: "center",
-        sortable: false,
-        width: 280,
-      },
-    ],
-    data: [],
-    perPageChoices: [
-      { title: "5", value: 5 },
-      { title: "10", value: 10 },
-      { title: "20", value: 20 },
-      { title: "50", value: 50 },
-      { title: "100", value: 100 },
-    ],
-    totalCount: 0,
-    deleteData: null,
-    updateData: null,
-
-    loading: false,
-    deleting: false,
-    options: {},
-    action: null,
-    paginationData: {},
-    dialogConfirmDelete: false,
-    fadeAwayMessage: {
-      show: false,
-      type: "success",
-      header: "Successfully Deleted!",
-      message: "",
-      top: 10,
-    },
+    search: "", filterPrint: null, data: [], deleteData: null, updateData: null,
+    loading: false, deleting: false, action: null, dialogConfirmDelete: false,
+    fadeAwayMessage: { show: false, type: "success", header: "Success", message: "", top: 10 },
   }),
-
-  watch: {
-    options: {
-      handler() {
-        this.initialize();
-      },
-      deep: true,
+  computed: {
+    filteredData() {
+      let result = [...this.data];
+      if (this.filterPrint === "printed") result = result.filter((r) => r.printedAt);
+      else if (this.filterPrint === "not_printed") result = result.filter((r) => !r.printedAt);
+      if (this.search) {
+        const q = this.search.toLowerCase();
+        result = result.filter((r) =>
+          [r.receiptNumber, r.sale?.saleNumber, r.branch?.branchName].filter(Boolean).some((f) => String(f).toLowerCase().includes(q))
+        );
+      }
+      return result;
     },
   },
-
   mounted() {
     this.initialize();
-    eventBus.on("closeReceiptsDialog", () => {
-      this.initialize();
-    });
+    eventBus.on("closeReceiptsDialog", () => this.initialize());
   },
-
-  beforeUnmount() {
-    eventBus.off("closeReceiptsDialog");
-  },
-
+  beforeUnmount() { eventBus.off("closeReceiptsDialog"); },
   methods: {
-    pagination(data) {
-      this.paginationData = data;
+    formatDateTime(d) { if (!d) return "—"; return new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }); },
+    formatNumber(v) { if (v == null) return "0.00"; return Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); },
+    getReprintClass(count) {
+      if (!count || count === 0) return "r-reprint-none";
+      if (count >= 3) return "r-reprint-high";
+      return "r-reprint-low";
     },
-
-    formatDateTime(dateString) {
-      if (!dateString) return "—";
-      const date = new Date(dateString);
-      return date.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    },
-
-    formatNumber(value) {
-      if (value === null || value === undefined) return "0.00";
-      return Number(value).toLocaleString("en-US", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      });
-    },
-
-    getReprintColor(count) {
-      if (!count || count === 0) return 'grey';
-      if (count >= 3) return 'error';
-      if (count >= 1) return 'warning';
-      return 'grey';
-    },
-
     initialize() {
       this.loading = true;
-      this.axiosCall("/receipts", "GET")
-        .then((res) => {
-          if (res && res.data) {
-            this.data = res.data;
-          }
-        })
-        .catch((error) => {
-          console.error("Failed to load receipts:", error);
-          this.fadeAwayMessage.show = true;
-          this.fadeAwayMessage.type = "error";
-          this.fadeAwayMessage.header = "Error";
-          this.fadeAwayMessage.message = "Failed to load receipts";
-        })
-        .finally(() => {
-          this.loading = false;
-        });
+      this.axiosCall("/receipts", "GET").then((r) => { if (r && r.data) this.data = r.data; })
+        .catch(() => { this.fadeAwayMessage = { show: true, type: "error", header: "Error", message: "Failed to load receipts", top: 10 }; })
+        .finally(() => { this.loading = false; });
     },
-
-    addNew() {
-      this.updateData = { id: null };
-      this.action = "Add";
-    },
-
-    editItem(item) {
-      this.updateData = { ...item };
-      this.action = "Update";
-    },
-
+    addNew() { this.updateData = { id: null }; this.action = "Add"; },
+    editItem(item) { this.updateData = { ...item }; this.action = "Update"; },
     printReceipt(item) {
-      this.fadeAwayMessage.show = true;
-      this.fadeAwayMessage.type = "info";
-      this.fadeAwayMessage.header = "Print";
-      this.fadeAwayMessage.message = `Printing receipt ${item.receiptNumber}...`;
-      // Implement actual print logic here
+      this.fadeAwayMessage = { show: true, type: "info", header: "Print", message: "Printing receipt " + item.receiptNumber + "...", top: 10 };
     },
-
-    deleteItem(item) {
-      this.dialogConfirmDelete = true;
-      this.deleteData = item;
-    },
-
+    deleteItem(item) { this.dialogConfirmDelete = true; this.deleteData = item; },
     confirmDelete() {
       this.deleting = true;
       this.axiosCall("/receipts/" + this.deleteData.id, "DELETE")
-        .then((res) => {
-          if (res && (res.status === 200 || res.status === 204)) {
-            this.fadeAwayMessage.show = true;
-            this.fadeAwayMessage.type = "success";
-            this.fadeAwayMessage.header = "Success";
-            this.fadeAwayMessage.message = "Receipt deleted successfully";
-            this.dialogConfirmDelete = false;
-            this.deleteData = null;
-            this.initialize();
-          } else {
-            this.fadeAwayMessage.show = true;
-            this.fadeAwayMessage.type = "error";
-            this.fadeAwayMessage.header = "Error";
-            this.fadeAwayMessage.message = "Failed to delete receipt";
-          }
-        })
-        .catch((error) => {
-          console.error("Delete error:", error);
-          this.fadeAwayMessage.show = true;
-          this.fadeAwayMessage.type = "error";
-          this.fadeAwayMessage.header = "Error";
-          this.fadeAwayMessage.message =
-            error?.response?.data?.message || "Failed to delete receipt";
-        })
-        .finally(() => {
-          this.deleting = false;
-        });
+        .then((r) => { if (r && (r.status === 200 || r.status === 204)) { this.fadeAwayMessage = { show: true, type: "success", header: "Success", message: "Receipt deleted", top: 10 }; this.dialogConfirmDelete = false; this.deleteData = null; this.initialize(); } })
+        .catch((e) => { this.fadeAwayMessage = { show: true, type: "error", header: "Error", message: e?.response?.data?.message || "Failed to delete", top: 10 }; })
+        .finally(() => { this.deleting = false; });
     },
   },
 };
 </script>
 
 <style scoped>
-.header-card {
-  background: linear-gradient(135deg, #faf7f4, #ffffff);
-}
-.search-input {
-  max-width: 260px;
-}
-
-.gap-2 {
-  gap: 12px;
-}
+.theia-view { font-family: 'Outfit', sans-serif; color: #3A2515; position: relative; z-index: 1; }
+.page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 18px; }
+.page-heading { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 500; color: #3A2515; }
+.page-sub { font-size: 12px; color: #9A7858; margin-top: 2px; }
+.header-actions { display: flex; align-items: center; gap: 10px; }
+.search-wrap { display: flex; align-items: center; gap: 8px; background: #FDFAF6; border: 1px solid rgba(155,107,58,0.16); border-radius: 9px; padding: 8px 13px; box-shadow: 0 1px 6px rgba(80,30,10,0.08); min-width: 210px; }
+.search-input-proto { border: none; background: none; outline: none; font-size: 13px; font-family: 'Outfit'; color: #3A2515; width: 100%; }
+.search-input-proto::placeholder { color: #9A7858; }
+.btn-add { display: flex; align-items: center; gap: 7px; background: #9B6B3A; color: #FDFAF6; border: none; padding: 9px 16px; border-radius: 9px; font-size: 12px; font-weight: 600; font-family: 'Outfit'; cursor: pointer; letter-spacing: 0.04em; box-shadow: 0 2px 8px rgba(155,107,58,0.3); transition: background 0.13s; }
+.btn-add:hover { background: #C49455; }
+.cust-table-card { background: #FDFAF6; border: 1px solid rgba(155,107,58,0.16); border-radius: 16px; box-shadow: 0 2px 14px rgba(80,30,10,0.08); overflow: hidden; }
+.filter-row { display: flex; align-items: center; gap: 8px; padding: 12px 18px; border-bottom: 1px solid rgba(155,107,58,0.16); background: #F5EFE4; flex-wrap: wrap; }
+.filter-chip { padding: 5px 12px; border-radius: 20px; font-size: 12px; border: 1px solid rgba(155,107,58,0.16); background: #FDFAF6; color: #9A7858; cursor: pointer; font-family: 'Outfit'; transition: all 0.12s; }
+.filter-chip:hover { border-color: #C49455; color: #9B6B3A; }
+.filter-chip.on { border-color: #9B6B3A; color: #9B6B3A; background: #EDE0CC; font-weight: 500; }
+.filter-spacer { flex: 1; }
+.tbl-wrap { overflow-x: auto; }
+.cust-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 900px; }
+.cust-table thead th { text-align: left; padding: 10px 16px; font-size: 10px; letter-spacing: 0.13em; text-transform: uppercase; color: #9A7858; font-weight: 600; background: #F5EFE4; white-space: nowrap; }
+.cust-table tbody tr { border-top: 1px solid rgba(155,107,58,0.16); transition: background 0.1s; }
+.cust-table tbody tr:hover { background: #EDE0CC; }
+.cust-table tbody td { padding: 11px 16px; color: #3A2515; white-space: nowrap; vertical-align: middle; }
+td.mono, .mono { font-family: monospace; font-size: 12px; color: #9B6B3A; font-weight: 600; }
+.dim { color: #9A7858; font-size: 12px; }
+.cust-name { font-weight: 500; }
+.repeat-badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+.r-primary { background: rgba(155,107,58,0.12); color: #9B6B3A; }
+.r-printed { background: rgba(61,122,90,0.1); color: #3D7A5A; }
+.r-not-printed { background: rgba(155,107,58,0.1); color: #9B6B3A; }
+.r-reprint-none { background: rgba(154,120,88,0.08); color: #9A7858; }
+.r-reprint-low { background: rgba(155,107,58,0.1); color: #9B6B3A; }
+.r-reprint-high { background: rgba(184,64,64,0.08); color: #B84040; }
+.act-btns { display: flex; align-items: center; gap: 4px; }
+.act-btn { width: 27px; height: 27px; border-radius: 7px; border: 1px solid rgba(155,107,58,0.16); background: #F5EFE4; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.12s; color: #9A7858; }
+.act-btn:hover { border-color: #C49455; color: #9B6B3A; background: #EDE0CC; }
+.act-btn.del:hover { border-color: rgba(184,64,64,0.4); color: #B84040; background: rgba(184,64,64,0.06); }
+.act-btn.print-btn:hover { border-color: #3D7A5A; color: #3D7A5A; background: rgba(61,122,90,0.06); }
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 52px 20px; gap: 10px; color: #9A7858; }
+.empty-icon { width: 48px; height: 48px; border-radius: 13px; background: #EDE0CC; display: flex; align-items: center; justify-content: center; }
+.empty-title { font-size: 14px; font-weight: 500; color: #6B4A30; }
+.btn-cancel-proto { background: none; border: 1px solid rgba(155,107,58,0.16); padding: 8px 16px; border-radius: 8px; font-size: 13px; font-family: 'Outfit'; color: #9A7858; cursor: pointer; margin-right: 8px; }
+.btn-danger-proto { background: #B84040; color: #FDFAF6; border: none; padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; font-family: 'Outfit'; cursor: pointer; }
 </style>
