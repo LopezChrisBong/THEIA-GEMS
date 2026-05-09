@@ -1,95 +1,55 @@
 <template>
-  <v-container fluid>
-    <!-- Header Section -->
-    <v-card flat class="mb-4 pa-4 rounded-xl header-card">
-      <v-row align="center">
-        <v-col cols="12" md="4">
-          <h2 class="mb-1 font-weight-medium">Items</h2>
-          <small class="text-medium-emphasis">
-            Manage inventory items
-          </small>
-        </v-col>
+  <v-container fluid class="theia-view">
+    <!-- Page Header -->
+    <div class="page-header">
+      <div>
+        <div class="page-heading">Items</div>
+        <div class="page-sub">Manage inventory items</div>
+      </div>
+      <div class="header-actions">
+        <div class="search-wrap">
+          <v-icon size="14" color="#9A7858">mdi-magnify</v-icon>
+          <input v-model="search" type="text" placeholder="Search items..." class="search-input-proto" />
+        </div>
+        <button class="btn-import" @click="dialogImport = true">
+          <v-icon size="13" color="#9B6B3A">mdi-file-upload-outline</v-icon>
+          Import
+        </button>
+        <button class="btn-add" @click="addNew()">
+          <v-icon size="13" color="white">mdi-plus</v-icon>
+          Add Item
+        </button>
+      </div>
+    </div>
 
-        <v-col cols="12" md="8" class="d-flex justify-end gap-2 flex-wrap">
-          <v-select
-            v-model="filterCategory"
-            :items="categoryList"
-            item-title="categoryName"
-            item-value="id"
-            label="Category"
-            variant="outlined"
-            density="compact"
-            hide-details
-            clearable
-            class="filter-input"
-            @update:modelValue="initialize"
-          />
-
-          <v-select
-            v-model="filterBranch"
-            :items="branchList"
-            item-title="branchName"
-            item-value="branchId"
-            label="Branch"
-            variant="outlined"
-            density="compact"
-            hide-details
-            clearable
-            class="filter-input"
-            @update:modelValue="initialize"
-          />
-
-          <v-select
-            v-model="filterStatus"
-            :items="statusOptions"
-            item-title="label"
-            item-value="value"
-            label="Status"
-            variant="outlined"
-            density="compact"
-            hide-details
-            clearable
-            class="filter-input"
-            @update:modelValue="initialize"
-          />
-
-          <v-text-field
-            v-model="search"
-            label="Search"
-            prepend-inner-icon="mdi-magnify"
-            variant="outlined"
-            density="compact"
-            hide-details
-            clearable
-            class="search-input"
-          />
-
-          <v-btn
-            color="primary"
-            prepend-icon="mdi-file-upload-outline"
-            rounded="lg"
-            elevation="1"
-            variant="outlined"
-            @click="dialogImport = true"
-          >
-            Import Excel
-          </v-btn>
-
-          <v-btn
-            color="#8e6e25"
-            prepend-icon="mdi-plus"
-            rounded="lg"
-            elevation="1"
-            @click="addNew()"
-          >
-            Add Item
-          </v-btn>
-        </v-col>
-      </v-row>
-    </v-card>
+    <!-- Filter + Table Card -->
+    <div class="cust-table-card">
+      <div class="filter-row">
+        <div class="per-pg">
+          Category:
+          <select v-model="filterCategory" @change="initialize()">
+            <option :value="null">All</option>
+            <option v-for="c in categoryList" :key="c.id" :value="c.id">{{ c.categoryName }}</option>
+          </select>
+        </div>
+        <div class="per-pg">
+          Branch:
+          <select v-model="filterBranch" @change="initialize()">
+            <option :value="null">All</option>
+            <option v-for="b in branchList" :key="b.branchId" :value="b.branchId">{{ b.branchName }}</option>
+          </select>
+        </div>
+        <div class="per-pg">
+          Status:
+          <select v-model="filterStatus" @change="initialize()">
+            <option :value="null">All</option>
+            <option v-for="s in statusOptions" :key="s.value" :value="s.value">{{ s.label }}</option>
+          </select>
+        </div>
+        <div class="filter-spacer" />
+      </div>
 
     <!-- Data Table -->
-    <v-card elevation="2" rounded="xl">
       <v-data-table
         :headers="headers"
         :items="data"
@@ -186,7 +146,7 @@
           </v-alert>
         </template>
       </v-data-table>
-    </v-card>
+    </div>
 
     <!-- Dialogs -->
     <JewelryItemsDialog :data="updateData" :action="action" />
@@ -1231,18 +1191,23 @@ export default {
 </script>
 
 <style scoped>
-.header-card {
-  background: linear-gradient(135deg, #faf7f4, #ffffff);
-}
-.search-input {
-  max-width: 220px;
-}
-.filter-input {
-  max-width: 180px;
-}
-.gap-2 {
-  gap: 12px;
-}
+.theia-view { font-family: 'Outfit', sans-serif; color: #3A2515; position: relative; z-index: 1; }
+.page-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 18px; }
+.page-heading { font-family: 'Cormorant Garamond', serif; font-size: 24px; font-weight: 500; color: #3A2515; }
+.page-sub { font-size: 12px; color: #9A7858; margin-top: 2px; }
+.header-actions { display: flex; align-items: center; gap: 10px; }
+.search-wrap { display: flex; align-items: center; gap: 8px; background: #FDFAF6; border: 1px solid rgba(155,107,58,0.16); border-radius: 9px; padding: 8px 13px; box-shadow: 0 1px 6px rgba(80,30,10,0.08); min-width: 210px; }
+.search-input-proto { border: none; background: none; outline: none; font-size: 13px; font-family: 'Outfit'; color: #3A2515; width: 100%; }
+.search-input-proto::placeholder { color: #9A7858; }
+.btn-add { display: flex; align-items: center; gap: 7px; background: #9B6B3A; color: #FDFAF6; border: none; padding: 9px 16px; border-radius: 9px; font-size: 12px; font-weight: 600; font-family: 'Outfit'; cursor: pointer; letter-spacing: 0.04em; box-shadow: 0 2px 8px rgba(155,107,58,0.3); transition: background 0.13s; }
+.btn-add:hover { background: #C49455; }
+.btn-import { display: flex; align-items: center; gap: 7px; background: #FDFAF6; color: #9B6B3A; border: 1px solid rgba(155,107,58,0.3); padding: 8px 14px; border-radius: 9px; font-size: 12px; font-weight: 600; font-family: 'Outfit'; cursor: pointer; transition: all 0.13s; }
+.btn-import:hover { background: #EDE0CC; border-color: #9B6B3A; }
+.cust-table-card { background: #FDFAF6; border: 1px solid rgba(155,107,58,0.16); border-radius: 16px; box-shadow: 0 2px 14px rgba(80,30,10,0.08); overflow: hidden; }
+.filter-row { display: flex; align-items: center; gap: 12px; padding: 12px 18px; border-bottom: 1px solid rgba(155,107,58,0.16); background: #F5EFE4; flex-wrap: wrap; }
+.filter-spacer { flex: 1; }
+.per-pg { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #9A7858; }
+.per-pg select { border: 1px solid rgba(155,107,58,0.16); border-radius: 7px; background: #FDFAF6; color: #3A2515; font-family: 'Outfit'; font-size: 12px; padding: 4px 8px; outline: none; cursor: pointer; }
 .view-label {
   font-size: 0.75rem;
   color: #888;
