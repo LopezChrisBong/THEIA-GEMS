@@ -12,15 +12,10 @@ import { ExpressAdapter } from '@nestjs/platform-express';
 
 async function bootstrap() {
   var whitelist = [
+    'http://167.99.76.86',
     'http://localhost:8080',
     'http://localhost:3000',
-    'http://his.dnsc.edu.ph:3000',
-    'http://his.dnsc.edu.ph:8080',
-    'https://his.dnsc.edu.ph:8080',
-    'https://his.dnsc.edu.ph:3000',
-    'https://his.dnsc.edu.ph',
     'http://localhost',
-    // 'https://dnsc.edu.ph/'
   ];
   const httpsOptions = {
     // key: fs.readFileSync(join(__dirname, '../key.pem')),
