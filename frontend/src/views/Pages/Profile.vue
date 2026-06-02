@@ -316,8 +316,7 @@ export default {
             ? process.env.VUE_APP_SERVER +
               "/user-details/getProfileImg/" +
               res.data.profile_img
-            : process.env.VUE_APP_SERVER +
-              "/user-details/getProfileImg/img_avatar.png";
+            : null;
         }
       });
     },
@@ -357,6 +356,8 @@ export default {
                 this.axiosCall("/user-details/uploadimage", "POST", fd).then(
                   (resp) => {
                     if (resp.data.status == 200) {
+                      this.isSelecting = false;
+                      this.selectFile = null;
                       this.initialize();
                       this.fadeAwayMessage.message = resp.data.msg;
                       this.fadeAwayMessage.show = true;

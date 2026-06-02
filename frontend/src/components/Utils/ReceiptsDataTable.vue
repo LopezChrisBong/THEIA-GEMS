@@ -67,6 +67,7 @@
               </td>
               <td>
                 <div class="act-btns">
+                  <button class="act-btn view-btn" title="View Receipt" @click="viewItem(item)"><v-icon size="14">mdi-eye-outline</v-icon></button>
                   <button class="act-btn print-btn" title="Print" @click="printReceipt(item)"><v-icon size="14">mdi-printer</v-icon></button>
                   <button class="act-btn" title="Edit" @click="editItem(item)"><v-icon size="14">mdi-pencil-outline</v-icon></button>
                   <button class="act-btn del" title="Delete" @click="deleteItem(item)"><v-icon size="14">mdi-delete-outline</v-icon></button>
@@ -89,6 +90,119 @@
         </div>
       </div>
     </div>
+
+    <!-- View Receipt Modal -->
+    <v-dialog v-model="dialogView" max-width="440px">
+      <v-card v-if="viewData" class="receipt-view-card">
+        <!-- Close -->
+        <button class="receipt-close-btn" @click="dialogView = false">
+          <v-icon size="16">mdi-close</v-icon>
+        </button>
+
+        <!-- Receipt Header -->
+        <div class="rv-header">
+          <div class="rv-store">THEIA GEMS</div>
+          <div class="rv-store-sub">Official Receipt</div>
+          <div class="rv-divider-dots">· · · · · · · · · · · · · · · · · · ·</div>
+          <div class="rv-receipt-no">{{ viewData.receiptNumber }}</div>
+          <div class="rv-sale-no">Sale # {{ viewData.sale?.saleNumber || '—' }}</div>
+          <div class="rv-date">{{ formatDateTime(viewData.sale?.saleDate || viewData.printedAt) }}</div>
+        </div>
+
+        <div class="rv-divider"></div>
+
+        <!-- Branch & Cashier -->
+        <div class="rv-section">
+          <div class="rv-row">
+            <span class="rv-lbl">Branch</span>
+            <span class="rv-val">{{ viewData.branch?.branchName || '—' }}</span>
+          </div>
+          <div class="rv-row" v-if="viewData.sale?.cashier">
+            <span class="rv-lbl">Cashier</span>
+            <span class="rv-val">{{ viewData.sale.cashier.firstName || '' }} {{ viewData.sale.cashier.lastName || '' }}</span>
+          </div>
+          <div class="rv-row" v-if="viewData.sale?.customer">
+            <span class="rv-lbl">Customer</span>
+            <span class="rv-val">{{ viewData.sale.customer.firstName }} {{ viewData.sale.customer.lastName }}</span>
+          </div>
+        </div>
+
+        <div class="rv-divider"></div>
+
+        <!-- Sale Breakdown -->
+        <div class="rv-section">
+          <div class="rv-row">
+            <span class="rv-lbl">Sale Type</span>
+            <span class="rv-val" style="text-transform:capitalize">{{ viewData.sale?.saleType || '—' }}</span>
+          </div>
+          <div class="rv-row">
+            <span class="rv-lbl">Subtotal</span>
+            <span class="rv-val">₱{{ formatNumber(viewData.sale?.subtotal) }}</span>
+          </div>
+          <div class="rv-row" v-if="Number(viewData.sale?.discountAmount) > 0">
+            <span class="rv-lbl">Discount</span>
+            <span class="rv-val rv-discount">- ₱{{ formatNumber(viewData.sale?.discountAmount) }}</span>
+          </div>
+          <div class="rv-row" v-if="Number(viewData.sale?.taxAmount) > 0">
+            <span class="rv-lbl">VAT (12%)</span>
+            <span class="rv-val">₱{{ formatNumber(viewData.sale?.taxAmount) }}</span>
+          </div>
+        </div>
+
+        <div class="rv-divider"></div>
+
+        <!-- Total -->
+        <div class="rv-total-row">
+          <span>TOTAL</span>
+          <span class="rv-total-amt">₱{{ formatNumber(viewData.sale?.totalAmount) }}</span>
+        </div>
+
+        <!-- Payment Info -->
+        <div class="rv-section" style="margin-top:8px">
+          <div class="rv-row">
+            <span class="rv-lbl">Amount Paid</span>
+            <span class="rv-val">₱{{ formatNumber(viewData.sale?.amountPaid) }}</span>
+          </div>
+          <div class="rv-row" v-if="Number(viewData.sale?.changeAmount) > 0">
+            <span class="rv-lbl">Change</span>
+            <span class="rv-val">₱{{ formatNumber(viewData.sale?.changeAmount) }}</span>
+          </div>
+          <div class="rv-row">
+            <span class="rv-lbl">Status</span>
+            <span class="rv-val" style="text-transform:capitalize">{{ viewData.sale?.paymentStatus || '—' }}</span>
+          </div>
+        </div>
+
+        <div class="rv-divider"></div>
+
+        <!-- Print Info -->
+        <div class="rv-section rv-print-info">
+          <div class="rv-row">
+            <span class="rv-lbl">Print Status</span>
+            <span class="rv-val">
+              <span class="repeat-badge" :class="viewData.printedAt ? 'r-printed' : 'r-not-printed'">
+                {{ viewData.printedAt ? 'Printed' : 'Not Printed' }}
+              </span>
+            </span>
+          </div>
+          <div class="rv-row" v-if="viewData.printedAt">
+            <span class="rv-lbl">Printed At</span>
+            <span class="rv-val">{{ formatDateTime(viewData.printedAt) }}</span>
+          </div>
+          <div class="rv-row" v-if="viewData.printer">
+            <span class="rv-lbl">Printed By</span>
+            <span class="rv-val">{{ viewData.printer.firstName }} {{ viewData.printer.lastName }}</span>
+          </div>
+          <div class="rv-row">
+            <span class="rv-lbl">Reprints</span>
+            <span class="rv-val">{{ viewData.reprintCount || 0 }}</span>
+          </div>
+        </div>
+
+        <div class="rv-divider-dots" style="text-align:center;color:#C4A882;margin:12px 0 8px">· · · · · · · · · · · · · · · · · · ·</div>
+        <div class="rv-footer">Thank you for shopping at Theia Gems</div>
+      </v-card>
+    </v-dialog>
 
     <ReceiptsDialog :data="updateData" :action="action" />
 
@@ -117,6 +231,7 @@ export default {
   data: () => ({
     search: "", filterPrint: null, data: [], deleteData: null, updateData: null,
     loading: false, deleting: false, action: null, dialogConfirmDelete: false,
+    dialogView: false, viewData: null,
     fadeAwayMessage: { show: false, type: "success", header: "Success", message: "", top: 10 },
   }),
   computed: {
@@ -154,6 +269,7 @@ export default {
     },
     addNew() { this.updateData = { id: null }; this.action = "Add"; },
     editItem(item) { this.updateData = { ...item }; this.action = "Update"; },
+    viewItem(item) { this.viewData = item; this.dialogView = true; },
     printReceipt(item) {
       this.fadeAwayMessage = { show: true, type: "info", header: "Print", message: "Printing receipt " + item.receiptNumber + "...", top: 10 };
     },
@@ -207,6 +323,64 @@ td.mono, .mono { font-family: monospace; font-size: 12px; color: #9B6B3A; font-w
 .act-btn:hover { border-color: #C49455; color: #9B6B3A; background: #EDE0CC; }
 .act-btn.del:hover { border-color: rgba(184,64,64,0.4); color: #B84040; background: rgba(184,64,64,0.06); }
 .act-btn.print-btn:hover { border-color: #3D7A5A; color: #3D7A5A; background: rgba(61,122,90,0.06); }
+.act-btn.view-btn:hover { border-color: #5A7A9B; color: #5A7A9B; background: rgba(90,122,155,0.06); }
+
+/* ── Receipt View Modal ── */
+.receipt-view-card {
+  border-radius: 16px !important;
+  overflow: hidden;
+  font-family: 'Outfit', sans-serif;
+  background: #FDFAF6;
+  padding: 24px 28px 20px;
+  position: relative;
+}
+.receipt-close-btn {
+  position: absolute; top: 14px; right: 14px;
+  background: none; border: none; cursor: pointer;
+  color: #9A7858; padding: 4px; border-radius: 6px;
+  display: flex; align-items: center; transition: color 0.12s;
+}
+.receipt-close-btn:hover { color: #B84040; }
+
+.rv-header { text-align: center; margin-bottom: 12px; }
+.rv-store {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px; font-weight: 600;
+  color: #9B6B3A; letter-spacing: 0.12em;
+}
+.rv-store-sub { font-size: 11px; color: #9A7858; letter-spacing: 0.14em; text-transform: uppercase; margin-top: 2px; }
+.rv-divider-dots { font-size: 11px; color: #C4A882; margin: 8px 0; letter-spacing: 0.1em; }
+.rv-receipt-no { font-family: monospace; font-size: 15px; font-weight: 700; color: #3A2515; margin-top: 6px; }
+.rv-sale-no { font-family: monospace; font-size: 11px; color: #9A7858; margin-top: 2px; }
+.rv-date { font-size: 11px; color: #9A7858; margin-top: 3px; }
+
+.rv-divider { height: 1px; background: rgba(155,107,58,0.16); margin: 10px 0; }
+
+.rv-section { padding: 4px 0; }
+.rv-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 5px 0; font-size: 13px; color: #3A2515;
+  border-bottom: 1px dashed rgba(155,107,58,0.1);
+}
+.rv-row:last-child { border-bottom: none; }
+.rv-lbl { color: #9A7858; font-size: 12px; }
+.rv-val { font-weight: 500; text-align: right; }
+.rv-discount { color: #3D7A5A; }
+
+.rv-total-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 10px 0 4px;
+  font-size: 13px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: #3A2515;
+}
+.rv-total-amt {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 28px; font-weight: 600; color: #9B6B3A;
+}
+
+.rv-print-info .rv-lbl { color: #9A7858; }
+.rv-footer { text-align: center; font-size: 11px; color: #9A7858; font-style: italic; padding-bottom: 4px; }
 .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 52px 20px; gap: 10px; color: #9A7858; }
 .empty-icon { width: 48px; height: 48px; border-radius: 13px; background: #EDE0CC; display: flex; align-items: center; justify-content: center; }
 .empty-title { font-size: 14px; font-weight: 500; color: #6B4A30; }

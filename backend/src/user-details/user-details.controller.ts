@@ -66,53 +66,43 @@ export class UserDetailsController {
     return this.userDetailsService.createuser(createUserDetailDto);
   }
 
-  // @UseGuards(JWTAuthGuard)
-  // @ApiBearerAuth()
-  // // Image uploading
-  // @Post('uploadimage')
-  // @UseInterceptors(
-  //   FileInterceptor('file', {
-  //     storage: diskStorage({
-  //       destination: Helper.filePath,
-  //       filename: Helper.customFileName,
-  //     }),
-  //   }),
-  // )
-  // async uploadImage(@UploadedFile(ParseFile) file, @Headers() headers) {
-  //   var head_str = headers.authorization;
+  @UseGuards(JWTAuthGuard)
+  @ApiBearerAuth()
+  @Post('uploadimage')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: diskStorage({
+        destination: Helper.filePath,
+        filename: Helper.customFileName,
+      }),
+    }),
+  )
+  async uploadImage(@UploadedFile(ParseFile) file, @Headers() headers) {
+    var head_str = headers.authorization;
 
-  //   const curr_user = currentUser(head_str);
+    const curr_user = currentUser(head_str);
 
-  //   const user = await this.userDetailsService.getPersonalInfo(curr_user);
+    const user = await this.userDetailsService.getPersonalInfo(curr_user);
 
-  //   if (user.profile_img != 'img_avatar') {
-  //     //check if app is in production
-  //     // if (process.env.NODE_ENV == 'production') {
-  //     //   fs.unlink(
-  //     //     join(__dirname, `../upload_img/${user.profile_img}`),
-  //     //     async (err) => {
-  //     //       if (err) {
-  //     //         console.log(err);
-  //     //       }
-  //     //     },
-  //     //   );
-  //     // } else {
-  //     fs.unlink(
-  //       join(process.cwd(), `/../upload_img/${user.profile_img}`),
-  //       async (err) => {
-  //         if (err) {
-  //           console.log(err);
-  //         }
-  //       },
-  //     );
-  //     // }
-  //   }
+    if (user.profile_img != 'img_avatar') {
+      fs.unlink(
+        join(process.cwd(), `/../upload_img/${user.profile_img}`),
+        async (err) => {
+          if (err) {
+            console.log(err);
+          }
+        },
+      );
+    }
 
-  //   return this.userDetailsService.uploadProfileImg(
-  //     file.file.filename,
-  //     curr_user,
-  //   );
-  // }
+    console.log('[uploadImage] file.filename:', file?.filename);
+    console.log('[uploadImage] curr_user.userdetail.id:', curr_user?.userdetail?.id);
+
+    return this.userDetailsService.uploadProfileImg(
+      file.filename,
+      curr_user,
+    );
+  }
 
   @UseGuards(JWTAuthGuard)
   @ApiBearerAuth()
@@ -243,16 +233,20 @@ export class UserDetailsController {
     @Param('filename') filename: string,
     @Res({ passthrough: true }) res: Response,
   ): StreamableFile {
-    const filePath = join(process.cwd(), 'upload_img', filename);
+    const filePath = join(process.cwd(), '../upload_img', filename);
+    console.log('[getProfileImg] Looking for file at:', filePath);
+    console.log('[getProfileImg] File exists:', existsSync(filePath));
 
     if (!existsSync(filePath)) {
       throw new NotFoundException('File not found');
     }
 
+    const ext = (filename.split('.').pop() ?? 'jpeg').toLowerCase();
+    const mimeTypes = { jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp' };
+    const contentType = mimeTypes[ext] || 'application/octet-stream';
+
     const file = createReadStream(filePath);
-    res.set({
-      'Content-Type': 'image/png',
-    });
+    res.set({ 'Content-Type': contentType });
 
     return new StreamableFile(file);
   }

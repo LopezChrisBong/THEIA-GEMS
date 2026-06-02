@@ -288,22 +288,24 @@ export default {
 
 /* ─── EMBLEM ─── */
 .login-emblem {
-  width: 74px;
-  height: 74px;
+  width: 80px;
+  height: 80px;
   border-radius: 50%;
-  background: #F5EFE4;
-  border: 2px solid rgba(155,107,58,0.2);
+  border: 2.5px solid rgba(155,107,58,0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 16px;
-  box-shadow: 0 2px 10px rgba(155,107,58,0.12);
+  box-shadow: 0 2px 12px rgba(155,107,58,0.18);
+  overflow: hidden;
 }
 
 .login-logo-img {
-  width: 48px;
-  height: 48px;
-  object-fit: contain;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
 }
 
 /* ─── BRAND ─── */

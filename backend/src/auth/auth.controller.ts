@@ -75,12 +75,18 @@ export class AuthController {
   @UseGuards(JWTAuthGuard)
   @ApiBearerAuth()
   @Get('current_user')
-  getCurrentUser(@Headers() headers) {
-    var head_str = headers.authorization;
-    var arr = head_str.split(' ');
-    var token_string = arr[1].toString();
+  async getCurrentUser(@Headers() headers) {
+    const token = headers.authorization?.split(' ')[1];
+    const decoded: any = this.jwtService.decode(token);
+    const id: number = decoded?.userdetail?.id;
 
-    return this.jwtService.decode(token_string);
+    if (id) {
+      const fresh = await this.authService.getFreshUserDetail(id);
+      if (fresh) return { userdetail: fresh };
+    }
+
+    // fallback: return JWT-decoded data if DB lookup fails
+    return decoded;
   }
 
   @UseGuards(JWTAuthGuard)

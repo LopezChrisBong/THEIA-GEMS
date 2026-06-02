@@ -89,11 +89,25 @@ export class TransfersController {
     return this.transfersService.reject(id, approvedBy);
   }
 
+  /** Mark items as dispatched (in transit). Optional body: { transferredBy: number } */
   @Patch(':id/in-transit')
-  markInTransit(@Param('id', ParseIntPipe) id: number): Promise<Transfer> {
-    return this.transfersService.markInTransit(id);
+  markInTransit(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('transferredBy') transferredBy?: number,
+  ): Promise<Transfer> {
+    return this.transfersService.markInTransit(id, transferredBy);
   }
 
+  /** Receive items at destination branch. Body: { receivedBy: number } */
+  @Patch(':id/receive')
+  receive(
+    @Param('id', ParseIntPipe) id: number,
+    @Body('receivedBy') receivedBy: number,
+  ): Promise<Transfer> {
+    return this.transfersService.receive(id, receivedBy);
+  }
+
+  /** Legacy complete endpoint — delegates to receive using the transfer requester as performer. */
   @Patch(':id/complete')
   complete(@Param('id', ParseIntPipe) id: number): Promise<Transfer> {
     return this.transfersService.complete(id);

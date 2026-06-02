@@ -39,6 +39,8 @@ import PaymentReminders from '@/views/Pages/PaymentReminders.vue';
 import PromotionalMessages from '@/views/Pages/PromotionalMessages.vue';
 import InventoryLogs from '@/views/Pages/InventoryLogs.vue';
 import Receipts from '@/views/Pages/Receipts.vue';
+import TransactionHistory from '@/views/Pages/TransactionHistory.vue';
+import SalesReport from '@/views/Pages/SalesReport.vue';
 // import OPCR from "../views/Pages/OPCR.vue";
 // Vue.use(VueRouter);
 
@@ -281,6 +283,16 @@ const routes = [
         path: "receipts",
         component: Receipts,
         meta: { title: "Receipts", authRequired: true },
+      },
+      {
+        path: "transaction-history",
+        component: TransactionHistory,
+        meta: { title: "Transaction History", authRequired: true },
+      },
+      {
+        path: "sales-report",
+        component: SalesReport,
+        meta: { title: "Sales Report", authRequired: true },
       },
     ],
   },

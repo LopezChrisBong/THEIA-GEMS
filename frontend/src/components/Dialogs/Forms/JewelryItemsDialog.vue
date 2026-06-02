@@ -206,20 +206,6 @@
                   />
                 </v-col>
 
-                <!-- Gold Weight -->
-                <v-col cols="12" md="4" class="mb-4">
-                  <v-text-field
-                    v-model="goldWeight"
-                    label="Gold Weight"
-                    outlined
-                    dense
-                    clearable
-                    color="primary"
-                    hint="e.g., 3.4GRMS"
-                    persistent-hint
-                  />
-                </v-col>
-
                 <!-- Price -->
                 <v-col cols="12" md="4" class="mb-4">
                   <v-text-field
@@ -274,35 +260,6 @@
                     dense
                     clearable
                     color="primary"
-                  />
-                </v-col>
-
-                <!-- Supplier Code -->
-                <v-col cols="12" md="6" class="mb-4">
-                  <v-text-field
-                    v-model="supplierCode"
-                    label="Supplier / GIA Code"
-                    outlined
-                    dense
-                    clearable
-                    color="primary"
-                  />
-                </v-col>
-
-                <!-- Parent Item (for Sets) -->
-                <v-col cols="12" md="6" class="mb-4">
-                  <v-autocomplete
-                    v-model="parentItemId"
-                    :items="parentItemList"
-                    item-title="itemCode"
-                    item-value="id"
-                    label="Parent Item (for Sets)"
-                    outlined
-                    dense
-                    clearable
-                    color="primary"
-                    hint="Select parent if this is part of a set"
-                    persistent-hint
                   />
                 </v-col>
 
@@ -495,15 +452,12 @@ export default {
       designModelId: null,
       goldType: null,
       carat: null,
-      goldWeight: null,
       size: null,
       price: null,
       cost: null,
       status: "IN_STOCK",
       branchId: null,
       supplierId: null,
-      supplierCode: null,
-      parentItemId: null,
       purchaseDate: null,
       notes: null,
 
@@ -511,13 +465,14 @@ export default {
       existingImages: [],
       imagePreviewUrls: [],
 
+      lastOpenedId: undefined,
+
       categoryList: [],
       stoneTypeList: [],
       jewelryTypeList: [],
       designModelList: [],
       branchList: [],
       supplierList: [],
-      parentItemList: [],
 
       goldTypeOptions: [
         { label: "Yellow Gold (YG)", value: "YG" },
@@ -551,7 +506,10 @@ export default {
         this.$refs.JewelryItemsFormref?.resetValidation();
         this.loadLookups();
 
-        if (data && data.id) {
+        const newId = data?.id ?? null;
+
+        if (newId) {
+          this.lastOpenedId = newId;
           this.id = data.id;
           this.itemCode = data.itemCode;
           this.barcode = data.barcode;
@@ -564,20 +522,22 @@ export default {
           this.designModelId = data.designModelId;
           this.goldType = data.goldType;
           this.carat = data.carat;
-          this.goldWeight = data.goldWeight;
           this.size = data.size;
           this.price = data.price ? Number(data.price) : null;
           this.cost = data.cost ? Number(data.cost) : null;
           this.status = data.status;
           this.branchId = data.branchId;
           this.supplierId = data.supplierId;
-          this.supplierCode = data.supplierCode;
-          this.parentItemId = data.parentItemId;
           this.purchaseDate = data.purchaseDate;
           this.notes = data.notes;
           this.existingImages = data.images ? [...data.images] : [];
         } else {
-          this.resetForm();
+          // Add mode: only reset if this is the first open or switching from another context.
+          // Re-opening Add after Cancel retains whatever was typed.
+          if (this.lastOpenedId !== null) {
+            this.lastOpenedId = null;
+            this.resetForm();
+          }
         }
       },
       deep: true,
@@ -615,9 +575,6 @@ export default {
       this.axiosCall("/suppliers", "GET").then((res) => {
         if (res && res.data) this.supplierList = res.data;
       });
-      this.axiosCall("/jewelry-items", "GET").then((res) => {
-        if (res && res.data) this.parentItemList = res.data;
-      });
     },
 
     resetForm() {
@@ -633,15 +590,12 @@ export default {
       this.designModelId = null;
       this.goldType = null;
       this.carat = null;
-      this.goldWeight = null;
       this.size = null;
       this.price = null;
       this.cost = null;
       this.status = "IN_STOCK";
       this.branchId = null;
       this.supplierId = null;
-      this.supplierCode = null;
-      this.parentItemId = null;
       this.purchaseDate = null;
       this.notes = null;
       this.newImages = [];
@@ -655,7 +609,7 @@ export default {
     },
 
     buildPayload() {
-      return {
+      const payload = {
         itemCode: this.itemCode,
         barcode: this.barcode || null,
         categoryId: this.categoryId,
@@ -667,18 +621,20 @@ export default {
         designModelId: this.designModelId || null,
         goldType: this.goldType || null,
         carat: this.carat || null,
-        goldWeight: this.goldWeight || null,
         size: this.size || null,
         price: this.price || null,
         cost: this.cost || null,
         status: this.status,
         branchId: this.branchId,
         supplierId: this.supplierId || null,
-        supplierCode: this.supplierCode || null,
-        parentItemId: this.parentItemId || null,
         purchaseDate: this.purchaseDate || null,
         notes: this.notes || null,
       };
+      // Only stamp addedBy when creating a new item
+      if (this.action === 'Add') {
+        payload.addedBy = Number(this.$store.state.user?.userID) || null;
+      }
+      return payload;
     },
 
     async uploadImages(itemId) {
@@ -734,6 +690,7 @@ export default {
             this.fadeAwayMessage.type = "success";
             this.fadeAwayMessage.header = "Success";
             this.fadeAwayMessage.message = "Item created successfully";
+            this.lastOpenedId = undefined;
             this.closeD();
           } else {
             this.fadeAwayMessage.show = true;

@@ -54,6 +54,22 @@
                 />
               </v-col>
 
+              <!-- Quantity -->
+              <v-col cols="12" md="4" class="mb-4">
+                <v-text-field
+                  v-model.number="editedItem.quantity"
+                  label="Quantity"
+                  type="number"
+                  min="1"
+                  :rules="[(v) => v >= 1 || 'Must be at least 1']"
+                  outlined
+                  dense
+                  color="primary"
+                  hint="Number of pieces"
+                  persistent-hint
+                />
+              </v-col>
+
               <!-- Notes -->
               <v-col cols="12" class="mb-4">
                 <v-textarea
@@ -110,11 +126,13 @@ export default {
       editedItem: {
         transferId: null,
         jewelryItemId: null,
+        quantity: 1,
         notes: "",
       },
       defaultItem: {
         transferId: null,
         jewelryItemId: null,
+        quantity: 1,
         notes: "",
       },
       transfers: [],
@@ -141,6 +159,7 @@ export default {
       this.editedItem = {
         transferId: item.transferId,
         jewelryItemId: item.jewelryItemId,
+        quantity: item.quantity ?? 1,
         notes: item.notes || "",
       };
       this.dialog = true;
@@ -192,6 +211,7 @@ export default {
         const payload = {
           transferId: this.editedItem.transferId,
           jewelryItemId: this.editedItem.jewelryItemId,
+          quantity: this.editedItem.quantity || 1,
           notes: this.editedItem.notes || null,
         };
 

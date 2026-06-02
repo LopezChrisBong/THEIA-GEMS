@@ -93,10 +93,10 @@
         <span class="topbar-date">{{ currentDate }}</span>
 
         <v-spacer />
-
+<!-- 
         <button class="btn-new-sale" @click="$router.push(`/${userType}/pos`)">
           + New Sale
-        </button>
+        </button> -->
 
         <v-menu transition="scale-transition">
           <template #activator="{ props }">
@@ -278,18 +278,21 @@ export default {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #FDFAF6;
+  border: 2px solid rgba(155,107,58,0.5);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  box-shadow: 0 2px 8px rgba(155,107,58,0.15);
+  overflow: hidden;
 }
 
 .sidebar-logo-img {
-  width: 28px;
-  height: 28px;
-  object-fit: contain;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
 }
 
 .logo-name {

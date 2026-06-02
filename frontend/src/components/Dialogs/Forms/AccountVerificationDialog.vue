@@ -164,8 +164,6 @@ export default {
     data: {
       handler(data) {
         this.dialog = true;
-        this.initialize();
-        // this.$refs.UserVerifyFormref.resetValidation();
         if (data.id) {
           console.log("Love", data);
           this.verifyModel.id = data.id;
@@ -176,20 +174,22 @@ export default {
           this.verifyModel.user_roleID = data.user_user_roleID;
           this.verifyModel.assignedModuleID = data.user_assignedModuleID;
           this.verifyModel.newStatus = data.status;
-          this.verifyModel.branchId = data.branchId;
-          // this.verifyModel.date_hired = data.emp_date_hired;
+          this.verifyModel.branchId = null;
+          this.initialize(data.branchId);
+        } else {
+          this.initialize(null);
         }
       },
       deep: true,
     },
   },
   methods: {
-    initialize() {
+    initialize(branchId) {
       this.userId = this.$store.state.user.id;
       this.getUserType();
       this.getAssignedModules();
       this.getUseRoles();
-      this.getBranches();
+      this.getBranches(branchId);
     },
     getUserType() {
       this.axiosCall("/user-type/getAllUsertype", "GET").then((res) => {
@@ -254,10 +254,13 @@ export default {
         this.userRoleList = res.data;
       });
     },
-    getBranches() {
+    getBranches(branchId) {
       this.axiosCall("/branches", "GET").then((res) => {
         if (res.data) {
           this.branchList = res.data;
+          this.$nextTick(() => {
+            this.verifyModel.branchId = branchId ?? null;
+          });
         }
       });
     },

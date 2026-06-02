@@ -393,7 +393,7 @@ export default {
             if (res.data.status == 201 || res.data.status == 200) {
               this.fadeAwayMessage.show = true;
               this.fadeAwayMessage.type = "success";
-              this.fadeAwayMessage.message = res.data.message;
+              this.fadeAwayMessage.message = res.data.msg;
               this.fadeAwayMessage.header = "System Message";
               this.$store.dispatch("setEmail", this.email);
               this.closeD();
@@ -402,7 +402,7 @@ export default {
               this.isLoading = false;
               this.fadeAwayMessage.show = true;
               this.fadeAwayMessage.type = "error";
-              this.fadeAwayMessage.message = res.data.message;
+              this.fadeAwayMessage.message = res.data.msg;
               this.fadeAwayMessage.header = "System Message";
               this.animated = true;
             }

@@ -74,6 +74,9 @@
               </td>
               <td>
                 <div class="act-btns">
+                  <button class="act-btn" title="View Items" @click="viewItems(item)">
+                    <v-icon size="14">mdi-eye-outline</v-icon>
+                  </button>
                   <button class="act-btn" title="Edit" @click="editItem(item)">
                     <v-icon size="14">mdi-pencil-outline</v-icon>
                   </button>
@@ -111,6 +114,70 @@
         </div>
       </div>
     </div>
+
+    <!-- Supplier Items Modal -->
+    <v-dialog v-model="dialogItems" max-width="860px">
+      <v-card style="border-radius:16px;overflow:hidden;font-family:'Outfit',sans-serif;">
+        <!-- Header -->
+        <div class="items-modal-hdr">
+          <div>
+            <div class="items-modal-title">
+              <v-icon size="16" color="#9B6B3A" style="margin-right:8px">mdi-package-variant-outline</v-icon>
+              Items under {{ selectedSupplier?.supplierName }}
+            </div>
+            <div class="items-modal-sub">{{ supplierItems.length }} item{{ supplierItems.length !== 1 ? 's' : '' }} found</div>
+          </div>
+          <button class="items-modal-close" @click="dialogItems = false">
+            <v-icon size="18">mdi-close</v-icon>
+          </button>
+        </div>
+
+        <!-- Table -->
+        <div class="items-modal-body">
+          <div v-if="loadingItems" class="items-loading">
+            <v-progress-circular indeterminate color="#9B6B3A" size="28" />
+            <span>Loading items...</span>
+          </div>
+          <div v-else-if="supplierItems.length === 0" class="items-empty">
+            <v-icon size="32" color="#9A7858">mdi-package-variant-closed-remove</v-icon>
+            <div>No items found for this supplier</div>
+          </div>
+          <table v-else class="items-table">
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Category</th>
+                <th>Brand</th>
+                <th>Material</th>
+                <th>Carat</th>
+                <th>Branch</th>
+                <th>Price</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in supplierItems" :key="item.id">
+                <td class="item-code">{{ item.itemCode }}</td>
+                <td>{{ item.category?.categoryName || '—' }}</td>
+                <td>{{ item.brand || '—' }}</td>
+                <td>{{ item.material || '—' }}</td>
+                <td>{{ item.carat || '—' }}</td>
+                <td>
+                  <span class="branch-chip" v-if="item.branch">{{ item.branch.branchName }}</span>
+                  <span v-else>—</span>
+                </td>
+                <td class="item-price">{{ item.price ? '₱' + Number(item.price).toLocaleString('en-PH', { minimumFractionDigits: 2 }) : '—' }}</td>
+                <td>
+                  <span class="status-chip" :class="'s-' + (item.status || '').toLowerCase()">
+                    {{ (item.status || '').replace(/_/g, ' ') }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </v-card>
+    </v-dialog>
 
     <!-- Dialogs -->
     <SuppliersDialog :data="updateData" :action="action" />
@@ -159,6 +226,10 @@ export default {
     deleting: false,
     action: null,
     dialogConfirmDelete: false,
+    dialogItems: false,
+    selectedSupplier: null,
+    supplierItems: [],
+    loadingItems: false,
     fadeAwayMessage: { show: false, type: "success", header: "Success", message: "", top: 10 },
   }),
 
@@ -216,6 +287,16 @@ export default {
     },
     addNew() { this.updateData = { id: null }; this.action = "Add"; },
     editItem(item) { this.updateData = { ...item }; this.action = "Update"; },
+    viewItems(supplier) {
+      this.selectedSupplier = supplier;
+      this.supplierItems = [];
+      this.dialogItems = true;
+      this.loadingItems = true;
+      this.axiosCall("/jewelry-items?supplierId=" + supplier.id, "GET")
+        .then((res) => { this.supplierItems = res?.data || []; })
+        .catch(() => { this.supplierItems = []; })
+        .finally(() => { this.loadingItems = false; });
+    },
     deleteItem(item) { this.dialogConfirmDelete = true; this.deleteData = item; },
     confirmDelete() {
       this.deleting = true;
@@ -285,4 +366,28 @@ td.dim { color: #9A7858; font-size: 12px; }
 .btn-cancel-proto:hover { border-color: rgba(155,107,58,0.35); color: #6B4A30; }
 .btn-danger-proto { background: #B84040; color: #FDFAF6; border: none; padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; font-family: 'Outfit', sans-serif; cursor: pointer; }
 .btn-danger-proto:hover { background: #c95252; }
+
+/* ── Supplier Items Modal ── */
+.items-modal-hdr { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; background: #F5EFE4; border-bottom: 1px solid rgba(155,107,58,0.16); }
+.items-modal-title { font-size: 15px; font-weight: 600; color: #3A2515; display: flex; align-items: center; }
+.items-modal-sub { font-size: 11px; color: #9A7858; margin-top: 2px; padding-left: 24px; }
+.items-modal-close { background: none; border: none; cursor: pointer; color: #9A7858; padding: 4px; border-radius: 6px; display: flex; align-items: center; transition: color 0.12s; }
+.items-modal-close:hover { color: #B84040; }
+.items-modal-body { padding: 16px 20px; max-height: 500px; overflow-y: auto; }
+.items-loading { display: flex; align-items: center; gap: 12px; justify-content: center; padding: 40px; color: #9A7858; font-size: 13px; }
+.items-empty { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 48px; color: #9A7858; font-size: 13px; }
+.items-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.items-table thead th { text-align: left; padding: 8px 12px; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: #9A7858; font-weight: 600; background: #F5EFE4; white-space: nowrap; }
+.items-table tbody tr { border-top: 1px solid rgba(155,107,58,0.12); transition: background 0.1s; }
+.items-table tbody tr:hover { background: #F5EFE4; }
+.items-table tbody td { padding: 9px 12px; color: #3A2515; vertical-align: middle; }
+.item-code { font-family: monospace; font-weight: 700; color: #9B6B3A; }
+.item-price { font-weight: 600; color: #9B6B3A; }
+.branch-chip { background: rgba(90,122,155,0.12); color: #5A7A9B; border-radius: 20px; padding: 2px 8px; font-size: 11px; }
+.status-chip { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 500; text-transform: capitalize; background: rgba(155,107,58,0.1); color: #9B6B3A; }
+.s-in_stock { background: rgba(61,122,90,0.1); color: #3D7A5A; }
+.s-sold { background: rgba(90,122,155,0.12); color: #5A7A9B; }
+.s-transferred { background: rgba(200,120,40,0.12); color: #C87828; }
+.s-layaway { background: rgba(100,170,200,0.12); color: #4A9AB8; }
+.s-pulled_out { background: rgba(150,150,150,0.12); color: #888; }
 </style>

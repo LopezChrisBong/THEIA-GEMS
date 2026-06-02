@@ -31,8 +31,11 @@ export class ConsignmentItem {
   @Column({ name: 'consignor_name', type: 'varchar', length: 100 })
   consignorName: string;
 
-  @Column({ name: 'consignor_contact', type: 'varchar', length: 100, nullable: true })
-  consignorContact: string;
+  @Column({ name: 'consignor_email', type: 'varchar', length: 100, nullable: true })
+  consignorEmail: string;
+
+  @Column({ name: 'consignor_phone', type: 'varchar', length: 50, nullable: true })
+  consignorPhone: string;
 
   @Column({ name: 'consigned_price', type: 'decimal', precision: 10, scale: 2 })
   consignedPrice: number;

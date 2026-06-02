@@ -76,7 +76,14 @@ const store = createStore({
   plugins: [
     createPersistedState({
       storage: {
-        getItem: (key) => ls.get(key),
+        getItem: (key) => {
+          try {
+            return ls.get(key)
+          } catch {
+            ls.remove(key)
+            return null
+          }
+        },
         setItem: (key, state) => ls.set(key, state),
         removeItem: (key) => ls.remove(key),
       },

@@ -120,4 +120,8 @@ export class CreateJewelryItemDto {
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;
+
+  @IsInt()
+  @IsOptional()
+  addedBy?: number;
 }

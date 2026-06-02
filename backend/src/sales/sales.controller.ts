@@ -69,6 +69,15 @@ export class SalesController {
     return this.salesService.findByDateRange(new Date(startDate), new Date(endDate));
   }
 
+  @Get('report')
+  getSalesReport(
+    @Query('period') period: 'daily' | 'weekly' | 'monthly' = 'daily',
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string,
+  ) {
+    return this.salesService.getSalesReport(period, new Date(startDate), new Date(endDate));
+  }
+
   @Get('daily-summary')
   getDailySummary(
     @Query('date') date: string,
