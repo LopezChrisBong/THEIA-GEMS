@@ -27,6 +27,9 @@ export class TransferItem {
   @JoinColumn({ name: 'jewelry_item_id' })
   jewelryItem: JewelryItem;
 
+  @Column({ type: 'int', default: 1 })
+  quantity: number;
+
   @Column({ type: 'text', nullable: true })
   notes: string;
 }

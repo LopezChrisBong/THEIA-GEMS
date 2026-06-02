@@ -40,10 +40,10 @@ export class TransactionLog {
   @Column({ name: 'new_values', type: 'json', nullable: true })
   newValues: Record<string, any>;
 
-  @Column({ name: 'performed_by' })
+  @Column({ name: 'performed_by', nullable: true })
   performedBy: number;
 
-  @ManyToOne(() => Users)
+  @ManyToOne(() => Users, { nullable: true })
   @JoinColumn({ name: 'performed_by' })
   performer: Users;
 

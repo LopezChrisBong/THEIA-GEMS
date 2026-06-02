@@ -4,13 +4,48 @@ import { Repository, Between } from 'typeorm';
 import { TransactionLog, TransactionAction } from './entities/transaction-log.entity';
 import { CreateTransactionLogDto } from './dto/create-transaction-log.dto';
 import { UpdateTransactionLogDto } from './dto/update-transaction-log.dto';
+import { UserDetail } from 'src/entities';
 
 @Injectable()
 export class TransactionLogsService {
   constructor(
     @InjectRepository(TransactionLog)
     private readonly transactionLogRepository: Repository<TransactionLog>,
+    @InjectRepository(UserDetail)
+    private readonly userDetailRepository: Repository<UserDetail>,
   ) {}
+
+  /** Convenience method for other services to fire-and-forget a log entry. */
+  log(data: {
+    transactionType: string;
+    transactionId: number;
+    tableName: string;
+    action: TransactionAction;
+    performedBy?: number;
+    newValues?: Record<string, unknown>;
+    oldValues?: Record<string, unknown>;
+  }): void {
+    const entity = this.transactionLogRepository.create(data);
+    this.transactionLogRepository.save(entity).catch(() => {});
+  }
+
+  private async withPerformerNames(logs: TransactionLog[]): Promise<TransactionLog[]> {
+    const ids = [...new Set(logs.map((l) => Number(l.performedBy)).filter((n) => n > 0))];
+    if (!ids.length) return logs;
+    const details = await this.userDetailRepository
+      .createQueryBuilder('ud')
+      .select(['ud.userID', 'ud.fname', 'ud.lname'])
+      .where('ud.userID IN (:...ids)', { ids })
+      .getMany();
+    const map = new Map(details.map((d) => [Number(d.userID), d]));
+    for (const log of logs) {
+      if (log.performedBy) {
+        const d = map.get(Number(log.performedBy));
+        if (d) (log as any).performerName = `${d.fname} ${d.lname}`.trim();
+      }
+    }
+    return logs;
+  }
 
   async create(
     createTransactionLogDto: CreateTransactionLogDto,
@@ -20,10 +55,11 @@ export class TransactionLogsService {
   }
 
   async findAll(): Promise<TransactionLog[]> {
-    return this.transactionLogRepository.find({
+    const logs = await this.transactionLogRepository.find({
       relations: ['performer'],
       order: { createdAt: 'DESC' },
     });
+    return this.withPerformerNames(logs);
   }
 
   async findOne(id: number): Promise<TransactionLog> {

@@ -37,6 +37,11 @@ export class RegisterUserDto {
     @ApiProperty({ required: false })
     @IsOptional()
     @IsNumber()
+    assignedModuleID?: number;
+
+    @ApiProperty({ required: false })
+    @IsOptional()
+    @IsNumber()
     branchId?: number;
 
     @ApiProperty()

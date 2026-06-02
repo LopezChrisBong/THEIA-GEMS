@@ -15,6 +15,7 @@ import { DesignModel } from 'src/design-models/entities/design-model.entity';
 import { Branch } from 'src/branches/entities/branch.entity';
 import { Supplier } from 'src/suppliers/entities/supplier.entity';
 import { JewelryItemImage } from 'src/jewelry-item-images/entities/jewelry-item-image.entity';
+import { Users } from 'src/auth/entities/auth.entity';
 
 export enum GoldType {
   YG = 'YG',
@@ -156,6 +157,13 @@ export class JewelryItem {
 
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;
+
+  @Column({ name: 'added_by', nullable: true })
+  addedBy: number;
+
+  @ManyToOne(() => Users, { nullable: true })
+  @JoinColumn({ name: 'added_by' })
+  addedByUser: Users;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

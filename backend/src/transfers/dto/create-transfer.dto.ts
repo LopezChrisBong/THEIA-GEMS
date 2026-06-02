@@ -35,6 +35,14 @@ export class CreateTransferDto {
   @IsNumber()
   approvedBy?: number;
 
+  @IsOptional()
+  @IsNumber()
+  transferredBy?: number;
+
+  @IsOptional()
+  @IsNumber()
+  receivedBy?: number;
+
   @IsNotEmpty()
   @IsDateString()
   transferDate: string;

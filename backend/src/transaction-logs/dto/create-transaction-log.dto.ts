@@ -36,9 +36,9 @@ export class CreateTransactionLogDto {
   @IsObject()
   newValues?: Record<string, any>;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsNumber()
-  performedBy: number;
+  performedBy?: number;
 
   @IsOptional()
   @IsString()

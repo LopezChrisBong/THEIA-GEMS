@@ -3,6 +3,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  IsEmail,
   IsDateString,
   IsEnum,
   MaxLength,
@@ -21,9 +22,14 @@ export class CreateConsignmentItemDto {
   consignorName: string;
 
   @IsOptional()
-  @IsString()
+  @IsEmail()
   @MaxLength(100)
-  consignorContact?: string;
+  consignorEmail?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  consignorPhone?: string;
 
   @IsNotEmpty()
   @IsNumber()

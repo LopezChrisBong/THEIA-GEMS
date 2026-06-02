@@ -86,13 +86,16 @@
                 </span>
               </td>
               <td class="text-right">
-                <span class="font-weight-medium">${{ formatNumber(item.totalPurchases) }}</span>
+                <span class="amt-col">₱{{ formatNumber(item.totalPurchases) }}</span>
               </td>
               <td class="text-center">{{ item.purchaseCount || 0 }}</td>
               <td class="dim">{{ formatDate(item.lastPurchaseAt) || 'Never' }}</td>
               <td class="dim">{{ formatDate(item.registeredAt) || '—' }}</td>
               <td>
                 <div class="act-btns">
+                  <button class="act-btn view-btn" title="View History" @click="viewCustomer(item)">
+                    <v-icon size="14">mdi-history</v-icon>
+                  </button>
                   <button class="act-btn" title="Edit" @click="editItem(item)">
                     <v-icon size="14">mdi-pencil-outline</v-icon>
                   </button>
@@ -142,6 +145,124 @@
         </div>
       </div>
     </div>
+
+    <!-- Purchase History Modal -->
+    <v-dialog v-model="dialogView" max-width="720px">
+      <v-card v-if="viewData" class="ph-card">
+        <!-- Header -->
+        <div class="ph-header">
+          <div class="ph-avatar">{{ viewData.firstName?.charAt(0) }}{{ viewData.lastName?.charAt(0) }}</div>
+          <div class="ph-info">
+            <div class="ph-name">{{ viewData.firstName }} {{ viewData.lastName }}</div>
+            <div class="ph-meta">
+              <span v-if="viewData.customerCode" class="mono">{{ viewData.customerCode }}</span>
+              <span v-if="viewData.phone" class="ph-dot">·</span>
+              <span v-if="viewData.phone">{{ viewData.phone }}</span>
+              <span v-if="viewData.email" class="ph-dot">·</span>
+              <span v-if="viewData.email" class="dim">{{ viewData.email }}</span>
+            </div>
+          </div>
+          <div class="ph-tier-wrap">
+            <div class="ph-tier" :class="getTierClass(viewData.purchaseCount)">
+              <v-icon size="13" style="margin-right:4px">{{ getTierIcon(viewData.purchaseCount) }}</v-icon>
+              {{ getTierLabel(viewData.purchaseCount) }}
+            </div>
+            <div v-if="viewData.isRepeatBuyer" class="ph-repeat-tag">
+              <v-icon size="11">mdi-repeat</v-icon> Repeat Buyer
+            </div>
+          </div>
+          <button class="ph-close" @click="dialogView = false"><v-icon size="18">mdi-close</v-icon></button>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="ph-stats">
+          <div class="ph-stat">
+            <div class="ph-stat-val">₱{{ formatNumber(viewData.totalPurchases) }}</div>
+            <div class="ph-stat-lbl">Total Spent</div>
+          </div>
+          <div class="ph-stat-div"></div>
+          <div class="ph-stat">
+            <div class="ph-stat-val">{{ viewData.purchaseCount || 0 }}</div>
+            <div class="ph-stat-lbl">Purchases</div>
+          </div>
+          <div class="ph-stat-div"></div>
+          <div class="ph-stat">
+            <div class="ph-stat-val">{{ viewData.purchaseCount > 0 ? '₱' + formatNumber(viewData.totalPurchases / viewData.purchaseCount) : '—' }}</div>
+            <div class="ph-stat-lbl">Avg. Order</div>
+          </div>
+          <div class="ph-stat-div"></div>
+          <div class="ph-stat">
+            <div class="ph-stat-val">{{ formatDate(viewData.lastPurchaseAt) || 'Never' }}</div>
+            <div class="ph-stat-lbl">Last Purchase</div>
+          </div>
+        </div>
+
+        <!-- Tier Progress -->
+        <div class="ph-progress-wrap">
+          <div class="ph-progress-label">
+            <span>Loyalty Tier</span>
+            <span class="dim" style="font-size:11px">{{ viewData.purchaseCount || 0 }} purchase{{ viewData.purchaseCount !== 1 ? 's' : '' }}</span>
+          </div>
+          <div class="ph-progress-track">
+            <div class="ph-progress-fill" :style="{ width: getTierProgress(viewData.purchaseCount) + '%' }" :class="getTierClass(viewData.purchaseCount)"></div>
+          </div>
+          <div class="ph-tier-labels">
+            <span :class="{ active: viewData.purchaseCount >= 0 }">New</span>
+            <span :class="{ active: viewData.purchaseCount >= 2 }">Regular</span>
+            <span :class="{ active: viewData.purchaseCount >= 5 }">Silver</span>
+            <span :class="{ active: viewData.purchaseCount >= 10 }">Gold</span>
+          </div>
+        </div>
+
+        <!-- Purchase History Table -->
+        <div class="ph-history-header">
+          <v-icon size="14" color="#9B6B3A">mdi-receipt-text-outline</v-icon>
+          Purchase History
+          <span class="ph-count-badge" v-if="!loadingSales">{{ customerSales.length }}</span>
+        </div>
+
+        <div class="ph-table-wrap">
+          <div v-if="loadingSales" class="ph-loading">
+            <v-progress-circular indeterminate color="#9B6B3A" size="24" />
+            <span>Loading history...</span>
+          </div>
+          <div v-else-if="customerSales.length === 0" class="ph-empty">
+            <v-icon size="28" color="#C4A882">mdi-receipt-text-remove-outline</v-icon>
+            <div>No purchase records found</div>
+          </div>
+          <table v-else class="ph-table">
+            <thead>
+              <tr>
+                <th>Sale #</th>
+                <th>Date</th>
+                <th>Branch</th>
+                <th>Total</th>
+                <th>Paid</th>
+                <th>Status</th>
+                <th>Type</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="sale in customerSales" :key="sale.id">
+                <td class="mono">{{ sale.saleNumber }}</td>
+                <td class="dim">{{ formatDate(sale.saleDate) }}</td>
+                <td>{{ sale.branch?.branchName || '—' }}</td>
+                <td class="amt-col">₱{{ formatNumber(sale.totalAmount) }}</td>
+                <td>₱{{ formatNumber(sale.amountPaid) }}</td>
+                <td>
+                  <span class="s-badge" :class="'s-' + sale.paymentStatus">
+                    {{ sale.paymentStatus }}
+                  </span>
+                </td>
+                <td>
+                  <span class="s-badge s-type">{{ sale.saleType }}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </v-card>
+    </v-dialog>
 
     <!-- Dialogs -->
     <CustomersDialog :data="updateData" :action="action" />
@@ -197,6 +318,10 @@ export default {
     deleting: false,
     action: null,
     dialogConfirmDelete: false,
+    dialogView: false,
+    viewData: null,
+    customerSales: [],
+    loadingSales: false,
     fadeAwayMessage: {
       show: false,
       type: "success",
@@ -326,6 +451,54 @@ export default {
         .finally(() => {
           this.loading = false;
         });
+    },
+
+    viewCustomer(item) {
+      this.viewData = { ...item };
+      this.customerSales = [];
+      this.dialogView = true;
+      this.loadingSales = true;
+      this.axiosCall("/sales/customer/" + item.id, "GET")
+        .then((res) => {
+          if (res && res.data) {
+            this.customerSales = res.data;
+          }
+        })
+        .catch((error) => {
+          console.error("Failed to load purchase history:", error);
+        })
+        .finally(() => {
+          this.loadingSales = false;
+        });
+    },
+
+    getTierLabel(count) {
+      if (count >= 10) return "Gold";
+      if (count >= 5) return "Silver";
+      if (count >= 2) return "Regular";
+      return "New";
+    },
+
+    getTierClass(count) {
+      if (count >= 10) return "tier-gold";
+      if (count >= 5) return "tier-silver";
+      if (count >= 2) return "tier-regular";
+      return "tier-new";
+    },
+
+    getTierIcon(count) {
+      if (count >= 10) return "mdi-star";
+      if (count >= 5) return "mdi-star-half-full";
+      if (count >= 2) return "mdi-account-check";
+      return "mdi-account-outline";
+    },
+
+    getTierProgress(count) {
+      if (count >= 10) return 100;
+      if (count >= 5) return 75;
+      if (count >= 2) return 50;
+      if (count >= 1) return 25;
+      return 5;
     },
 
     addNew() {
@@ -763,5 +936,298 @@ td.dim {
 
 .btn-danger-proto:hover {
   background: #c95252;
+}
+
+/* ─── Purchase History Modal ─── */
+.ph-card {
+  border-radius: 16px !important;
+  border: 1px solid rgba(155,107,58,0.16) !important;
+  overflow: hidden;
+  background: #FDFAF6 !important;
+  font-family: 'Outfit', sans-serif;
+}
+
+.ph-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 20px 24px;
+  background: #F5EFE4;
+  border-bottom: 1px solid rgba(155,107,58,0.16);
+  position: relative;
+}
+
+.ph-avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: #9B6B3A;
+  color: #FDFAF6;
+  font-size: 16px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-family: 'Cormorant Garamond', serif;
+}
+
+.ph-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ph-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: #3A2515;
+}
+
+.ph-meta {
+  font-size: 12px;
+  color: #9A7858;
+  margin-top: 2px;
+}
+
+.ph-dot {
+  margin: 0 5px;
+  opacity: 0.5;
+}
+
+.ph-tier-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+
+.ph-tier {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.tier-new    { background: rgba(155,107,58,0.1); color: #9A7858; }
+.tier-regular{ background: rgba(61,122,90,0.1);  color: #3D7A5A; }
+.tier-silver { background: rgba(120,120,140,0.12); color: #5A5A72; }
+.tier-gold   { background: rgba(196,148,85,0.15); color: #9B6B3A; }
+
+.ph-repeat-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  color: #3D7A5A;
+  background: rgba(61,122,90,0.08);
+  padding: 3px 8px;
+  border-radius: 20px;
+}
+
+.ph-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9A7858;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  transition: all 0.12s;
+}
+
+.ph-close:hover {
+  background: rgba(155,107,58,0.12);
+  color: #6B4A30;
+}
+
+.ph-stats {
+  display: flex;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid rgba(155,107,58,0.1);
+}
+
+.ph-stat {
+  flex: 1;
+  text-align: center;
+}
+
+.ph-stat-val {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: #3A2515;
+}
+
+.ph-stat-lbl {
+  font-size: 10px;
+  color: #9A7858;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 2px;
+}
+
+.ph-stat-div {
+  width: 1px;
+  height: 36px;
+  background: rgba(155,107,58,0.16);
+}
+
+.ph-progress-wrap {
+  padding: 14px 24px;
+  border-bottom: 1px solid rgba(155,107,58,0.1);
+}
+
+.ph-progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #9A7858;
+  margin-bottom: 7px;
+}
+
+.ph-progress-track {
+  height: 6px;
+  background: #EDE0CC;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.ph-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.ph-progress-fill.tier-new     { background: #C4A882; }
+.ph-progress-fill.tier-regular { background: #3D7A5A; }
+.ph-progress-fill.tier-silver  { background: #7B7B9A; }
+.ph-progress-fill.tier-gold    { background: #C49455; }
+
+.ph-tier-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 5px;
+  font-size: 9px;
+  color: #C4A882;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.ph-tier-labels span.active {
+  color: #9B6B3A;
+  font-weight: 600;
+}
+
+.ph-history-header {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 12px 24px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #9A7858;
+}
+
+.ph-count-badge {
+  background: #EDE0CC;
+  color: #9B6B3A;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 10px;
+}
+
+.ph-table-wrap {
+  padding: 0 16px 16px;
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.ph-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 32px;
+  color: #9A7858;
+  font-size: 13px;
+}
+
+.ph-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 32px;
+  color: #C4A882;
+  font-size: 13px;
+}
+
+.ph-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.ph-table thead th {
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #9A7858;
+  font-weight: 600;
+  background: #F5EFE4;
+  white-space: nowrap;
+  position: sticky;
+  top: 0;
+}
+
+.ph-table tbody tr {
+  border-top: 1px solid rgba(155,107,58,0.1);
+}
+
+.ph-table tbody tr:hover {
+  background: #EDE0CC;
+}
+
+.ph-table tbody td {
+  padding: 9px 10px;
+  color: #3A2515;
+  white-space: nowrap;
+}
+
+.s-badge {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.s-paid     { background: rgba(61,122,90,0.1);   color: #3D7A5A; }
+.s-partial  { background: rgba(196,148,85,0.15); color: #9B6B3A; }
+.s-unpaid   { background: rgba(184,64,64,0.1);   color: #B84040; }
+.s-refunded { background: rgba(120,120,140,0.12); color: #5A5A72; }
+.s-type     { background: rgba(155,107,58,0.08); color: #9A7858; }
+
+.amt-col {
+  font-weight: 600;
+  color: #9B6B3A;
 }
 </style>

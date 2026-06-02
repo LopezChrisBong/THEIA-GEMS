@@ -6,7 +6,6 @@ import {
   UpdateDateColumn,
   ManyToOne,
   JoinColumn,
-  OneToMany,
 } from 'typeorm';
 import { Branch } from 'src/branches/entities/branch.entity';
 import { Users } from 'src/auth/entities/auth.entity';
@@ -48,6 +47,7 @@ export class Transfer {
   })
   status: TransferStatus;
 
+  /** Who created the transfer request */
   @Column({ name: 'requested_by' })
   requestedBy: number;
 
@@ -55,6 +55,7 @@ export class Transfer {
   @JoinColumn({ name: 'requested_by' })
   requester: Users;
 
+  /** Who approved or rejected the transfer */
   @Column({ name: 'approved_by', nullable: true })
   approvedBy: number;
 
@@ -64,6 +65,28 @@ export class Transfer {
 
   @Column({ name: 'approved_at', type: 'timestamp', nullable: true })
   approvedAt: Date;
+
+  /** Who physically dispatched / marked in-transit */
+  @Column({ name: 'transferred_by', nullable: true })
+  transferredBy: number;
+
+  @ManyToOne(() => Users, { nullable: true })
+  @JoinColumn({ name: 'transferred_by' })
+  transferrer: Users;
+
+  @Column({ name: 'transferred_at', type: 'timestamp', nullable: true })
+  transferredAt: Date;
+
+  /** Who received the items at the destination branch */
+  @Column({ name: 'received_by', nullable: true })
+  receivedBy: number;
+
+  @ManyToOne(() => Users, { nullable: true })
+  @JoinColumn({ name: 'received_by' })
+  receiver: Users;
+
+  @Column({ name: 'received_at', type: 'timestamp', nullable: true })
+  receivedAt: Date;
 
   @Column({ name: 'transfer_date', type: 'date' })
   transferDate: Date;

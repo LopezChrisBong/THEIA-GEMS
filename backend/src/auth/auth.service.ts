@@ -114,10 +114,11 @@ export class AuthService {
       const newUser = queryRunner.manager.create(Users, {
         email: registerUser.email,
         otp: hashOtp,
-        isAdminApproved:true,
-        isValidated:true,
-        user_roleID:registerUser.user_roleID,
+        isAdminApproved: true,
+        isValidated: true,
+        user_roleID: registerUser.user_roleID,
         usertypeID: 2,
+        assignedModuleID: registerUser.assignedModuleID ?? 2,
         password: hashPassword(registerUser.password),
       });
 
@@ -129,7 +130,7 @@ export class AuthService {
         lname: registerUser.lname,
         suffix: registerUser.suffix,
         userID: newUserSaved.id,
-        branchId: registerUser.branchId,
+        branchId: registerUser.branchId ?? undefined,
       });
 
       await queryRunner.manager.save(newUserDetail);
@@ -138,18 +139,15 @@ export class AuthService {
 
       return {
         status: HttpStatus.CREATED,
-        msg: 'User saved.',
+        msg: 'User account created successfully.',
       };
     } catch (err) {
       await queryRunner.rollbackTransaction();
-
-      const toReturn = {
-        msg: err,
+      console.log('[addAccount] error:', err);
+      return {
+        msg: err?.message || 'Something went wrong. Please try again.',
         status: HttpStatus.BAD_REQUEST,
       };
-
-      return toReturn;
-      // console.log(err)
     } finally {
       await queryRunner.release();
     }
@@ -714,5 +712,27 @@ async confirmOTP(conOTP: ConfirmOTPDto) {
         status: HttpStatus.BAD_REQUEST,
       };
     }
+  }
+
+  /** Returns live UserDetail from the DB so branchId and role are always current.
+   *  Uses the same joins as login() so the shape matches what the frontend expects. */
+  async getFreshUserDetail(id: number): Promise<UserDetail | null> {
+    return this.dataSource
+      .getRepository(UserDetail)
+      .createQueryBuilder('userdetail')
+      .leftJoinAndMapOne(
+        'userdetail.user',
+        Users,
+        'user',
+        'userdetail.userID = user.id',
+      )
+      .leftJoinAndMapOne(
+        'userdetail.usertype',
+        UserType,
+        'usertype',
+        'user.usertypeID = usertype.id',
+      )
+      .where('userdetail.id = :id', { id })
+      .getOne();
   }
 }

@@ -32,7 +32,7 @@
             <option v-for="c in categoryList" :key="c.id" :value="c.id">{{ c.categoryName }}</option>
           </select>
         </div>
-        <div class="per-pg">
+        <div v-if="!userBranchId" class="per-pg">
           Branch:
           <select v-model="filterBranch" @change="initialize()">
             <option :value="null">All</option>
@@ -54,6 +54,7 @@
         :headers="headers"
         :items="data"
         :search="search"
+        :custom-filter="tableCustomFilter"
         :items-per-page="10"
         :loading="loading"
         loading-text="Loading items..."
@@ -102,6 +103,11 @@
           <v-chip v-if="item.branch" color="primary" size="small" variant="outlined">
             {{ item.branch.branchName }}
           </v-chip>
+          <span v-else class="text-medium-emphasis">—</span>
+        </template>
+
+        <template v-slot:[`item.supplier`]="{ item }">
+          <span v-if="item.supplier">{{ item.supplier.supplierName }}</span>
           <span v-else class="text-medium-emphasis">—</span>
         </template>
 
@@ -309,10 +315,6 @@
               <div class="view-label">Carat</div>
               <div class="view-value">{{ viewData.carat || '—' }}</div>
             </v-col>
-            <v-col cols="12" md="4">
-              <div class="view-label">Gold Weight</div>
-              <div class="view-value">{{ viewData.goldWeight || '—' }}</div>
-            </v-col>
           </v-row>
 
           <v-divider class="my-4" />
@@ -325,16 +327,12 @@
               <div class="view-value">{{ viewData.supplier?.supplierName || '—' }}</div>
             </v-col>
             <v-col cols="12" md="4">
-              <div class="view-label">Supplier / GIA Code</div>
-              <div class="view-value">{{ viewData.supplierCode || '—' }}</div>
-            </v-col>
-            <v-col cols="12" md="4">
-              <div class="view-label">Parent Item</div>
-              <div class="view-value">{{ viewData.parentItem?.itemCode || '—' }}</div>
-            </v-col>
-            <v-col cols="12" md="4">
               <div class="view-label">Purchase Date</div>
               <div class="view-value">{{ viewData.purchaseDate || '—' }}</div>
+            </v-col>
+            <v-col cols="12" md="4">
+              <div class="view-label">Added By</div>
+              <div class="view-value">{{ viewData.addedByName || '—' }}</div>
             </v-col>
             <v-col cols="12" md="4">
               <div class="view-label">Sale Date</div>
@@ -638,6 +636,7 @@ export default {
       { title: "Price", value: "price", align: "end", width: 130 },
       { title: "Status", value: "status", align: "center", width: 130 },
       { title: "Branch", value: "branch", align: "center", width: 130 },
+      { title: "Supplier", value: "supplier", align: "start", width: 140 },
       {
         title: "Actions",
         value: "actions",
@@ -700,6 +699,13 @@ export default {
     },
   }),
 
+  computed: {
+    userBranchId() {
+      const id = this.$store.state.user?.branchId;
+      return id ? Number(id) : null;
+    },
+  },
+
   watch: {
     options: {
       handler() {
@@ -710,6 +716,7 @@ export default {
   },
 
   mounted() {
+    if (this.userBranchId) this.filterBranch = this.userBranchId;
     this.initialize();
     this.loadCategories();
     this.loadBranches();
@@ -723,6 +730,18 @@ export default {
   },
 
   methods: {
+    tableCustomFilter(value, query) {
+      if (!query) return true;
+      if (value == null) return false;
+      const q = query.toLowerCase();
+      if (typeof value === 'object') {
+        // Extract the human-readable name from known nested shapes
+        const text = value.supplierName || value.categoryName || value.branchName || '';
+        return text.toLowerCase().includes(q);
+      }
+      return String(value).toLowerCase().includes(q);
+    },
+
     pagination(data) {
       this.paginationData = data;
     },
@@ -777,7 +796,9 @@ export default {
       let url = "/jewelry-items";
       const params = [];
       if (this.filterCategory) params.push(`categoryId=${this.filterCategory}`);
-      if (this.filterBranch) params.push(`branchId=${this.filterBranch}`);
+      // Branch-assigned users always see only their branch; owners use the dropdown filter
+      const effectiveBranch = this.userBranchId || this.filterBranch;
+      if (effectiveBranch) params.push(`branchId=${effectiveBranch}`);
       if (this.filterStatus) params.push(`status=${this.filterStatus}`);
       if (params.length) url += "?" + params.join("&");
 
@@ -984,7 +1005,6 @@ export default {
               description: "Piyao 14K",
               carat: null,
               goldType: null,
-              goldWeight: null,
               size: null,
               price: null,
               status: remarks.includes("SOLD") ? "SOLD" : "IN_STOCK",
@@ -1012,7 +1032,6 @@ export default {
               description: "Evil Eye String",
               carat: null,
               goldType: null,
-              goldWeight: null,
               size: null,
               price: price,
               status: remarks.includes("SOLD") ? "SOLD" : "IN_STOCK",
@@ -1075,9 +1094,6 @@ export default {
         // Size
         let size = colMap.size !== undefined ? String(row[colMap.size] || "").trim() || null : null;
 
-        // Grams/gold weight
-        let goldWeight = colMap.grams !== undefined ? String(row[colMap.grams] || "").trim() || null : null;
-
         // Status from remarks
         let status = "IN_STOCK";
         if (remarks.includes("SOLD")) status = "SOLD";
@@ -1098,7 +1114,6 @@ export default {
           description: model,
           carat: carat,
           goldType: goldType,
-          goldWeight: goldWeight,
           size: size,
           price: price,
           status: status,
@@ -1162,7 +1177,6 @@ export default {
           description: item.description || null,
           carat: item.carat || null,
           goldType: item.goldType || null,
-          goldWeight: item.goldWeight || null,
           size: item.size || null,
           price: item.price || null,
           status: item.status || "IN_STOCK",

@@ -192,6 +192,7 @@ export class UserDetailsService {
         'UD.fname as fname',
         'UD.mname as mname',
         'UD.lname as lname',
+        'UD.branch_id as branchId',
       ])
       // .leftJoinAndMapOne(
       //   'userdetail.employee',
@@ -574,29 +575,22 @@ export class UserDetailsService {
   }
 
   async uploadProfileImg(filename: string, user: any) {
-    // console.log(user.user[0].id)
     try {
-      const imgupload = await this.userdetailsRepository.update(
-        user.userdetail.id,
-        { profile_img: filename },
-      );
+      const id = user?.userdetail?.id;
+      console.log('[uploadProfileImg] filename:', filename, '| userdetail.id:', id);
 
-      if (imgupload.affected == 1) {
-        return {
-          msg: 'Saving successful',
-          status: HttpStatus.OK,
-        };
-      } else {
-        return {
-          msg: 'Saving failed',
-          status: HttpStatus.BAD_REQUEST,
-        };
+      const record = await this.userdetailsRepository.findOne({ where: { id } });
+      if (!record) {
+        return { msg: 'User detail record not found', status: HttpStatus.BAD_REQUEST };
       }
+
+      record.profile_img = filename;
+      await this.userdetailsRepository.save(record);
+
+      return { msg: 'Saving successful', status: HttpStatus.OK };
     } catch (error) {
-      return {
-        msg: error,
-        status: HttpStatus.BAD_REQUEST,
-      };
+      console.log('[uploadProfileImg] error:', error);
+      return { msg: error, status: HttpStatus.BAD_REQUEST };
     }
   }
 
@@ -612,6 +606,7 @@ export class UserDetailsService {
       .leftJoin(Users, 'u', 'u.id = ud.userID')
       .where('ud.id = :id', { id })
       .getRawOne();
+      console.log('[getPersonalInfo] profile_img from DB:', data?.profile_img);
       return data
   }
 

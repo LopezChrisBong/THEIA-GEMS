@@ -8,13 +8,39 @@ import { Repository } from 'typeorm';
 import { JewelryItem } from './entities/jewelry-item.entity';
 import { CreateJewelryItemDto } from './dto/create-jewelry-item.dto';
 import { UpdateJewelryItemDto } from './dto/update-jewelry-item.dto';
+import { UserDetail } from 'src/entities';
+import { TransactionLogsService } from '../transaction-logs/transaction-logs.service';
+import { TransactionAction } from '../transaction-logs/entities/transaction-log.entity';
 
 @Injectable()
 export class JewelryItemsService {
   constructor(
     @InjectRepository(JewelryItem)
     private readonly jewelryItemRepository: Repository<JewelryItem>,
+    @InjectRepository(UserDetail)
+    private readonly userDetailRepository: Repository<UserDetail>,
+    private readonly transactionLogsService: TransactionLogsService,
   ) {}
+
+  private async attachAddedByNames(items: JewelryItem[]): Promise<JewelryItem[]> {
+    const ids = [...new Set(items.map((i) => Number(i.addedBy)).filter((n) => n > 0))];
+    if (!ids.length) return items;
+    const details = await this.userDetailRepository
+      .createQueryBuilder('ud')
+      .select(['ud.userID', 'ud.fname', 'ud.lname'])
+      .where('ud.userID IN (:...ids)', { ids })
+      .getMany();
+    const map = new Map(details.map((d) => [Number(d.userID), d]));
+    for (const item of items) {
+      if (item.addedBy) {
+        const d = map.get(Number(item.addedBy));
+        if (d) {
+          (item as any).addedByName = `${d.fname} ${d.lname}`.trim();
+        }
+      }
+    }
+    return items;
+  }
 
   async create(createJewelryItemDto: CreateJewelryItemDto): Promise<JewelryItem> {
     if (createJewelryItemDto.parentItemId) {
@@ -29,10 +55,21 @@ export class JewelryItemsService {
     }
 
     const jewelryItem = this.jewelryItemRepository.create(createJewelryItemDto);
-    return this.jewelryItemRepository.save(jewelryItem);
+    const saved = await this.jewelryItemRepository.save(jewelryItem);
+    if (createJewelryItemDto.addedBy) {
+      this.transactionLogsService.log({
+        transactionType: 'Item Added',
+        transactionId: saved.id,
+        tableName: 'jewelry_items',
+        action: TransactionAction.CREATE,
+        performedBy: createJewelryItemDto.addedBy,
+        newValues: { itemCode: saved.itemCode, branchId: saved.branchId, status: saved.status },
+      });
+    }
+    return saved;
   }
 
-  async findAll(branchId?: number, status?: string, categoryId?: number): Promise<JewelryItem[]> {
+  async findAll(branchId?: number, status?: string, categoryId?: number, supplierId?: number): Promise<JewelryItem[]> {
     const queryBuilder = this.jewelryItemRepository
       .createQueryBuilder('item')
       .leftJoinAndSelect('item.category', 'category')
@@ -58,9 +95,14 @@ export class JewelryItemsService {
       queryBuilder.andWhere('item.categoryId = :categoryId', { categoryId });
     }
 
+    if (supplierId) {
+      queryBuilder.andWhere('item.supplierId = :supplierId', { supplierId });
+    }
+
     queryBuilder.orderBy('item.createdAt', 'DESC');
 
-    return queryBuilder.getMany();
+    const items = await queryBuilder.getMany();
+    return this.attachAddedByNames(items);
   }
 
   async findOne(id: number): Promise<JewelryItem> {
@@ -81,7 +123,8 @@ export class JewelryItemsService {
     if (!jewelryItem) {
       throw new NotFoundException(`JewelryItem with ID ${id} not found`);
     }
-    return jewelryItem;
+    const [enriched] = await this.attachAddedByNames([jewelryItem]);
+    return enriched;
   }
 
   async update(id: number, updateJewelryItemDto: UpdateJewelryItemDto): Promise<JewelryItem> {
