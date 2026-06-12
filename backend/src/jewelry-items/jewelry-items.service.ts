@@ -88,7 +88,12 @@ export class JewelryItemsService {
     }
 
     if (status) {
-      queryBuilder.andWhere('item.status = :status', { status });
+      const statuses = status.split(',').map((s: string) => s.trim()).filter(Boolean);
+      if (statuses.length > 1) {
+        queryBuilder.andWhere('item.status IN (:...statuses)', { statuses });
+      } else {
+        queryBuilder.andWhere('item.status = :status', { status: statuses[0] });
+      }
     }
 
     if (categoryId) {

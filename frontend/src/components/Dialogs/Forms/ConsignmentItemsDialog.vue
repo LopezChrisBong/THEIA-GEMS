@@ -82,7 +82,17 @@
                   />
                 </v-col>
 
-                <v-col cols="12" class="mb-3">
+                <v-col cols="12" md="3" class="mb-3 d-flex align-center">
+                  <v-checkbox
+                    v-model="isAuthentic"
+                    label="Genuine/Entrupy"
+                    color="primary"
+                    density="compact"
+                    hide-details
+                  />
+                </v-col>
+
+                <v-col cols="12" md="9" class="mb-3">
                   <v-textarea
                     v-model="notes"
                     label="Notes"
@@ -300,6 +310,7 @@ export default {
       consignorPhone: null,
       consignmentDate: null,
       status: "active",
+      isAuthentic: null,
       notes: null,
 
       // Multi-item rows (Add mode)
@@ -359,6 +370,7 @@ export default {
           this.commissionRate = data.commissionRate ? Number(data.commissionRate) : null;
           this.consignmentDate = data.consignmentDate ? this.formatDateForInput(data.consignmentDate) : null;
           this.status = data.status || "active";
+          this.isAuthentic = data.isAuthentic ?? null;
           this.notes = data.notes;
         } else {
           this.resetForm();
@@ -396,6 +408,7 @@ export default {
       this.commissionRate = null;
       this.consignmentDate = new Date().toISOString().split("T")[0];
       this.status = "active";
+      this.isAuthentic = null;
       this.notes = null;
       this.items = [this.emptyRow()];
       this.itemsError = "";
@@ -486,6 +499,7 @@ export default {
         consignorPhone: this.consignorPhone || null,
         consignmentDate: this.consignmentDate,
         status: this.status,
+        isAuthentic: this.isAuthentic ?? null,
         notes: this.notes || null,
       };
 
@@ -532,6 +546,7 @@ export default {
         commissionRate: this.commissionRate || null,
         consignmentDate: this.consignmentDate,
         status: this.status,
+        isAuthentic: this.isAuthentic ?? null,
         notes: this.notes || null,
       };
 

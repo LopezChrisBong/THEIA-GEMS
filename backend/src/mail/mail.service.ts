@@ -111,4 +111,23 @@ export class MailService {
       ],
     });
   }
+
+  async sendPromotional(params: { to: string; subject: string; body: string; customerName?: string }) {
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#FDFAF6;border:1px solid #e8dcc8;border-radius:12px;">
+        <div style="text-align:center;margin-bottom:20px;">
+          <h2 style="font-family:Georgia,serif;color:#3A2515;font-size:22px;letter-spacing:0.04em;">THEIA GEMS</h2>
+        </div>
+        ${params.customerName ? `<p style="color:#6B4A30;font-size:14px;">Dear ${params.customerName},</p>` : ''}
+        <div style="color:#3A2515;font-size:14px;line-height:1.7;white-space:pre-wrap;">${params.body}</div>
+        <hr style="border:none;border-top:1px solid #e8dcc8;margin:24px 0;" />
+        <p style="color:#9A7858;font-size:11px;text-align:center;">Theia Gems — Fine Jewelry</p>
+      </div>`;
+
+    await this.mailerService.sendMail({
+      to: params.to,
+      subject: params.subject || 'Message from Theia Gems',
+      html,
+    });
+  }
 }

@@ -4,13 +4,33 @@
   ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository, Between, In, FindOptionsWhere } from 'typeorm';
 import { Sale, PaymentStatus, SaleType } from './entities/sale.entity';
+import { SaleItem } from '../sale-items/entities/sale-item.entity';
 import { CreateSaleDto } from './dto/create-sale.dto';
 import { UpdateSaleDto } from './dto/update-sale.dto';
 import { UserDetail } from 'src/entities';
+import { Branch } from 'src/branches/entities/branch.entity';
+import { Category } from 'src/categories/entities/category.entity';
 import { TransactionLogsService } from '../transaction-logs/transaction-logs.service';
 import { TransactionAction } from '../transaction-logs/entities/transaction-log.entity';
+
+export interface SaleLineItem {
+  saleItemId: number;
+  saleId: number;
+  saleNumber: string | undefined;
+  saleDate: Date | undefined;
+  branchName: string | null;
+  itemCode: string | null;
+  barcode: string | null;
+  category: string | null;
+  brand: string | null;
+  description: string | null;
+  unitPrice: number;
+  unitCost: number | null;
+  lineTotal: number;
+  profit: number | null;
+}
 
 @Injectable()
 export class SalesService {
@@ -19,6 +39,8 @@ export class SalesService {
     private readonly saleRepository: Repository<Sale>,
     @InjectRepository(UserDetail)
     private readonly userDetailRepository: Repository<UserDetail>,
+    @InjectRepository(SaleItem)
+    private readonly saleItemRepository: Repository<SaleItem>,
     private readonly transactionLogsService: TransactionLogsService,
   ) {}
 
@@ -217,16 +239,60 @@ export class SalesService {
     period: 'daily' | 'weekly' | 'monthly',
     startDate: Date,
     endDate: Date,
+    branchId?: number,
   ) {
     endDate.setHours(23, 59, 59, 999);
 
+    const where: FindOptionsWhere<Sale> = {
+      saleDate: Between(startDate, endDate),
+    };
+    if (branchId) where.branchId = branchId;
+
     const sales = await this.saleRepository.find({
-      where: { saleDate: Between(startDate, endDate) },
+      where,
       relations: ['branch', 'customer'],
       order: { saleDate: 'ASC' },
     });
 
+    let lineItems: SaleLineItem[] = [];
+    if (sales.length > 0) {
+      const saleIds = sales.map((s) => s.id);
+      const saleItems = await this.saleItemRepository.find({
+        where: { saleId: In(saleIds) },
+        relations: [
+          'jewelryItem',
+          'jewelryItem.category',
+          'sale',
+          'sale.branch',
+        ],
+      });
+
+      lineItems = saleItems.map((si) => {
+        const branch = si.sale?.branch as Branch | undefined;
+        const category = si.jewelryItem?.category as Category | undefined;
+        return {
+          saleItemId: si.id,
+          saleId: si.saleId,
+          saleNumber: si.sale?.saleNumber,
+          saleDate: si.sale?.saleDate,
+          branchName: branch?.branchName ?? null,
+          itemCode: si.jewelryItem?.itemCode ?? null,
+          barcode: si.jewelryItem?.barcode ?? null,
+          category: category?.categoryName ?? null,
+          brand: si.jewelryItem?.brand ?? null,
+          description: si.jewelryItem?.material ?? null,
+          unitPrice: Number(si.unitPrice),
+          unitCost: si.unitCost != null ? Number(si.unitCost) : null,
+          lineTotal: Number(si.lineTotal),
+          profit: si.grossMargin != null ? Number(si.grossMargin) : null,
+        };
+      });
+    }
+
     const totalRevenue = sales.reduce((s, r) => s + Number(r.totalAmount), 0);
+    const totalCost = lineItems.reduce((s, r) => s + (r.unitCost ?? 0), 0);
+    const totalProfit = lineItems.reduce((s, r) => s + (r.profit ?? 0), 0);
+
     const summary = {
       totalOrders: sales.length,
       totalRevenue,
@@ -236,6 +302,8 @@ export class SalesService {
       paidCount: sales.filter((s) => s.paymentStatus === PaymentStatus.PAID).length,
       partialCount: sales.filter((s) => s.paymentStatus === PaymentStatus.PARTIAL).length,
       layawayCount: sales.filter((s) => s.paymentStatus === PaymentStatus.LAYAWAY).length,
+      totalCost,
+      totalProfit,
     };
 
     const groups: Record<string, { label: string; orders: number; revenue: number; discount: number }> = {};
@@ -270,7 +338,7 @@ export class SalesService {
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([, v]) => v);
 
-    return { summary, grouped, sales };
+    return { summary, grouped, sales, items: lineItems };
   }
 
   async getDailySummary(date: Date, branchId?: number): Promise<{

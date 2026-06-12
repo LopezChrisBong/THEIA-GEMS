@@ -102,6 +102,13 @@ export class PromotionalMessagesController {
     return this.promotionalMessagesService.markAsSent(id);
   }
 
+  @Post(':id/send-now')
+  sendNow(
+    @Param('id', ParseIntPipe) id: number,
+  ): Promise<PromotionalMessage> {
+    return this.promotionalMessagesService.sendNow(id);
+  }
+
   @Post(':id/fail')
   markAsFailed(
     @Param('id', ParseIntPipe) id: number,

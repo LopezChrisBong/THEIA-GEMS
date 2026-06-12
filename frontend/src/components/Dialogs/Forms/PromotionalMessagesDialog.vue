@@ -346,9 +346,9 @@ export default {
         sendMethod: this.sendMethod,
         subject: this.subject || null,
         messageContent: this.messageContent,
-        scheduledDate: this.scheduledDate || null,
+        scheduledDate: this.scheduledDate ? new Date(this.scheduledDate).toISOString() : null,
         status: this.status,
-        sentAt: this.sentAt || null,
+        sentAt: this.sentAt ? new Date(this.sentAt).toISOString() : null,
         createdBy: Number(this.$store.state.user.userID),
       };
 
@@ -389,9 +389,9 @@ export default {
         sendMethod: this.sendMethod,
         subject: this.subject || null,
         messageContent: this.messageContent,
-        scheduledDate: this.scheduledDate || null,
+        scheduledDate: this.scheduledDate ? new Date(this.scheduledDate).toISOString() : null,
         status: this.status,
-        sentAt: this.sentAt || null,
+        sentAt: this.sentAt ? new Date(this.sentAt).toISOString() : null,
         createdBy: Number(this.$store.state.user.userID),
       };
 

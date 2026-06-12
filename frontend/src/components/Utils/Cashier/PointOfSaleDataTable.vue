@@ -29,7 +29,7 @@
             @blur="hideItemDropdown"
             autocomplete="off"
           />
-          <span v-if="availableItems.length > 0" class="stock-badge">{{ availableItems.length }} in stock</span>
+          <span v-if="availableItems.length > 0" class="stock-badge">{{ availableItems.length }} available</span>
         </div>
         <div v-if="showDropdown && searchResults.length > 0" class="search-dropdown">
           <div
@@ -485,16 +485,20 @@ export default {
       // Strip common scanner prefixes like "S/N:", "s/n:", "SN:", then trim
       return (raw || "").replace(/^s\/?n[:\s]+/i, "").trim().toLowerCase();
     },
-    loadAvailableItems() {
+    async loadAvailableItems() {
       if (!this.branchId) return;
-      const qs = "?branchId=" + this.branchId + "&status=IN_STOCK";
-      this.axiosCall("/jewelry-items" + qs, "GET")
-        .then((res) => {
-          const loaded = res?.data || [];
-          const cartIds = new Set(this.cartItems.map((c) => c.id));
-          this.availableItems = loaded.filter((i) => !cartIds.has(i.id));
-        })
-        .catch(() => {});
+      try {
+        const [stockRes, consignRes] = await Promise.all([
+          this.axiosCall("/jewelry-items?branchId=" + this.branchId + "&status=IN_STOCK", "GET").catch(() => null),
+          this.axiosCall("/consignment-items", "GET").catch(() => null),
+        ]);
+        const stockItems = stockRes?.data || [];
+        const consignItems = (consignRes?.data || [])
+          .filter((ci) => ci.status === "active" && ci.isAuthentic === true && ci.branchId === this.branchId && ci.jewelryItem)
+          .map((ci) => ({ ...ci.jewelryItem, price: Number(ci.sellingPrice) || Number(ci.jewelryItem.price) }));
+        const cartIds = new Set(this.cartItems.map((c) => c.id));
+        this.availableItems = [...stockItems, ...consignItems].filter((i) => !cartIds.has(i.id));
+      } catch (_) { /* ignore */ }
     },
     onSearchInput() {
       const q = this.normalizeCode(this.searchCode);
@@ -529,17 +533,11 @@ export default {
       // 2. Try first result from the live filter
       if (this.searchResults.length > 0) { this.addToCart(this.searchResults[0]); return; }
 
-      // 3. Direct API fallback — covers empty cache and partial code mismatches
+      // 3. Direct API fallback — reload cache then search
       if (!this.branchId) { this.searchCode = ""; return; }
       try {
-        const qs = "?branchId=" + this.branchId + "&status=IN_STOCK";
-        const res = await this.axiosCall("/jewelry-items" + qs, "GET");
-        const items = res?.data || [];
-        // Reload cache while we're at it
-        const cartIds = new Set(this.cartItems.map((c) => c.id));
-        this.availableItems = items.filter((i) => !cartIds.has(i.id));
-
-        const match = items.find(
+        await this.loadAvailableItems();
+        const match = this.availableItems.find(
           (i) =>
             (i.itemCode || "").toLowerCase() === q ||
             (i.barcode || "").toLowerCase() === q ||
@@ -581,6 +579,7 @@ export default {
         code: item.itemCode,
         meta: metaParts.join(" · "),
         price: Number(item.price) || 0,
+        cost: Number(item.cost) || 0,
       });
       this.availableItems = this.availableItems.filter((i) => i.id !== item.id);
       this.searchCode = "";
@@ -676,6 +675,21 @@ export default {
           saleType: "regular",
         });
         const saleId = saleRes.data.id;
+
+        // Create sale items for item-level reporting
+        for (const item of this.cartItems) {
+          const lineTotal = item.price;
+          const grossMargin = item.cost ? lineTotal - item.cost : null;
+          await this.axiosCall("/sale-items", "POST", {
+            saleId,
+            jewelryItemId: item.id,
+            unitPrice: item.price,
+            unitCost: item.cost || null,
+            discountAmount: 0,
+            lineTotal,
+            grossMargin,
+          });
+        }
 
         const payNumRes = await this.axiosCall("/payments/generate-number", "GET");
         await this.axiosCall("/payments", "POST", {
@@ -784,6 +798,21 @@ export default {
           notes: this.instNotes || undefined,
         });
         const saleId = saleRes.data.id;
+
+        // Create sale items for item-level reporting
+        for (const item of this.cartItems) {
+          const lineTotal = item.price;
+          const grossMargin = item.cost ? lineTotal - item.cost : null;
+          await this.axiosCall("/sale-items", "POST", {
+            saleId,
+            jewelryItemId: item.id,
+            unitPrice: item.price,
+            unitCost: item.cost || null,
+            discountAmount: 0,
+            lineTotal,
+            grossMargin,
+          });
+        }
 
         const payNumRes = await this.axiosCall("/payments/generate-number", "GET");
         await this.axiosCall("/payments", "POST", {

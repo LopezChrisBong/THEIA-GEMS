@@ -67,6 +67,11 @@ export class CreateJewelryItemDto {
   @MaxLength(50)
   size?: string;
 
+  @IsString()
+  @IsOptional()
+  @MaxLength(50)
+  ringSize?: string;
+
   @IsNumber()
   @IsOptional()
   price?: number;
