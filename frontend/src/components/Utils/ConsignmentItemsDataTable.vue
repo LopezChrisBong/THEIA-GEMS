@@ -39,6 +39,7 @@
             <tr>
               <th>Item</th>
               <th>Consignor</th>
+              <th>Genuine/Entrupy</th>
               <th>Consigned Price</th>
               <th>Selling Price</th>
               <th>Commission</th>
@@ -61,6 +62,15 @@
                 <br v-if="item.consignorContact">
                 <span v-if="item.consignorContact" class="dim">{{ item.consignorContact }}</span>
               </td>
+              <td class="text-center">
+                <span v-if="item.isAuthentic === true" class="auth-badge auth-yes">
+                  <v-icon size="12">mdi-check-circle-outline</v-icon> Genuine
+                </span>
+                <span v-else-if="item.isAuthentic === false" class="auth-badge auth-no">
+                  <v-icon size="12">mdi-close-circle-outline</v-icon> Not Genuine
+                </span>
+                <span v-else class="dim">—</span>
+              </td>
               <td class="text-right">₱{{ formatNumber(item.consignedPrice) }}</td>
               <td class="text-right">₱{{ formatNumber(item.sellingPrice) }}</td>
               <td class="text-center">{{ item.commissionRate ? item.commissionRate + '%' : '—' }}</td>
@@ -76,11 +86,31 @@
                 <div class="act-btns">
                   <button class="act-btn" title="Edit" @click="editItem(item)"><v-icon size="14">mdi-pencil-outline</v-icon></button>
                   <button class="act-btn del" title="Delete" @click="deleteItem(item)"><v-icon size="14">mdi-delete-outline</v-icon></button>
+                  <button
+                    v-if="item.status === 'active'"
+                    class="act-btn accept-btn"
+                    title="Accept (Mark Genuine)"
+                    :disabled="authenticatingId === item.id"
+                    @click="setAuthentic(item, true)"
+                  >
+                    <v-progress-circular v-if="authenticatingId === item.id && pendingAuth === true" indeterminate size="11" width="2" color="#3D7A5A" />
+                    <v-icon v-else size="14">mdi-check-circle-outline</v-icon>
+                  </button>
+                  <button
+                    v-if="item.status === 'active'"
+                    class="act-btn reject-btn"
+                    title="Reject (Not Genuine)"
+                    :disabled="authenticatingId === item.id"
+                    @click="setAuthentic(item, false)"
+                  >
+                    <v-progress-circular v-if="authenticatingId === item.id && pendingAuth === false" indeterminate size="11" width="2" color="#B84040" />
+                    <v-icon v-else size="14">mdi-close-circle-outline</v-icon>
+                  </button>
                 </div>
               </td>
             </tr>
             <tr v-if="filteredData.length === 0">
-              <td colspan="9">
+              <td colspan="10">
                 <div class="empty-state">
                   <div class="empty-icon"><v-icon size="20" color="#9B6B3A">mdi-handshake-outline</v-icon></div>
                   <div class="empty-title">No consignment items found</div>
@@ -124,6 +154,7 @@ export default {
     search: "", filterStatus: null, filterBranch: null,
     data: [], branchList: [], deleteData: null, updateData: null,
     loading: false, deleting: false, action: null, dialogConfirmDelete: false,
+    authenticatingId: null, pendingAuth: null,
     fadeAwayMessage: { show: false, type: "success", header: "Success", message: "", top: 10 },
   }),
   computed: {
@@ -153,6 +184,21 @@ export default {
       this.axiosCall(url, "GET").then((r) => { if (r && r.data) this.data = r.data; })
         .catch(() => { this.fadeAwayMessage = { show: true, type: "error", header: "Error", message: "Failed to load consignments", top: 10 }; })
         .finally(() => { this.loading = false; });
+    },
+    setAuthentic(item, value) {
+      this.authenticatingId = item.id;
+      this.pendingAuth = value;
+      this.axiosCall("/consignment-items/" + item.id, "PATCH", { isAuthentic: value })
+        .then((r) => {
+          if (r && r.data) {
+            const idx = this.data.findIndex((d) => d.id === item.id);
+            if (idx !== -1) this.data[idx] = { ...this.data[idx], isAuthentic: value };
+            const label = value ? "Accepted as Genuine" : "Rejected — Not Genuine";
+            this.fadeAwayMessage = { show: true, type: value ? "success" : "warning", header: label, message: item.jewelryItem?.itemCode || item.consignorName, top: 10 };
+          }
+        })
+        .catch((e) => { this.fadeAwayMessage = { show: true, type: "error", header: "Error", message: e?.response?.data?.message || "Failed to update", top: 10 }; })
+        .finally(() => { this.authenticatingId = null; this.pendingAuth = null; });
     },
     addNew() { this.updateData = { id: null }; this.action = "Add"; },
     editItem(item) { this.updateData = { ...item }; this.action = "Update"; },
@@ -201,10 +247,16 @@ td.dim, .dim { color: #9A7858; font-size: 12px; }
 .r-sold { background: rgba(90,122,155,0.1); color: #5A7A9B; }
 .r-returned { background: rgba(155,107,58,0.1); color: #9B6B3A; }
 .r-primary { background: rgba(155,107,58,0.12); color: #9B6B3A; }
+.auth-badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 500; }
+.auth-yes { background: rgba(61,122,90,0.1); color: #3D7A5A; }
+.auth-no { background: rgba(184,64,64,0.08); color: #B84040; }
 .act-btns { display: flex; align-items: center; gap: 4px; }
 .act-btn { width: 27px; height: 27px; border-radius: 7px; border: 1px solid rgba(155,107,58,0.16); background: #F5EFE4; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.12s; color: #9A7858; }
 .act-btn:hover { border-color: #C49455; color: #9B6B3A; background: #EDE0CC; }
 .act-btn.del:hover { border-color: rgba(184,64,64,0.4); color: #B84040; background: rgba(184,64,64,0.06); }
+.act-btn.accept-btn:hover { border-color: rgba(61,122,90,0.4); color: #3D7A5A; background: rgba(61,122,90,0.08); }
+.act-btn.reject-btn:hover { border-color: rgba(184,64,64,0.4); color: #B84040; background: rgba(184,64,64,0.06); }
+.act-btn[disabled] { opacity: 0.35; cursor: default; pointer-events: none; }
 .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 52px 20px; gap: 10px; color: #9A7858; }
 .empty-icon { width: 48px; height: 48px; border-radius: 13px; background: #EDE0CC; display: flex; align-items: center; justify-content: center; }
 .empty-title { font-size: 14px; font-weight: 500; color: #6B4A30; }

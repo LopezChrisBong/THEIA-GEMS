@@ -67,6 +67,11 @@
           <strong>{{ item.itemCode }}</strong>
         </template>
 
+        <template v-slot:[`item.barcode`]="{ item }">
+          <span v-if="item.barcode">{{ item.barcode }}</span>
+          <span v-else class="text-medium-emphasis">—</span>
+        </template>
+
         <template v-slot:[`item.category`]="{ item }">
           <v-chip v-if="item.category" size="small" variant="tonal" color="primary">
             {{ item.category.categoryName }}
@@ -81,6 +86,11 @@
 
         <template v-slot:[`item.material`]="{ item }">
           <span v-if="item.material">{{ item.material }}</span>
+          <span v-else class="text-medium-emphasis">—</span>
+        </template>
+
+        <template v-slot:[`item.ringSize`]="{ item }">
+          <span v-if="item.ringSize">{{ item.ringSize }}</span>
           <span v-else class="text-medium-emphasis">—</span>
         </template>
 
@@ -260,7 +270,7 @@
               <div class="view-value">{{ viewData.color || '—' }}</div>
             </v-col>
             <v-col cols="12" md="4">
-              <div class="view-label">Material</div>
+              <div class="view-label">Description</div>
               <div class="view-value">{{ viewData.material || '—' }}</div>
             </v-col>
             <v-col cols="12" md="4">
@@ -314,6 +324,10 @@
             <v-col cols="12" md="4">
               <div class="view-label">Carat</div>
               <div class="view-value">{{ viewData.carat || '—' }}</div>
+            </v-col>
+            <v-col cols="12" md="4">
+              <div class="view-label">Ring Size</div>
+              <div class="view-value">{{ viewData.ringSize || '—' }}</div>
             </v-col>
           </v-row>
 
@@ -630,9 +644,11 @@ export default {
     filterStatus: null,
     headers: [
       { title: "Code", value: "itemCode", align: "start", width: 100 },
+      { title: "Barcode", value: "barcode", align: "start" },
       { title: "Category", value: "category", align: "start" },
       { title: "Brand", value: "brand", align: "start" },
-      { title: "Material", value: "material", align: "start" },
+      { title: "Description", value: "material", align: "start" },
+      { title: "Ring Size", value: "ringSize", align: "center", width: 110 },
       { title: "Price", value: "price", align: "end", width: 130 },
       { title: "Status", value: "status", align: "center", width: 130 },
       { title: "Branch", value: "branch", align: "center", width: 130 },

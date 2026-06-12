@@ -62,6 +62,16 @@
               <td class="dim">{{ formatDateTime(item.sentAt) }}</td>
               <td>
                 <div class="act-btns">
+                  <button
+                    v-if="item.status !== 'sent' && item.customerId"
+                    class="act-btn send-btn"
+                    title="Send Now"
+                    :disabled="sendingId === item.id"
+                    @click="sendNow(item)"
+                  >
+                    <v-progress-circular v-if="sendingId === item.id" indeterminate size="12" width="2" color="#3D7A5A" />
+                    <v-icon v-else size="14">mdi-send-outline</v-icon>
+                  </button>
                   <button class="act-btn" title="Edit" @click="editItem(item)"><v-icon size="14">mdi-pencil-outline</v-icon></button>
                   <button class="act-btn del" title="Delete" @click="deleteItem(item)" :disabled="item.status === 'sent'"><v-icon size="14">mdi-delete-outline</v-icon></button>
                 </div>
@@ -110,7 +120,7 @@ export default {
   components: { PromotionalMessagesDialog },
   data: () => ({
     search: "", filterStatus: null, data: [], deleteData: null, updateData: null,
-    loading: false, deleting: false, action: null, dialogConfirmDelete: false,
+    loading: false, deleting: false, sendingId: null, action: null, dialogConfirmDelete: false,
     fadeAwayMessage: { show: false, type: "success", header: "Success", message: "", top: 10 },
   }),
   computed: {
@@ -141,6 +151,20 @@ export default {
       this.axiosCall("/promotional-messages", "GET").then((r) => { if (r && r.data) this.data = r.data; })
         .catch(() => { this.fadeAwayMessage = { show: true, type: "error", header: "Error", message: "Failed to load messages", top: 10 }; })
         .finally(() => { this.loading = false; });
+    },
+    sendNow(item) {
+      this.sendingId = item.id;
+      this.axiosCall("/promotional-messages/" + item.id + "/send-now", "POST")
+        .then((r) => {
+          if (r && r.data) {
+            this.fadeAwayMessage = { show: true, type: "success", header: "Sent", message: "Message sent successfully", top: 10 };
+            this.initialize();
+          }
+        })
+        .catch((e) => {
+          this.fadeAwayMessage = { show: true, type: "error", header: "Failed", message: e?.response?.data?.message || "Failed to send message", top: 10 };
+        })
+        .finally(() => { this.sendingId = null; });
     },
     addNew() { this.updateData = { id: null }; this.action = "Add"; },
     editItem(item) { this.updateData = { ...item }; this.action = "Update"; },
@@ -194,6 +218,7 @@ export default {
 .act-btn { width: 27px; height: 27px; border-radius: 7px; border: 1px solid rgba(155,107,58,0.16); background: #F5EFE4; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.12s; color: #9A7858; }
 .act-btn:hover { border-color: #C49455; color: #9B6B3A; background: #EDE0CC; }
 .act-btn.del:hover { border-color: rgba(184,64,64,0.4); color: #B84040; background: rgba(184,64,64,0.06); }
+.act-btn.send-btn:hover { border-color: rgba(61,122,90,0.4); color: #3D7A5A; background: rgba(61,122,90,0.08); }
 .act-btn[disabled] { opacity: 0.3; cursor: default; }
 .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 52px 20px; gap: 10px; color: #9A7858; }
 .empty-icon { width: 48px; height: 48px; border-radius: 13px; background: #EDE0CC; display: flex; align-items: center; justify-content: center; }

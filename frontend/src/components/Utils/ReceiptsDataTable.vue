@@ -129,6 +129,28 @@
 
         <div class="rv-divider"></div>
 
+        <!-- Items -->
+        <div class="rv-section">
+          <div class="rv-items-header">Items Purchased</div>
+          <div v-if="saleItemsLoading" class="rv-items-loading">
+            <v-progress-circular indeterminate color="#9B6B3A" size="16" width="2" />
+          </div>
+          <template v-else-if="saleItems.length">
+            <div class="rv-item-row" v-for="si in saleItems" :key="si.id">
+              <div class="rv-item-left">
+                <span class="rv-item-code">{{ si.jewelryItem?.itemCode || '—' }}</span>
+                <span class="rv-item-desc">
+                  {{ [si.jewelryItem?.brand, si.jewelryItem?.material].filter(Boolean).join(' · ') || si.jewelryItem?.itemCode || '—' }}
+                </span>
+              </div>
+              <span class="rv-item-price">₱{{ formatNumber(si.lineTotal) }}</span>
+            </div>
+          </template>
+          <div v-else class="rv-items-empty">No item details recorded</div>
+        </div>
+
+        <div class="rv-divider"></div>
+
         <!-- Sale Breakdown -->
         <div class="rv-section">
           <div class="rv-row">
@@ -231,7 +253,7 @@ export default {
   data: () => ({
     search: "", filterPrint: null, data: [], deleteData: null, updateData: null,
     loading: false, deleting: false, action: null, dialogConfirmDelete: false,
-    dialogView: false, viewData: null,
+    dialogView: false, viewData: null, saleItems: [], saleItemsLoading: false,
     fadeAwayMessage: { show: false, type: "success", header: "Success", message: "", top: 10 },
   }),
   computed: {
@@ -269,7 +291,18 @@ export default {
     },
     addNew() { this.updateData = { id: null }; this.action = "Add"; },
     editItem(item) { this.updateData = { ...item }; this.action = "Update"; },
-    viewItem(item) { this.viewData = item; this.dialogView = true; },
+    viewItem(item) {
+      this.viewData = item;
+      this.saleItems = [];
+      this.dialogView = true;
+      if (item.sale?.id) {
+        this.saleItemsLoading = true;
+        this.axiosCall(`/sale-items/sale/${item.sale.id}`, 'GET')
+          .then((r) => { if (r && r.data) this.saleItems = r.data; })
+          .catch(() => {})
+          .finally(() => { this.saleItemsLoading = false; });
+      }
+    },
     printReceipt(item) {
       this.fadeAwayMessage = { show: true, type: "info", header: "Print", message: "Printing receipt " + item.receiptNumber + "...", top: 10 };
     },
@@ -381,6 +414,62 @@ td.mono, .mono { font-family: monospace; font-size: 12px; color: #9B6B3A; font-w
 
 .rv-print-info .rv-lbl { color: #9A7858; }
 .rv-footer { text-align: center; font-size: 11px; color: #9A7858; font-style: italic; padding-bottom: 4px; }
+
+/* Items list */
+.rv-items-header {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #9A7858;
+  margin-bottom: 6px;
+}
+.rv-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 5px 0;
+  border-bottom: 1px dashed rgba(155,107,58,0.1);
+  gap: 8px;
+}
+.rv-item-row:last-child { border-bottom: none; }
+.rv-item-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.rv-item-code {
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: #9B6B3A;
+}
+.rv-item-desc {
+  font-size: 12px;
+  color: #3A2515;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rv-item-price {
+  font-size: 13px;
+  font-weight: 600;
+  color: #3A2515;
+  white-space: nowrap;
+}
+.rv-items-loading {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+}
+.rv-items-empty {
+  font-size: 11px;
+  color: #C4A882;
+  font-style: italic;
+  padding: 4px 0;
+}
 .empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 52px 20px; gap: 10px; color: #9A7858; }
 .empty-icon { width: 48px; height: 48px; border-radius: 13px; background: #EDE0CC; display: flex; align-items: center; justify-content: center; }
 .empty-title { font-size: 14px; font-weight: 500; color: #6B4A30; }

@@ -63,6 +63,9 @@ export class ConsignmentItem {
   @JoinColumn({ name: 'branch_id' })
   branch: Branch;
 
+  @Column({ name: 'is_authentic', type: 'boolean', nullable: true })
+  isAuthentic: boolean;
+
   @Column({ type: 'text', nullable: true })
   notes: string;
 

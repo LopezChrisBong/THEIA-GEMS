@@ -114,7 +114,7 @@
     </div>
 
     <!-- View Sale Modal -->
-    <v-dialog v-model="dialogView" max-width="560px">
+    <v-dialog v-model="dialogView" max-width="660px">
       <v-card v-if="viewData" class="sale-view-card">
         <!-- Header -->
         <div class="sv-header">
@@ -207,6 +207,47 @@
 
           <div class="sv-divider"></div>
 
+          <!-- Items -->
+          <div class="sv-section-title">
+            Items
+            <span v-if="loadingSaleItems" class="sv-loading">loading...</span>
+            <span v-else-if="saleItems.length" class="sv-loading" style="color:#9B6B3A">{{ saleItems.length }} item{{ saleItems.length > 1 ? 's' : '' }}</span>
+          </div>
+          <div v-if="saleItems.length === 0 && !loadingSaleItems" class="sv-empty">No item records for this sale</div>
+          <div class="sv-items-wrap" v-if="saleItems.length > 0">
+            <table class="sv-items-tbl">
+              <thead>
+                <tr>
+                  <th>Code / Barcode</th>
+                  <th>Brand / Description</th>
+                  <th class="text-right">Price</th>
+                  <th class="text-right">Cost</th>
+                  <th class="text-right">Profit</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="si in saleItems" :key="si.id">
+                  <td>
+                    <div class="mono">{{ si.jewelryItem?.itemCode || '—' }}</div>
+                    <div class="dim" style="font-size:11px">{{ si.jewelryItem?.barcode || '' }}</div>
+                  </td>
+                  <td>
+                    <div style="font-size:13px">{{ si.jewelryItem?.brand || '—' }}</div>
+                    <div class="dim" style="font-size:11px">{{ si.jewelryItem?.material || '' }}</div>
+                  </td>
+                  <td class="text-right amount-col">₱{{ formatNumber(si.unitPrice) }}</td>
+                  <td class="text-right dim">{{ si.unitCost != null ? '₱' + formatNumber(si.unitCost) : '—' }}</td>
+                  <td class="text-right"
+                    :style="{ color: si.grossMargin > 0 ? '#3D7A5A' : si.grossMargin < 0 ? '#B84040' : '', fontWeight: '600' }">
+                    {{ si.grossMargin != null ? '₱' + formatNumber(si.grossMargin) : '—' }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="sv-divider"></div>
+
           <!-- Payments -->
           <div class="sv-section-title">
             Payments
@@ -289,8 +330,10 @@ export default {
     viewData: null,
     payments: [],
     receipt: null,
+    saleItems: [],
     loadingPayments: false,
     loadingReceipt: false,
+    loadingSaleItems: false,
     fadeAwayMessage: { show: false, type: "success", header: "Success", message: "", top: 10 },
   }),
 
@@ -381,6 +424,7 @@ export default {
       this.viewData = item;
       this.payments = [];
       this.receipt = null;
+      this.saleItems = [];
       this.dialogView = true;
 
       this.loadingPayments = true;
@@ -394,6 +438,12 @@ export default {
         .then((res) => { this.receipt = res?.data || null; })
         .catch(() => { this.receipt = null; })
         .finally(() => { this.loadingReceipt = false; });
+
+      this.loadingSaleItems = true;
+      this.axiosCall("/sale-items/sale/" + item.id, "GET")
+        .then((res) => { this.saleItems = res?.data || []; })
+        .catch(() => { this.saleItems = []; })
+        .finally(() => { this.loadingSaleItems = false; });
     },
   },
 };
@@ -504,6 +554,20 @@ export default {
 .sv-notes { font-size: 13px; color: #6B4A30; background: rgba(155,107,58,0.06); border-radius: 8px; padding: 8px 12px; margin-bottom: 4px; line-height: 1.5; }
 .sv-empty { font-size: 12px; color: #9A7858; padding: 8px 0; margin-bottom: 4px; }
 .sv-loading { font-size: 11px; color: #9A7858; margin-left: 8px; }
+
+/* Items table inside sale modal */
+.sv-items-wrap { overflow-x: auto; margin-bottom: 4px; }
+.sv-items-tbl { width: 100%; border-collapse: collapse; font-size: 12px; }
+.sv-items-tbl thead th {
+  text-align: left; padding: 6px 10px; font-size: 9px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: #9A7858; font-weight: 600;
+  background: #F5EFE4; white-space: nowrap;
+}
+.sv-items-tbl thead th.text-right { text-align: right; }
+.sv-items-tbl tbody tr { border-top: 1px solid rgba(155,107,58,0.1); }
+.sv-items-tbl tbody tr:hover { background: #F5EFE4; }
+.sv-items-tbl tbody td { padding: 7px 10px; color: #3A2515; vertical-align: middle; white-space: nowrap; }
+.sv-items-tbl .text-right { text-align: right; }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 4px; }

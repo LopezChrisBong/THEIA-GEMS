@@ -74,8 +74,14 @@ export class SalesController {
     @Query('period') period: 'daily' | 'weekly' | 'monthly' = 'daily',
     @Query('startDate') startDate: string,
     @Query('endDate') endDate: string,
+    @Query('branchId') branchId?: string,
   ) {
-    return this.salesService.getSalesReport(period, new Date(startDate), new Date(endDate));
+    return this.salesService.getSalesReport(
+      period,
+      new Date(startDate),
+      new Date(endDate),
+      branchId ? Number(branchId) : undefined,
+    );
   }
 
   @Get('daily-summary')

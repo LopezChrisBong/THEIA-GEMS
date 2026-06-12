@@ -1,6 +1,5 @@
 <template>
   <div class="login-screen">
-    <div class="login-pattern"></div>
     <div class="login-vignette"></div>
     <div class="login-card">
       <!-- Gem Emblem -->
@@ -210,20 +209,6 @@ export default {
     radial-gradient(ellipse at 70% 70%, rgba(155,107,58,0.1) 0%, transparent 50%),
     linear-gradient(160deg, #C99A8B 0%, #C08B7C 50%, #B67D6E 100%);
   font-family: 'Outfit', sans-serif;
-}
-
-/* Gem watermark pattern — covers entire background */
-.login-pattern {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-image: url("data:image/svg+xml,%3Csvg width='110' height='110' viewBox='0 0 110 110' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolygon points='55,8 95,35 95,75 55,102 15,75 15,35' fill='none' stroke='rgba(255,255,255,0.2)' stroke-width='0.9'/%3E%3Cpolygon points='55,8 95,35 55,50 15,35' fill='none' stroke='rgba(255,255,255,0.13)' stroke-width='0.6'/%3E%3Cline x1='55' y1='8' x2='55' y2='50' stroke='rgba(255,255,255,0.08)' stroke-width='0.5'/%3E%3C/svg%3E");
-  background-size: 110px 110px;
-  background-repeat: repeat;
-  pointer-events: none;
-  z-index: 0;
 }
 
 /* Subtle vignette */

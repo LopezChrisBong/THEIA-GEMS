@@ -10,6 +10,7 @@ import {
 import { CreatePromotionalMessageDto } from './dto/create-promotional-message.dto';
 import { UpdatePromotionalMessageDto } from './dto/update-promotional-message.dto';
 import { SmsService } from 'src/sms/sms.service';
+import { MailService } from 'src/mail/mail.service';
 import { Customer } from 'src/entities';
 
 @Injectable()
@@ -18,43 +19,82 @@ export class PromotionalMessagesService {
     @InjectRepository(PromotionalMessage)
     private readonly promotionalMessageRepository: Repository<PromotionalMessage>,
     private readonly SMSServices: SmsService,
+    private readonly mailService: MailService,
     private readonly dataSource: DataSource,
   ) {}
+
+  private async dispatchMessage(
+    message: PromotionalMessage,
+    customer: { fullname: string; email?: string; phone?: string } | null,
+  ): Promise<void> {
+    const sendMethod = message.sendMethod;
+
+    if ((sendMethod === SendMethod.EMAIL || sendMethod === SendMethod.BOTH) && customer?.email) {
+      await this.mailService.sendPromotional({
+        to: customer.email,
+        subject: message.subject || `Theia Gems — ${message.messageType.charAt(0).toUpperCase() + message.messageType.slice(1)}`,
+        body: message.messageContent,
+        customerName: customer.fullname,
+      });
+    }
+
+    if ((sendMethod === SendMethod.SMS || sendMethod === SendMethod.BOTH) && customer?.phone) {
+      const smsBody =
+        `Hi ${customer.fullname},\n\n${message.messageContent}\n\nFor questions, contact Theia Gems.`;
+      await this.SMSServices.sendSmsSemaphore({
+        recipient: customer.phone,
+        message: smsBody,
+      });
+    }
+  }
 
   async create(
     createPromotionalMessageDto: CreatePromotionalMessageDto,
   ): Promise<PromotionalMessage> {
     const { scheduledDate, ...rest } = createPromotionalMessageDto;
-    const message = this.promotionalMessageRepository.create({
+    const saved = this.promotionalMessageRepository.create({
       ...rest,
       scheduledDate: scheduledDate ? new Date(scheduledDate) : null,
     });
-    let customer = await this.dataSource
-      .createQueryBuilder(Customer, 'ct')
-      .select(['ct.*', "CONCAT(ct.first_name, ' ', ct.last_name) as fullname"])
-      .where('ct.id = :customerID', { customerID: rest.customerId })
-      .getRawOne();
-    if (rest.sendMethod == 'sms') {
-      let message =
-        'Subject: THEIA GEMS ' + rest.messageType === 'promotional'
-          ? 'PROMOTIONAL'
-          : rest.messageType === 'reminder'
-            ? 'REMINDER'
-            : 'ANNOUNCEMENT' + '\n';
-      message += '\nHi ' + customer.fullname + ',\n';
-      message += '\n' + rest.messageContent + '\n';
-      // message += '\nDate: ' + date + '\n';
-      // message += 'Time: ' + time + '\n';
-      message +=
-        '\nFor questions or clarifications, message us on our (sample email).\n';
-      let sms = {
-        recipient: '09070804101', //string
-        //  recipient: customer.phone.toString(),
-        message: message, //string
-      };
-      await this.SMSServices.sendSmsSemaphore(sms);
+    const result = await this.promotionalMessageRepository.save(saved);
+
+    // Send immediately if status is not draft and not scheduled
+    if (
+      rest.status !== MessageStatus.DRAFT &&
+      rest.status !== MessageStatus.SCHEDULED &&
+      rest.customerId
+    ) {
+      const customer = await this.dataSource
+        .createQueryBuilder(Customer, 'ct')
+        .select(['ct.id', 'ct.email', 'ct.phone',
+          "CONCAT(ct.first_name, ' ', ct.last_name) as fullname"])
+        .where('ct.id = :id', { id: rest.customerId })
+        .getRawOne();
+      if (customer) {
+        await this.dispatchMessage(result, customer).catch(() => {});
+      }
     }
 
+    return result;
+  }
+
+  async sendNow(id: number): Promise<PromotionalMessage> {
+    const message = await this.findOne(id);
+
+    if (message.customerId) {
+      const customer = await this.dataSource
+        .createQueryBuilder(Customer, 'ct')
+        .select(['ct.id', 'ct.email', 'ct.phone',
+          "CONCAT(ct.first_name, ' ', ct.last_name) as fullname"])
+        .where('ct.id = :id', { id: message.customerId })
+        .getRawOne();
+      if (customer) {
+        await this.dispatchMessage(message, customer);
+      }
+    }
+
+    message.status = MessageStatus.SENT;
+    message.sentAt = new Date();
     return this.promotionalMessageRepository.save(message);
   }
 

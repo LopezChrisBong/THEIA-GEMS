@@ -6,6 +6,7 @@ import {
   IsEmail,
   IsDateString,
   IsEnum,
+  IsBoolean,
   MaxLength,
   Min,
 } from 'class-validator';
@@ -57,6 +58,10 @@ export class CreateConsignmentItemDto {
   @IsNotEmpty()
   @IsNumber()
   branchId: number;
+
+  @IsOptional()
+  @IsBoolean()
+  isAuthentic?: boolean;
 
   @IsOptional()
   @IsString()

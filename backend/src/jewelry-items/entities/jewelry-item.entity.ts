@@ -96,6 +96,9 @@ export class JewelryItem {
   @Column({ name: 'size', type: 'varchar', length: 50, nullable: true })
   size: string;
 
+  @Column({ name: 'ring_size', type: 'varchar', length: 50, nullable: true })
+  ringSize: string;
+
   @Column({ name: 'price', type: 'decimal', precision: 10, scale: 2, nullable: true })
   price: number;
 

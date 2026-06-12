@@ -5,9 +5,10 @@ import { SalesController } from './sales.controller';
 import { Sale } from './entities/sale.entity';
 import { UserDetail } from 'src/entities';
 import { TransactionLogsModule } from '../transaction-logs/transaction-logs.module';
+import { SaleItem } from '../sale-items/entities/sale-item.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Sale, UserDetail]), TransactionLogsModule],
+  imports: [TypeOrmModule.forFeature([Sale, UserDetail, SaleItem]), TransactionLogsModule],
   controllers: [SalesController],
   providers: [SalesService],
   exports: [SalesService],

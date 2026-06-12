@@ -85,17 +85,15 @@
                   />
                 </v-col>
 
-                <!-- Material -->
+                <!-- Description -->
                 <v-col cols="12" md="4" class="mb-4">
                   <v-text-field
                     v-model="material"
-                    label="Material"
+                    label="Description"
                     outlined
                     dense
                     clearable
                     color="primary"
-                    hint="e.g., Leather, Silk, Gold"
-                    persistent-hint
                   />
                 </v-col>
 
@@ -204,6 +202,25 @@
                     hint="e.g., 0.50CT, 1CTW"
                     persistent-hint
                   />
+                </v-col>
+
+                <!-- Ring Size -->
+                <v-col cols="12" md="4" class="mb-4">
+                  <v-text-field
+                    v-model="ringSize"
+                    label="Ring Size"
+                    outlined
+                    dense
+                    clearable
+                    color="primary"
+                    hint="e.g. US 6, US 7, 17mm"
+                    persistent-hint
+                  />
+                </v-col>
+
+                <!-- Divider before Pricing -->
+                <v-col cols="12" class="mb-2 mt-2">
+                  <v-divider />
                 </v-col>
 
                 <!-- Price -->
@@ -453,6 +470,7 @@ export default {
       goldType: null,
       carat: null,
       size: null,
+      ringSize: null,
       price: null,
       cost: null,
       status: "IN_STOCK",
@@ -523,6 +541,7 @@ export default {
           this.goldType = data.goldType;
           this.carat = data.carat;
           this.size = data.size;
+          this.ringSize = data.ringSize;
           this.price = data.price ? Number(data.price) : null;
           this.cost = data.cost ? Number(data.cost) : null;
           this.status = data.status;
@@ -591,6 +610,7 @@ export default {
       this.goldType = null;
       this.carat = null;
       this.size = null;
+      this.ringSize = null;
       this.price = null;
       this.cost = null;
       this.status = "IN_STOCK";
@@ -622,6 +642,7 @@ export default {
         goldType: this.goldType || null,
         carat: this.carat || null,
         size: this.size || null,
+        ringSize: this.ringSize || null,
         price: this.price || null,
         cost: this.cost || null,
         status: this.status,
