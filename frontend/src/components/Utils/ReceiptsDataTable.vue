@@ -303,8 +303,105 @@ export default {
           .finally(() => { this.saleItemsLoading = false; });
       }
     },
-    printReceipt(item) {
-      this.fadeAwayMessage = { show: true, type: "info", header: "Print", message: "Printing receipt " + item.receiptNumber + "...", top: 10 };
+    async printReceipt(item) {
+      const fmt = (v) => "₱" + Number(v || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      // Fetch sale items
+      let saleItems = [];
+      if (item.sale?.id) {
+        try {
+          const r = await this.axiosCall(`/sale-items/sale/${item.sale.id}`, "GET");
+          saleItems = r?.data || [];
+        } catch (_) { /* ignore */ }
+      }
+
+      const sale = item.sale || {};
+      const customerName = sale.customer ? `${sale.customer.firstName} ${sale.customer.lastName}` : null;
+      const rawDate = sale.saleDate || item.printedAt;
+      const saleDate = rawDate ? new Date(rawDate).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" }) : "";
+      const isInstallment = sale.saleType === "layaway";
+      const discountAmt = Number(sale.discountAmount || 0);
+      const taxAmt = Number(sale.taxAmount || 0);
+      const changeAmt = Number(sale.changeAmount || 0);
+      const reprints = item.reprintCount || 0;
+
+      const itemLines = saleItems.length
+        ? saleItems.map((si) => {
+            const name = [si.jewelryItem?.brand, si.jewelryItem?.material].filter(Boolean).join(" · ") || si.jewelryItem?.itemCode || "—";
+            return `<div class="row"><span class="iname">${name}</span><span class="iprice">${fmt(si.lineTotal)}</span></div>` +
+                   `<div class="icode">${si.jewelryItem?.itemCode || ""}</div>`;
+          }).join("")
+        : '<div class="icode">No item details recorded</div>';
+
+      let payLines = `<div class="row"><span>Amount Paid</span><span>${fmt(sale.amountPaid)}</span></div>`;
+      if (changeAmt > 0) payLines += `<div class="row"><span>Change</span><span>${fmt(changeAmt)}</span></div>`;
+      payLines += `<div class="row"><span>Status</span><span style="text-transform:capitalize">${(sale.paymentStatus || "").replace("_", " ")}</span></div>`;
+      if (isInstallment) payLines += `<div class="row bold"><span>INSTALLMENT PLAN</span></div>`;
+
+      const html = `<!DOCTYPE html><html><head>
+<meta charset="UTF-8"><title>Receipt ${item.receiptNumber}</title>
+<style>
+  @page { size: 80mm auto; margin: 4mm 3mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Courier New', Courier, monospace; font-size: 11px; color: #000; width: 74mm; }
+  .center { text-align: center; }
+  .brand { font-size: 17px; font-weight: bold; letter-spacing: 5px; margin-bottom: 1px; }
+  .sub { font-size: 9px; letter-spacing: 3px; margin-bottom: 2px; }
+  .meta { font-size: 10px; margin: 2px 0; }
+  .hr { border: none; border-top: 1px dashed #000; margin: 5px 0; }
+  .hrs { border: none; border-top: 1px solid #000; margin: 5px 0; }
+  .row { display: flex; justify-content: space-between; margin: 2px 0; font-size: 11px; }
+  .iname { flex: 1; padding-right: 6px; overflow: hidden; }
+  .iprice { white-space: nowrap; font-weight: bold; }
+  .icode { font-size: 9px; color: #444; padding-left: 4px; margin-bottom: 3px; }
+  .total-row { display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin: 4px 0; }
+  .bold { font-weight: bold; }
+  .footer { text-align: center; margin-top: 10px; font-size: 9px; line-height: 1.6; }
+</style>
+</head><body>
+<div class="center">
+  <div class="brand">THEIA GEMS</div>
+  <div class="sub">FINE JEWELRY</div>
+</div>
+<hr class="hrs">
+<div class="meta">Receipt: <b>${item.receiptNumber}</b></div>
+<div class="meta">Sale No: ${sale.saleNumber || "—"}</div>
+<div class="meta">Date: ${saleDate}</div>
+${customerName ? `<div class="meta">Customer: ${customerName}</div>` : ""}
+${reprints > 0 ? `<div class="meta" style="color:#555">Reprint #${reprints + 1}</div>` : ""}
+<hr class="hr">
+${itemLines}
+<hr class="hr">
+<div class="row"><span>Subtotal</span><span>${fmt(sale.subtotal)}</span></div>
+${discountAmt > 0 ? `<div class="row"><span>Discount</span><span>-${fmt(discountAmt)}</span></div>` : ""}
+${taxAmt > 0 ? `<div class="row"><span>VAT (12%)</span><span>${fmt(taxAmt)}</span></div>` : ""}
+<hr class="hrs">
+<div class="total-row"><span>TOTAL</span><span>${fmt(sale.totalAmount)}</span></div>
+<hr class="hr">
+${payLines}
+<hr class="hrs">
+<div class="footer">
+  <div>Thank you for your purchase!</div>
+  <div>Please come again.</div>
+  <div style="margin-top:4px;font-size:8px">This serves as your official receipt.</div>
+</div>
+</body></html>`;
+
+      const win = window.open("", "_blank", "width=340,height=700,toolbar=0,menubar=0,scrollbars=1");
+      if (!win) { alert("Please allow popups to print receipts."); return; }
+      win.document.write(html);
+      win.document.close();
+      win.focus();
+      setTimeout(() => {
+        win.print();
+        win.onafterprint = () => win.close();
+      }, 250);
+
+      // Record the print/reprint on the backend
+      const userId = this.$store?.state?.user?.userID || this.$store?.state?.user?.id;
+      this.axiosCall("/receipts/" + item.id + "/print", "POST", { printedBy: userId })
+        .then(() => this.initialize())
+        .catch(() => {});
     },
     deleteItem(item) { this.dialogConfirmDelete = true; this.deleteData = item; },
     confirmDelete() {
