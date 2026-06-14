@@ -292,6 +292,8 @@
           <div class="receipt-sub">Official Receipt</div>
           <div class="receipt-num">{{ receiptData.receiptNumber }}</div>
           <div class="receipt-sale-num">{{ receiptData.saleNumber }}</div>
+          <div v-if="receiptData.customerName" class="receipt-cust">{{ receiptData.customerName }}</div>
+          <div class="receipt-date">{{ receiptData.saleDate }}</div>
         </div>
 
         <div class="receipt-divider"></div>
@@ -342,6 +344,9 @@
 
         <div class="receipt-actions">
           <button class="btn-ghost" style="margin-top:0;flex:1" @click="closeReceipt">Close</button>
+          <button class="btn-print-rcpt" @click="printReceipt">
+            <v-icon size="14" style="margin-right:5px">mdi-printer-outline</v-icon>Print
+          </button>
           <button class="btn-charge" style="margin-top:0;flex:1" @click="closeReceipt">New Sale</button>
         </div>
       </div>
@@ -728,6 +733,8 @@ export default {
         this.receiptData = {
           receiptNumber: rcptRes.data.receiptNumber,
           saleNumber,
+          saleDate: new Date().toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" }),
+          customerName: this.fullCustObj ? `${this.fullCustObj.firstName} ${this.fullCustObj.lastName}` : null,
           items: [...this.cartItems],
           subtotal: this.subtotal,
           discountAmount: this.discountAmount || 0,
@@ -872,6 +879,8 @@ export default {
         this.receiptData = {
           receiptNumber: rcptRes.data.receiptNumber,
           saleNumber,
+          saleDate: new Date().toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" }),
+          customerName: this.instCustomer.trim() || null,
           items: [...this.cartItems],
           subtotal: this.subtotal,
           discountAmount: 0,
@@ -918,6 +927,86 @@ export default {
     closeReceipt() {
       this.showReceipt = false;
       this.receiptData = null;
+    },
+
+    printReceipt() {
+      const r = this.receiptData;
+      if (!r) return;
+      const fmt = (v) =>
+        "₱" + Number(v || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+      const itemLines = r.items.map((item) =>
+        `<div class="row"><span class="iname">${item.name || ""}</span><span class="iprice">${fmt(item.price)}</span></div>` +
+        `<div class="icode">${item.code || ""}</div>`
+      ).join("");
+
+      let payLines = "";
+      if (r.type === "full") {
+        payLines += `<div class="row"><span>Amount Paid</span><span>${fmt(r.amountPaid)}</span></div>`;
+        if (r.change > 0) payLines += `<div class="row"><span>Change</span><span>${fmt(r.change)}</span></div>`;
+        payLines += `<div class="row"><span>Method</span><span style="text-transform:capitalize">${r.paymentMethod}</span></div>`;
+      } else {
+        payLines += `<div class="row"><span>Down Payment</span><span>${fmt(r.amountPaid)}</span></div>`;
+        payLines += `<div class="row"><span>Monthly ×${r.term}</span><span>${fmt(r.monthlyPayment)}</span></div>`;
+        payLines += `<div class="row bold"><span>INSTALLMENT PLAN</span></div>`;
+      }
+
+      const html = `<!DOCTYPE html><html><head>
+<meta charset="UTF-8"><title>Receipt ${r.receiptNumber}</title>
+<style>
+  @page { size: 80mm auto; margin: 4mm 3mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Courier New', Courier, monospace; font-size: 11px; color: #000; width: 74mm; }
+  .center { text-align: center; }
+  .brand { font-size: 17px; font-weight: bold; letter-spacing: 5px; margin-bottom: 1px; }
+  .sub { font-size: 9px; letter-spacing: 3px; margin-bottom: 2px; }
+  .meta { font-size: 10px; margin: 2px 0; }
+  .hr { border: none; border-top: 1px dashed #000; margin: 5px 0; }
+  .hrs { border: none; border-top: 1px solid #000; margin: 5px 0; }
+  .row { display: flex; justify-content: space-between; margin: 2px 0; font-size: 11px; }
+  .iname { flex: 1; padding-right: 6px; overflow: hidden; }
+  .iprice { white-space: nowrap; font-weight: bold; }
+  .icode { font-size: 9px; color: #444; padding-left: 4px; margin-bottom: 3px; }
+  .total-row { display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin: 4px 0; }
+  .bold { font-weight: bold; }
+  .footer { text-align: center; margin-top: 10px; font-size: 9px; line-height: 1.6; }
+</style>
+</head><body>
+<div class="center">
+  <div class="brand">THEIA GEMS</div>
+  <div class="sub">FINE JEWELRY</div>
+</div>
+<hr class="hrs">
+<div class="meta">Receipt: <b>${r.receiptNumber}</b></div>
+<div class="meta">Sale No: ${r.saleNumber}</div>
+<div class="meta">Date: ${r.saleDate || ""}</div>
+${r.customerName ? `<div class="meta">Customer: ${r.customerName}</div>` : ""}
+<hr class="hr">
+${itemLines}
+<hr class="hr">
+<div class="row"><span>Subtotal</span><span>${fmt(r.subtotal)}</span></div>
+${r.discountAmount > 0 ? `<div class="row"><span>Discount</span><span>-${fmt(r.discountAmount)}</span></div>` : ""}
+<hr class="hrs">
+<div class="total-row"><span>TOTAL</span><span>${fmt(r.totalAmount)}</span></div>
+<hr class="hr">
+${payLines}
+<hr class="hrs">
+<div class="footer">
+  <div>Thank you for your purchase!</div>
+  <div>Please come again.</div>
+  <div style="margin-top:4px;font-size:8px">This serves as your official receipt.</div>
+</div>
+</body></html>`;
+
+      const win = window.open("", "_blank", "width=340,height=700,toolbar=0,menubar=0,scrollbars=1");
+      if (!win) { alert("Please allow popups to print receipts."); return; }
+      win.document.write(html);
+      win.document.close();
+      win.focus();
+      setTimeout(() => {
+        win.print();
+        win.onafterprint = () => win.close();
+      }, 250);
     },
   },
 };
@@ -1382,7 +1471,17 @@ export default {
   background: #F5EFE4; border-radius: 8px;
   padding: 8px 12px; margin-top: 10px;
 }
+.receipt-cust { font-size: 12px; font-weight: 600; color: #3A2515; margin-top: 5px; }
+.receipt-date { font-size: 10px; color: #9A7858; margin-top: 2px; }
 .receipt-actions { display: flex; gap: 8px; margin-top: 16px; }
+.btn-print-rcpt {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  background: #F5EFE4; border: 1px solid rgba(155,107,58,0.3);
+  border-radius: 10px; padding: 10px 12px; font-size: 12px; font-weight: 600;
+  font-family: 'Outfit', sans-serif; color: #9B6B3A; cursor: pointer;
+  transition: all 0.13s; letter-spacing: 0.04em;
+}
+.btn-print-rcpt:hover { background: #EDE0CC; border-color: #9B6B3A; }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 4px; }
