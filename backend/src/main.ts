@@ -1,3 +1,10 @@
+// Polyfill globalThis.crypto for Node.js < 19 (required by @nestjs/schedule)
+if (typeof globalThis.crypto === 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { webcrypto } = require('crypto');
+  (globalThis as any).crypto = webcrypto;
+}
+
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
