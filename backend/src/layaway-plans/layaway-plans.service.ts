@@ -1,16 +1,27 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThanOrEqual } from 'typeorm';
 import { LayawayPlan, LayawayStatus } from './entities/layaway-plan.entity';
 import { CreateLayawayPlanDto } from './dto/create-layaway-plan.dto';
 import { UpdateLayawayPlanDto } from './dto/update-layaway-plan.dto';
+import { MailService } from '../mail/mail.service';
+import { SmsService } from '../sms/sms.service';
 
 @Injectable()
 export class LayawayPlansService {
+  private readonly logger = new Logger(LayawayPlansService.name);
+
   constructor(
     @InjectRepository(LayawayPlan)
     private readonly layawayPlanRepository: Repository<LayawayPlan>,
+    private readonly mailService: MailService,
+    private readonly smsService: SmsService,
   ) {}
+
+  private fmtDate(d: Date | string | null): string {
+    if (!d) return '—';
+    return new Date(d).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
+  }
 
   async create(createLayawayPlanDto: CreateLayawayPlanDto): Promise<LayawayPlan> {
     const startDate = new Date(createLayawayPlanDto.startDate);
@@ -41,7 +52,33 @@ export class LayawayPlansService {
       remainingBalance,
       monthlyPayment,
     });
-    return this.layawayPlanRepository.save(layawayPlan);
+    const saved = await this.layawayPlanRepository.save(layawayPlan);
+
+    // Notify customer (fire-and-forget)
+    const plan = await this.findOne(saved.id);
+    if (plan.customer) {
+      const customerName = `${plan.customer.firstName} ${plan.customer.lastName}`;
+      const smsBody = `Hi ${customerName}, your Theia Gems installment plan (${saved.planNumber}) has been created. Monthly payment: ₱${Number(saved.monthlyPayment).toFixed(2)} for ${createLayawayPlanDto.numberOfPayments} months. Next due: ${this.fmtDate(saved.nextPaymentDate)}. Thank you!`;
+      if (plan.customer.email) {
+        this.mailService.sendLayawayConfirmation({
+          to: plan.customer.email,
+          customerName,
+          planNumber: saved.planNumber,
+          totalAmount: Number(saved.totalAmount ?? createLayawayPlanDto.totalAmount),
+          downPayment: Number(saved.downPayment ?? createLayawayPlanDto.downPayment),
+          remainingBalance: Number(saved.remainingBalance),
+          monthlyPayment: Number(saved.monthlyPayment),
+          numberOfPayments: createLayawayPlanDto.numberOfPayments,
+          nextPaymentDate: this.fmtDate(saved.nextPaymentDate),
+        }).catch((e) => this.logger.error('Layaway confirmation email failed', e));
+      }
+      if (plan.customer.phone) {
+        this.smsService.sendSmsSemaphore({ recipient: plan.customer.phone, message: smsBody })
+          .catch((e) => this.logger.error('Layaway confirmation SMS failed', e));
+      }
+    }
+
+    return saved;
   }
 
   async findAll(): Promise<LayawayPlan[]> {
@@ -148,7 +185,33 @@ export class LayawayPlansService {
       plan.nextPaymentDate = nextDate;
     }
 
-    return this.layawayPlanRepository.save(plan);
+    const saved = await this.layawayPlanRepository.save(plan);
+
+    // Notify customer of payment received
+    if (saved.customer) {
+      const customerName = `${saved.customer.firstName} ${saved.customer.lastName}`;
+      const isCompleted = saved.status === LayawayStatus.COMPLETED;
+      const smsBody = isCompleted
+        ? `Hi ${customerName}, your Theia Gems plan (${saved.planNumber}) is now FULLY PAID. Thank you!`
+        : `Hi ${customerName}, payment received for plan ${saved.planNumber}. Remaining balance: ₱${Number(saved.remainingBalance).toFixed(2)}. Next due: ${this.fmtDate(saved.nextPaymentDate)}. Thank you!`;
+      if (saved.customer.email) {
+        this.mailService.sendLayawayPaymentConfirmation({
+          to: saved.customer.email,
+          customerName,
+          planNumber: saved.planNumber,
+          amountPaid: amount,
+          remainingBalance: Number(saved.remainingBalance),
+          nextPaymentDate: saved.nextPaymentDate ? this.fmtDate(saved.nextPaymentDate) : null,
+          isCompleted,
+        }).catch((e) => this.logger.error('Payment confirmation email failed', e));
+      }
+      if (saved.customer.phone) {
+        this.smsService.sendSmsSemaphore({ recipient: saved.customer.phone, message: smsBody })
+          .catch((e) => this.logger.error('Payment confirmation SMS failed', e));
+      }
+    }
+
+    return saved;
   }
 
   async updateStatus(id: number, status: LayawayStatus): Promise<LayawayPlan> {

@@ -3,6 +3,7 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -15,11 +16,15 @@ import { InventoryLog, ActionType } from '../inventory-logs/entities/inventory-l
 import { UserDetail } from '../user-details/entities/user-detail.entity';
 import { TransactionLogsService } from '../transaction-logs/transaction-logs.service';
 import { TransactionAction } from '../transaction-logs/entities/transaction-log.entity';
+import { MailService } from '../mail/mail.service';
+import { SmsService } from '../sms/sms.service';
 
 const ALL_RELATIONS = ['fromBranch', 'toBranch', 'requester', 'approver', 'transferrer', 'receiver'];
 
 @Injectable()
 export class TransfersService {
+  private readonly logger = new Logger(TransfersService.name);
+
   constructor(
     @InjectRepository(Transfer)
     private readonly transferRepository: Repository<Transfer>,
@@ -32,6 +37,8 @@ export class TransfersService {
     @InjectRepository(UserDetail)
     private readonly userDetailRepository: Repository<UserDetail>,
     private readonly transactionLogsService: TransactionLogsService,
+    private readonly mailService: MailService,
+    private readonly smsService: SmsService,
   ) {}
 
   async create(createTransferDto: CreateTransferDto): Promise<Transfer> {
@@ -48,7 +55,42 @@ export class TransfersService {
     }
 
     const transfer = this.transferRepository.create(createTransferDto);
-    return this.transferRepository.save(transfer);
+    const saved = await this.transferRepository.save(transfer);
+
+    // Load branch info for notification
+    const full = await this.findOne(saved.id);
+    const fromBranch = full.fromBranch?.branchName || `Branch ${createTransferDto.fromBranchId}`;
+    const toBranch = full.toBranch?.branchName || `Branch ${createTransferDto.toBranchId}`;
+    const itemCount = createTransferDto['items']?.length ?? 0;
+
+    const notifyParams = (recipientName: string, to: string) =>
+      this.mailService.sendTransferNotification({
+        to, recipientName, transferNumber: saved.transferNumber,
+        fromBranch, toBranch, itemCount, notes: createTransferDto.notes,
+      }).catch((e) => this.logger.error('Transfer email failed', e));
+
+    // Notify users at the receiving branch
+    const branchStaff = await this.userDetailRepository.find({ where: { branchId: createTransferDto.toBranchId } });
+    for (const ud of branchStaff) {
+      if (ud.email) notifyParams(`${ud.fname} ${ud.lname}`, ud.email);
+      if (ud.mobile_no) {
+        const sms = `[Theia Gems] New transfer ${saved.transferNumber} from ${fromBranch} to ${toBranch} (${itemCount} items) is incoming. Please prepare to receive.`;
+        this.smsService.sendSmsSemaphore({ recipient: ud.mobile_no, message: sms })
+          .catch((e) => this.logger.error('Transfer SMS failed', e));
+      }
+    }
+
+    // Always notify the owner
+    const ownerEmail = process.env.OWNER_EMAIL;
+    const ownerPhone = process.env.OWNER_PHONE;
+    if (ownerEmail) notifyParams("Ma'am Tin", ownerEmail);
+    if (ownerPhone) {
+      const sms = `[Theia Gems] Transfer ${saved.transferNumber}: ${fromBranch} → ${toBranch} (${itemCount} items) created.`;
+      this.smsService.sendSmsSemaphore({ recipient: ownerPhone, message: sms })
+        .catch((e) => this.logger.error('Owner transfer SMS failed', e));
+    }
+
+    return saved;
   }
 
   async findAll(): Promise<Transfer[]> {

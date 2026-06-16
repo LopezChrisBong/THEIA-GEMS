@@ -585,6 +585,11 @@ export default {
         meta: metaParts.join(" · "),
         price: Number(item.price) || 0,
         cost: Number(item.cost) || 0,
+        isJewelry: !!(item.jewelryTypeId || item.stoneTypeId || item.designModelId),
+        stoneName: item.stoneType?.name || null,
+        modelName: item.designModel?.modelName || null,
+        brand: item.brand || null,
+        description: item.description || null,
       });
       this.availableItems = this.availableItems.filter((i) => i.id !== item.id);
       this.searchCode = "";
@@ -891,6 +896,7 @@ export default {
           type: "installment",
           monthlyPayment: monthly,
           term: this.instTerm,
+          paymentMethod: this.instPayMethod,
         };
         this.showReceipt = true;
         this.clearCart();
@@ -935,10 +941,17 @@ export default {
       const fmt = (v) =>
         "₱" + Number(v || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-      const itemLines = r.items.map((item) =>
-        `<div class="row"><span class="iname">${item.name || ""}</span><span class="iprice">${fmt(item.price)}</span></div>` +
-        `<div class="icode">${item.code || ""}</div>`
-      ).join("");
+      const itemLines = r.items.map((item) => {
+        let details = "";
+        if (item.isJewelry) {
+          details = [item.stoneName, item.modelName].filter(Boolean).join(" · ");
+        } else {
+          details = [item.brand, item.description ? item.description.substring(0, 40) : ""].filter(Boolean).join(" · ");
+        }
+        return `<div class="row"><span class="iname">${item.name || ""}</span><span class="iprice">${fmt(item.price)}</span></div>` +
+          `<div class="icode">${item.code || ""}</div>` +
+          (details ? `<div class="icode" style="margin-bottom:4px">${details}</div>` : "");
+      }).join("");
 
       let payLines = "";
       if (r.type === "full") {
@@ -948,6 +961,7 @@ export default {
       } else {
         payLines += `<div class="row"><span>Down Payment</span><span>${fmt(r.amountPaid)}</span></div>`;
         payLines += `<div class="row"><span>Monthly ×${r.term}</span><span>${fmt(r.monthlyPayment)}</span></div>`;
+        if (r.paymentMethod) payLines += `<div class="row"><span>Method</span><span style="text-transform:capitalize">${r.paymentMethod.replace("_", " ")}</span></div>`;
         payLines += `<div class="row bold"><span>INSTALLMENT PLAN</span></div>`;
       }
 
