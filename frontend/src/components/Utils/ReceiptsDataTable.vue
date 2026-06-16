@@ -327,9 +327,18 @@ export default {
 
       const itemLines = saleItems.length
         ? saleItems.map((si) => {
-            const name = [si.jewelryItem?.brand, si.jewelryItem?.material].filter(Boolean).join(" · ") || si.jewelryItem?.itemCode || "—";
+            const ji = si.jewelryItem || {};
+            const isJewelry = !!(ji.jewelryTypeId || ji.stoneTypeId || ji.designModelId);
+            const name = ji.brand || ji.description || ji.itemCode || "—";
+            let details = "";
+            if (isJewelry) {
+              details = [ji.stoneType?.name, ji.designModel?.modelName].filter(Boolean).join(" · ");
+            } else {
+              details = [ji.brand, ji.description ? ji.description.substring(0, 40) : ""].filter(Boolean).join(" · ");
+            }
             return `<div class="row"><span class="iname">${name}</span><span class="iprice">${fmt(si.lineTotal)}</span></div>` +
-                   `<div class="icode">${si.jewelryItem?.itemCode || ""}</div>`;
+                   `<div class="icode">${ji.itemCode || ""}</div>` +
+                   (details ? `<div class="icode" style="margin-bottom:4px">${details}</div>` : "");
           }).join("")
         : '<div class="icode">No item details recorded</div>';
 

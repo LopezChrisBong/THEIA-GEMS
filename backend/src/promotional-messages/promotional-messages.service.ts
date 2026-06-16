@@ -25,9 +25,10 @@ export class PromotionalMessagesService {
 
   private async dispatchMessage(
     message: PromotionalMessage,
-    customer: { fullname: string; email?: string; phone?: string } | null,
+    customer: { fullname: string; email?: string; ct_phone?: string } | null,
   ): Promise<void> {
     const sendMethod = message.sendMethod;
+console.log(customer);
 
     if ((sendMethod === SendMethod.EMAIL || sendMethod === SendMethod.BOTH) && customer?.email) {
       await this.mailService.sendPromotional({
@@ -37,12 +38,11 @@ export class PromotionalMessagesService {
         customerName: customer.fullname,
       });
     }
-
-    if ((sendMethod === SendMethod.SMS || sendMethod === SendMethod.BOTH) && customer?.phone) {
+    if ((sendMethod === SendMethod.SMS || sendMethod === SendMethod.BOTH) && customer?.ct_phone) {
       const smsBody =
         `Hi ${customer.fullname},\n\n${message.messageContent}\n\nFor questions, contact Theia Gems.`;
       await this.SMSServices.sendSmsSemaphore({
-        recipient: customer.phone,
+        recipient: customer.ct_phone,
         message: smsBody,
       });
     }
