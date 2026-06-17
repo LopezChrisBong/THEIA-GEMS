@@ -4,6 +4,8 @@ import { Repository, LessThanOrEqual } from 'typeorm';
 import { LayawayPlan, LayawayStatus } from './entities/layaway-plan.entity';
 import { CreateLayawayPlanDto } from './dto/create-layaway-plan.dto';
 import { UpdateLayawayPlanDto } from './dto/update-layaway-plan.dto';
+import { SaleItem } from '../sale-items/entities/sale-item.entity';
+import { JewelryItem, JewelryItemStatus } from '../jewelry-items/entities/jewelry-item.entity';
 import { MailService } from '../mail/mail.service';
 import { SmsService } from '../sms/sms.service';
 
@@ -14,6 +16,10 @@ export class LayawayPlansService {
   constructor(
     @InjectRepository(LayawayPlan)
     private readonly layawayPlanRepository: Repository<LayawayPlan>,
+    @InjectRepository(SaleItem)
+    private readonly saleItemRepository: Repository<SaleItem>,
+    @InjectRepository(JewelryItem)
+    private readonly jewelryItemRepository: Repository<JewelryItem>,
     private readonly mailService: MailService,
     private readonly smsService: SmsService,
   ) {}
@@ -179,6 +185,20 @@ export class LayawayPlansService {
       plan.status = LayawayStatus.COMPLETED;
       plan.remainingBalance = 0;
       plan.nextPaymentDate = null;
+
+      // Mark all jewelry items on this sale as SOLD
+      if (plan.saleId) {
+        const saleItems = await this.saleItemRepository.find({ where: { saleId: plan.saleId } });
+        const jewelryItemIds = saleItems.map((si) => si.jewelryItemId).filter(Boolean);
+        if (jewelryItemIds.length) {
+          await this.jewelryItemRepository
+            .createQueryBuilder()
+            .update(JewelryItem)
+            .set({ status: JewelryItemStatus.SOLD })
+            .whereInIds(jewelryItemIds)
+            .execute();
+        }
+      }
     } else {
       const nextDate = new Date(plan.nextPaymentDate!);
       nextDate.setMonth(nextDate.getMonth() + 1);
