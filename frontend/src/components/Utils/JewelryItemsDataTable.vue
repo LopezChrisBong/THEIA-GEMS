@@ -47,149 +47,127 @@
           </select>
         </div>
         <div class="filter-spacer" />
+        <div class="per-pg">
+          Items per page:
+          <select v-model="perPage" @change="currentPage = 1">
+            <option :value="10">10</option>
+            <option :value="25">25</option>
+            <option :value="50">50</option>
+          </select>
+        </div>
       </div>
 
-    <!-- Data Table -->
-      <v-data-table
-        :headers="headers"
-        :items="data"
-        :search="search"
-        :custom-filter="tableCustomFilter"
-        :items-per-page="10"
-        :loading="loading"
-        loading-text="Loading items..."
-        class="rounded-table"
-        density="comfortable"
-        @update:options="options"
-        @pagination="pagination"
-      >
-        <template v-slot:[`item.itemCode`]="{ item }">
-          <strong>{{ item.itemCode }}</strong>
-        </template>
+      <!-- Table -->
+      <div class="tbl-wrap">
+        <table class="cust-table" v-if="!loading">
+          <thead>
+            <tr>
+              <th @click="sortBy('itemCode')">Code</th>
+              <th @click="sortBy('barcode')">Barcode</th>
+              <th @click="sortBy('category')">Category</th>
+              <th @click="sortBy('brand')">Brand</th>
+              <th @click="sortBy('material')">Description</th>
+              <th @click="sortBy('ringSize')">Ring Size</th>
+              <th @click="sortBy('price')">Price</th>
+              <th @click="sortBy('status')">Status</th>
+              <th @click="sortBy('branch')">Branch</th>
+              <th @click="sortBy('supplier')">Supplier</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in paginatedData" :key="item.id">
+              <td class="mono">{{ item.itemCode }}</td>
+              <td class="dim">{{ item.barcode || '—' }}</td>
+              <td>
+                <span v-if="item.category" class="cat-badge">{{ item.category.categoryName }}</span>
+                <span v-else class="dim">—</span>
+              </td>
+              <td>{{ item.brand || '—' }}</td>
+              <td>{{ item.material || '—' }}</td>
+              <td class="text-center">{{ item.ringSize || '—' }}</td>
+              <td class="text-right">
+                <span v-if="item.price" class="amt-col">₱{{ formatNumber(item.price) }}</span>
+                <span v-else class="dim">—</span>
+              </td>
+              <td class="text-center">
+                <span class="status-badge" :class="'st-' + item.status">{{ formatStatus(item.status) }}</span>
+              </td>
+              <td>
+                <span v-if="item.branch" class="branch-badge">{{ item.branch.branchName }}</span>
+                <span v-else class="dim">—</span>
+              </td>
+              <td class="dim">{{ item.supplier?.supplierName || '—' }}</td>
+              <td>
+                <div class="act-btns">
+                  <button class="act-btn view-btn" title="View" @click="viewItem(item)">
+                    <v-icon size="14">mdi-eye-outline</v-icon>
+                  </button>
+                  <button class="act-btn" title="Edit" @click="editItem(item)">
+                    <v-icon size="14">mdi-pencil-outline</v-icon>
+                  </button>
+                  <button class="act-btn del" title="Delete" @click="deleteItem(item)">
+                    <v-icon size="14">mdi-delete-outline</v-icon>
+                  </button>
+                </div>
+              </td>
+            </tr>
+            <tr v-if="filteredData.length === 0">
+              <td colspan="11">
+                <div class="empty-state">
+                  <div class="empty-icon">
+                    <v-icon size="20" color="#9B6B3A">mdi-package-variant-closed</v-icon>
+                  </div>
+                  <div class="empty-title">No items found</div>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
 
-        <template v-slot:[`item.barcode`]="{ item }">
-          <span v-if="item.barcode">{{ item.barcode }}</span>
-          <span v-else class="text-medium-emphasis">—</span>
-        </template>
+        <!-- Loading -->
+        <div v-if="loading" class="empty-state">
+          <v-progress-circular indeterminate color="#9B6B3A" size="32" />
+          <div class="empty-title">Loading items...</div>
+        </div>
+      </div>
 
-        <template v-slot:[`item.category`]="{ item }">
-          <v-chip v-if="item.category" size="small" variant="tonal" color="primary">
-            {{ item.category.categoryName }}
-          </v-chip>
-          <span v-else class="text-medium-emphasis">—</span>
-        </template>
-
-        <template v-slot:[`item.brand`]="{ item }">
-          <span v-if="item.brand">{{ item.brand }}</span>
-          <span v-else class="text-medium-emphasis">—</span>
-        </template>
-
-        <template v-slot:[`item.material`]="{ item }">
-          <span v-if="item.material">{{ item.material }}</span>
-          <span v-else class="text-medium-emphasis">—</span>
-        </template>
-
-        <template v-slot:[`item.ringSize`]="{ item }">
-          <span v-if="item.ringSize">{{ item.ringSize }}</span>
-          <span v-else class="text-medium-emphasis">—</span>
-        </template>
-
-        <template v-slot:[`item.price`]="{ item }">
-          <span v-if="item.price">₱{{ Number(item.price).toLocaleString('en-PH', { minimumFractionDigits: 2 }) }}</span>
-          <span v-else class="text-medium-emphasis">—</span>
-        </template>
-
-        <template v-slot:[`item.status`]="{ item }">
-          <v-chip
-            :color="getStatusColor(item.status)"
-            size="small"
-            variant="flat"
-          >
-            {{ formatStatus(item.status) }}
-          </v-chip>
-        </template>
-
-        <template v-slot:[`item.branch`]="{ item }">
-          <v-chip v-if="item.branch" color="primary" size="small" variant="outlined">
-            {{ item.branch.branchName }}
-          </v-chip>
-          <span v-else class="text-medium-emphasis">—</span>
-        </template>
-
-        <template v-slot:[`item.supplier`]="{ item }">
-          <span v-if="item.supplier">{{ item.supplier.supplierName }}</span>
-          <span v-else class="text-medium-emphasis">—</span>
-        </template>
-
-        <template v-slot:[`item.actions`]="{ item }">
-          <v-btn
-            size="small"
-            variant="outlined"
-            color="primary"
-            @click="viewItem(item)"
-            class="mx-1"
-          >
-            <v-icon start size="18"> mdi-eye-outline </v-icon>
-            View
-          </v-btn>
-
-          <v-btn
-            size="small"
-            variant="outlined"
-            color="#8e6e25"
-            @click="editItem(item)"
-            class="mx-1"
-          >
-            <v-icon start size="18"> mdi-pencil-outline </v-icon>
-            Edit
-          </v-btn>
-
-          <v-btn
-            size="small"
-            variant="outlined"
-            class="mx-1"
-            color="red"
-            @click="deleteItem(item)"
-          >
-            <v-icon start size="18"> mdi-delete-outline </v-icon>
-            Delete
-          </v-btn>
-        </template>
-
-        <template #no-data>
-          <v-alert type="info" class="ma-4" icon="mdi-information">
-            No items found.
-          </v-alert>
-        </template>
-      </v-data-table>
+      <!-- Pagination -->
+      <div class="cust-pagination" v-if="filteredData.length > 0">
+        <div class="pg-info">
+          Showing {{ paginationStart }}–{{ paginationEnd }} of {{ filteredData.length }}
+        </div>
+        <div class="pg-btns">
+          <button class="pg-btn" :disabled="currentPage <= 1" @click="currentPage = 1">&laquo;</button>
+          <button class="pg-btn" :disabled="currentPage <= 1" @click="currentPage--">&lsaquo;</button>
+          <button
+            v-for="p in visiblePages"
+            :key="p"
+            class="pg-btn"
+            :class="{ cur: p === currentPage }"
+            @click="currentPage = p"
+          >{{ p }}</button>
+          <button class="pg-btn" :disabled="currentPage >= totalPages" @click="currentPage++">&rsaquo;</button>
+          <button class="pg-btn" :disabled="currentPage >= totalPages" @click="currentPage = totalPages">&raquo;</button>
+        </div>
+      </div>
     </div>
 
     <!-- Dialogs -->
     <JewelryItemsDialog :data="updateData" :action="action" />
 
     <v-dialog v-model="dialogConfirmDelete" max-width="500">
-      <v-card>
-        <v-card-title class="text-h6">Confirm Deletion</v-card-title>
-        <v-card-text class="text-body-1">
+      <v-card style="border-radius: 16px; border: 1px solid rgba(155,107,58,0.16);">
+        <v-card-title class="text-h6" style="font-family: 'Cormorant Garamond', serif;">Confirm Deletion</v-card-title>
+        <v-card-text class="text-body-1" style="color: #6B4A30;">
           Are you sure you want to delete item "{{ deleteData?.itemCode }}"?
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn
-            variant="text"
-            color="grey"
-            @click="dialogConfirmDelete = false"
-          >
-            Cancel
-          </v-btn>
-          <v-btn
-            color="error"
-            class="white--text"
-            @click="confirmDelete"
-            :loading="deleting"
-          >
-            Confirm
-          </v-btn>
+          <button class="btn-cancel-proto" @click="dialogConfirmDelete = false">Cancel</button>
+          <button class="btn-danger-proto" @click="confirmDelete" :disabled="deleting">
+            {{ deleting ? 'Deleting...' : 'Delete' }}
+          </button>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -642,25 +620,6 @@ export default {
     filterCategory: null,
     filterBranch: null,
     filterStatus: null,
-    headers: [
-      { title: "Code", value: "itemCode", align: "start", width: 100 },
-      { title: "Barcode", value: "barcode", align: "start" },
-      { title: "Category", value: "category", align: "start" },
-      { title: "Brand", value: "brand", align: "start" },
-      { title: "Description", value: "material", align: "start" },
-      { title: "Ring Size", value: "ringSize", align: "center", width: 110 },
-      { title: "Price", value: "price", align: "end", width: 130 },
-      { title: "Status", value: "status", align: "center", width: 130 },
-      { title: "Branch", value: "branch", align: "center", width: 130 },
-      { title: "Supplier", value: "supplier", align: "start", width: 140 },
-      {
-        title: "Actions",
-        value: "actions",
-        align: "center",
-        sortable: false,
-        width: 340,
-      },
-    ],
     statusOptions: [
       { label: "In Stock", value: "IN_STOCK" },
       { label: "Sold", value: "SOLD" },
@@ -683,9 +642,11 @@ export default {
     previewIndex: 0,
     loading: false,
     deleting: false,
-    options: {},
     action: null,
-    paginationData: {},
+    currentPage: 1,
+    perPage: 10,
+    sortKey: "itemCode",
+    sortDir: "asc",
     dialogConfirmDelete: false,
     dialogImport: false,
     dialogImportResult: false,
@@ -720,14 +681,65 @@ export default {
       const id = this.$store.state.user?.branchId;
       return id ? Number(id) : null;
     },
-  },
 
-  watch: {
-    options: {
-      handler() {
-        this.initialize();
-      },
-      deep: true,
+    filteredData() {
+      let result = [...this.data];
+
+      if (this.search) {
+        const q = this.search.toLowerCase();
+        result = result.filter((it) =>
+          [
+            it.itemCode,
+            it.barcode,
+            it.brand,
+            it.material,
+            it.category?.categoryName,
+            it.supplier?.supplierName,
+            it.branch?.branchName,
+          ]
+            .filter(Boolean)
+            .some((f) => String(f).toLowerCase().includes(q))
+        );
+      }
+
+      result.sort((a, b) => {
+        let va = this.sortValue(a, this.sortKey);
+        let vb = this.sortValue(b, this.sortKey);
+        if (va == null) va = "";
+        if (vb == null) vb = "";
+        if (typeof va === "string") va = va.toLowerCase();
+        if (typeof vb === "string") vb = vb.toLowerCase();
+        if (va < vb) return this.sortDir === "asc" ? -1 : 1;
+        if (va > vb) return this.sortDir === "asc" ? 1 : -1;
+        return 0;
+      });
+
+      return result;
+    },
+
+    totalPages() {
+      return Math.max(1, Math.ceil(this.filteredData.length / this.perPage));
+    },
+
+    paginatedData() {
+      const start = (this.currentPage - 1) * this.perPage;
+      return this.filteredData.slice(start, start + this.perPage);
+    },
+
+    paginationStart() {
+      return Math.min((this.currentPage - 1) * this.perPage + 1, this.filteredData.length);
+    },
+
+    paginationEnd() {
+      return Math.min(this.currentPage * this.perPage, this.filteredData.length);
+    },
+
+    visiblePages() {
+      const pages = [];
+      const start = Math.max(1, this.currentPage - 2);
+      const end = Math.min(this.totalPages, start + 4);
+      for (let i = start; i <= end; i++) pages.push(i);
+      return pages;
     },
   },
 
@@ -746,20 +758,28 @@ export default {
   },
 
   methods: {
-    tableCustomFilter(value, query) {
-      if (!query) return true;
-      if (value == null) return false;
-      const q = query.toLowerCase();
-      if (typeof value === 'object') {
-        // Extract the human-readable name from known nested shapes
-        const text = value.supplierName || value.categoryName || value.branchName || '';
-        return text.toLowerCase().includes(q);
+    sortBy(key) {
+      if (this.sortKey === key) {
+        this.sortDir = this.sortDir === "asc" ? "desc" : "asc";
+      } else {
+        this.sortKey = key;
+        this.sortDir = "asc";
       }
-      return String(value).toLowerCase().includes(q);
     },
 
-    pagination(data) {
-      this.paginationData = data;
+    sortValue(item, key) {
+      if (key === "category") return item.category?.categoryName;
+      if (key === "branch") return item.branch?.branchName;
+      if (key === "supplier") return item.supplier?.supplierName;
+      return item[key];
+    },
+
+    formatNumber(value) {
+      if (value === null || value === undefined) return "0.00";
+      return Number(value).toLocaleString("en-PH", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
     },
 
     getStatusColor(status) {
@@ -809,6 +829,7 @@ export default {
 
     initialize() {
       this.loading = true;
+      this.currentPage = 1;
       let url = "/jewelry-items";
       const params = [];
       if (this.filterCategory) params.push(`categoryId=${this.filterCategory}`);
@@ -1238,6 +1259,90 @@ export default {
 .filter-spacer { flex: 1; }
 .per-pg { display: flex; align-items: center; gap: 7px; font-size: 12px; color: #9A7858; }
 .per-pg select { border: 1px solid rgba(155,107,58,0.16); border-radius: 7px; background: #FDFAF6; color: #3A2515; font-family: 'Outfit'; font-size: 12px; padding: 4px 8px; outline: none; cursor: pointer; }
+
+/* ─── Table ─── */
+.tbl-wrap { overflow-x: auto; }
+.cust-table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 1100px; }
+.cust-table thead th {
+  text-align: left; padding: 10px 16px; font-size: 10px; letter-spacing: 0.13em;
+  text-transform: uppercase; color: #9A7858; font-weight: 600; background: #F5EFE4;
+  white-space: nowrap; cursor: pointer; user-select: none;
+}
+.cust-table thead th:hover { color: #9B6B3A; }
+.cust-table tbody tr { border-top: 1px solid rgba(155,107,58,0.16); transition: background 0.1s; }
+.cust-table tbody tr:hover { background: #EDE0CC; }
+.cust-table tbody td { padding: 11px 16px; color: #3A2515; white-space: nowrap; vertical-align: middle; }
+
+td.mono { font-family: monospace; font-size: 12px; color: #9B6B3A; font-weight: 600; }
+td.dim { color: #9A7858; font-size: 12px; }
+.text-right { text-align: right; }
+.text-center { text-align: center; }
+.amt-col { font-weight: 600; color: #9B6B3A; }
+
+/* ─── Badges ─── */
+.cat-badge {
+  display: inline-block; padding: 3px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 500; background: rgba(155,107,58,0.08); color: #9A7858;
+}
+.branch-badge {
+  display: inline-block; padding: 3px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 500; border: 1px solid rgba(155,107,58,0.3); color: #9B6B3A;
+}
+.status-badge {
+  display: inline-block; padding: 3px 10px; border-radius: 20px;
+  font-size: 11px; font-weight: 500; text-transform: capitalize;
+}
+.st-IN_STOCK { background: rgba(61,122,90,0.1); color: #3D7A5A; }
+.st-SOLD { background: rgba(91,124,156,0.12); color: #5B7C9C; }
+.st-TRANSFERRED { background: rgba(204,122,53,0.12); color: #C4720E; }
+.st-CONSIGNMENT { background: rgba(140,110,180,0.14); color: #7A569B; }
+.st-LAYAWAY { background: rgba(70,150,160,0.12); color: #2E8E9C; }
+.st-PULLED_OUT { background: rgba(120,120,140,0.12); color: #5A5A72; }
+.st-RESERVED { background: rgba(196,148,85,0.15); color: #9B6B3A; }
+
+/* ─── Action Buttons ─── */
+.act-btns { display: flex; align-items: center; gap: 4px; }
+.act-btn {
+  width: 27px; height: 27px; border-radius: 7px; border: 1px solid rgba(155,107,58,0.16);
+  background: #F5EFE4; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.12s; color: #9A7858;
+}
+.act-btn:hover { border-color: #C49455; color: #9B6B3A; background: #EDE0CC; }
+.act-btn.del:hover { border-color: rgba(184,64,64,0.4); color: #B84040; background: rgba(184,64,64,0.06); }
+
+/* ─── Pagination ─── */
+.cust-pagination {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 18px; border-top: 1px solid rgba(155,107,58,0.16); background: #F5EFE4;
+}
+.pg-info { font-size: 12px; color: #9A7858; }
+.pg-btns { display: flex; align-items: center; gap: 3px; }
+.pg-btn {
+  width: 28px; height: 28px; border-radius: 7px; border: 1px solid rgba(155,107,58,0.16);
+  background: #FDFAF6; color: #9A7858; font-size: 13px; display: flex; align-items: center;
+  justify-content: center; cursor: pointer; transition: all 0.12s; font-family: 'Outfit', sans-serif;
+}
+.pg-btn:hover:not([disabled]) { border-color: #C49455; color: #9B6B3A; background: #EDE0CC; }
+.pg-btn[disabled] { opacity: 0.3; cursor: default; }
+.pg-btn.cur { background: #9B6B3A; color: #FDFAF6; border-color: #9B6B3A; font-weight: 600; }
+
+/* ─── Empty State ─── */
+.empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 52px 20px; gap: 10px; color: #9A7858; }
+.empty-icon { width: 48px; height: 48px; border-radius: 13px; background: #EDE0CC; display: flex; align-items: center; justify-content: center; }
+.empty-title { font-size: 14px; font-weight: 500; color: #6B4A30; }
+
+/* ─── Dialog Buttons ─── */
+.btn-cancel-proto {
+  background: none; border: 1px solid rgba(155,107,58,0.16); padding: 8px 16px; border-radius: 8px;
+  font-size: 13px; font-family: 'Outfit', sans-serif; color: #9A7858; cursor: pointer; transition: all 0.12s; margin-right: 8px;
+}
+.btn-cancel-proto:hover { border-color: rgba(155,107,58,0.35); color: #6B4A30; }
+.btn-danger-proto {
+  background: #B84040; color: #FDFAF6; border: none; padding: 8px 20px; border-radius: 8px;
+  font-size: 13px; font-weight: 600; font-family: 'Outfit', sans-serif; cursor: pointer; transition: background 0.12s;
+}
+.btn-danger-proto:hover { background: #c95252; }
+
 .view-label {
   font-size: 0.75rem;
   color: #888;
