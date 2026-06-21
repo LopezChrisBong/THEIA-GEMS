@@ -54,7 +54,7 @@ export class SchedulerService {
         }
 
         if (plan.customer.phone) {
-          const sms = `Hi ${customerName}, your Theia Gems installment (${plan.planNumber}) of ₱${Number(plan.monthlyPayment).toFixed(2)} is due in ${daysLeft} day${daysLeft !== 1 ? 's' : ''} on ${this.fmtDate(plan.nextPaymentDate)}. Please settle on time. Thank you!`;
+          const sms = `Layaway Reminder!\n\nHi ${customerName}! 💎✨\n\nJust a gentle reminder that your next payment for your layaway item amounting to ₱${Number(plan.monthlyPayment).toFixed(2)} is due on ${this.fmtDate(plan.nextPaymentDate)}.\n\nIf you've already settled this payment, please disregard this message. Should you need any assistance, feel free to reach out. 🤍\n\nThank you for choosing Theia Gems.\n\nWear your Memories. Wear Theia Gems.\nCristy`;
           this.smsService.sendSmsSemaphore({ recipient: plan.customer.phone, message: sms })
             .catch((e) => this.logger.error(`Reminder SMS failed for plan ${plan.planNumber}`, e));
         }
@@ -93,7 +93,7 @@ export class SchedulerService {
         }
 
         if (plan.customer.phone) {
-          const sms = `URGENT: Hi ${customerName}, your Theia Gems installment (${plan.planNumber}) of ₱${Number(plan.monthlyPayment).toFixed(2)} is ${daysOverdue} day${daysOverdue !== 1 ? 's' : ''} OVERDUE. Please contact us immediately to avoid plan cancellation.`;
+          const sms = `Overdue Reminder!\n\nHi ${customerName}! 💎✨\n\nA gentle reminder that your payment for your layaway item amounting to ₱${Number(plan.monthlyPayment).toFixed(2)} is already overdue.\n\nKindly settle the payment at your earliest convenience to avoid any delays with your layaway plan. If payment has already been made, please disregard this message.\n\nThank you! 🤍\nTheia Gems`;
           this.smsService.sendSmsSemaphore({ recipient: plan.customer.phone, message: sms })
             .catch((e) => this.logger.error(`Overdue SMS failed for plan ${plan.planNumber}`, e));
         }

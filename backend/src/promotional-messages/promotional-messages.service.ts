@@ -23,28 +23,51 @@ export class PromotionalMessagesService {
     private readonly dataSource: DataSource,
   ) {}
 
-  private async dispatchMessage(
+private async dispatchMessage(
     message: PromotionalMessage,
-    customer: { fullname: string; email?: string; ct_phone?: string } | null,
+    customer: { fullname: string; ct_email?: string; ct_phone?: string } | null,
   ): Promise<void> {
     const sendMethod = message.sendMethod;
-console.log(customer);
-
-    if ((sendMethod === SendMethod.EMAIL || sendMethod === SendMethod.BOTH) && customer?.email) {
-      await this.mailService.sendPromotional({
-        to: customer.email,
-        subject: message.subject || `Theia Gems — ${message.messageType.charAt(0).toUpperCase() + message.messageType.slice(1)}`,
+    // console.log(sendMethod, customer);
+    if (sendMethod === 'email' && customer?.ct_email) {
+      // console.log(customer);
+      let param = {
+        to: customer.ct_email,
+        subject:
+          message.subject ||
+          `Theia Gems — ${message.messageType.charAt(0).toUpperCase() + message.messageType.slice(1)}`,
         body: message.messageContent,
         customerName: customer.fullname,
-      });
-    }
-    if ((sendMethod === SendMethod.SMS || sendMethod === SendMethod.BOTH) && customer?.ct_phone) {
-      const smsBody =
-        `Hi ${customer.fullname},\n\n${message.messageContent}\n\nFor questions, contact Theia Gems.`;
+      };
+      console.log(param);
+      await this.mailService.sendPromotional(param);
+    } else if (sendMethod === 'sms' && customer?.ct_phone) {
+      const smsBody = `Hi ${customer.fullname},\n\n${message.messageContent}\n\nFor questions, contact Theia Gems.`;
       await this.SMSServices.sendSmsSemaphore({
         recipient: customer.ct_phone,
         message: smsBody,
       });
+    } else if (sendMethod === 'both') {
+      if (customer?.ct_email) {
+        let param = {
+          to: customer.ct_email,
+          subject:
+            message.subject ||
+            `Theia Gems — ${message.messageType.charAt(0).toUpperCase() + message.messageType.slice(1)}`,
+          body: message.messageContent,
+          customerName: customer.fullname,
+        };
+        console.log(param);
+        await this.mailService.sendPromotional(param);
+      }
+
+      if (customer?.ct_phone) {
+        const smsBody = `Hi ${customer.fullname},\n\n${message.messageContent}\n\nFor questions, contact Theia Gems.`;
+        await this.SMSServices.sendSmsSemaphore({
+          recipient: customer.ct_phone,
+          message: smsBody,
+        });
+      }
     }
   }
 

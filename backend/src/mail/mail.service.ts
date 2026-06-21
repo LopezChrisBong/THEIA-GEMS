@@ -166,17 +166,14 @@ export class MailService {
     const fmt = (v: number) => '₱' + Number(v).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const html = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#FDFAF6;border:1px solid #e8dcc8;border-radius:12px;">
       <h2 style="font-family:Georgia,serif;color:#3A2515;text-align:center;letter-spacing:0.06em;">THEIA GEMS</h2>
-      <p style="color:#6B4A30;">Dear ${params.customerName},</p>
-      <p style="color:#3A2515;">This is a friendly reminder that your installment payment is due in <strong>${params.daysLeft} day${params.daysLeft !== 1 ? 's' : ''}</strong>.</p>
-      <table style="width:100%;border-collapse:collapse;font-size:14px;margin:16px 0;">
-        <tr><td style="padding:6px 0;color:#9A7858;">Plan Number</td><td style="font-weight:600;color:#3A2515;">${params.planNumber}</td></tr>
-        <tr><td style="padding:6px 0;color:#9A7858;">Amount Due</td><td style="font-weight:600;color:#9B6B3A;">${fmt(params.amountDue)}</td></tr>
-        <tr><td style="padding:6px 0;color:#9A7858;">Due Date</td><td style="font-weight:600;color:#3A2515;">${params.dueDate}</td></tr>
-      </table>
-      <p style="color:#3A2515;">Please visit us or contact Theia Gems to make your payment on time.</p>
-      <p style="color:#9A7858;font-size:12px;text-align:center;margin-top:20px;">Theia Gems — Fine Jewelry</p>
+      <p style="color:#3A2515;font-size:17px;font-weight:600;margin-bottom:16px;">Layaway Reminder! 💎✨</p>
+      <p style="color:#3A2515;">Hi ${params.customerName}!</p>
+      <p style="color:#3A2515;">Just a gentle reminder that your next payment for your layaway item amounting to <strong>${fmt(params.amountDue)}</strong> is due on <strong>${params.dueDate}</strong>.</p>
+      <p style="color:#3A2515;">If you've already settled this payment, please disregard this message. Should you need any assistance, feel free to reach out. 🤍</p>
+      <p style="color:#3A2515;">Thank you for choosing Theia Gems.</p>
+      <p style="color:#6B4A30;font-style:italic;margin-top:20px;">Wear your Memories. Wear Theia Gems.<br/>Cristy</p>
     </div>`;
-    await this.mailerService.sendMail({ to: params.to, subject: `Payment Reminder — Plan ${params.planNumber} due in ${params.daysLeft} day${params.daysLeft !== 1 ? 's' : ''}`, html });
+    await this.mailerService.sendMail({ to: params.to, subject: 'Layaway Reminder!', html });
   }
 
   async sendLayawayOverdue(params: {
@@ -186,17 +183,13 @@ export class MailService {
     const fmt = (v: number) => '₱' + Number(v).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const html = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#FDFAF6;border:1px solid #e8dcc8;border-radius:12px;">
       <h2 style="font-family:Georgia,serif;color:#3A2515;text-align:center;letter-spacing:0.06em;">THEIA GEMS</h2>
-      <p style="color:#6B4A30;">Dear ${params.customerName},</p>
-      <p style="color:#B84040;font-weight:600;">Your installment payment is <strong>${params.daysOverdue} day${params.daysOverdue !== 1 ? 's' : ''} overdue</strong>.</p>
-      <table style="width:100%;border-collapse:collapse;font-size:14px;margin:16px 0;">
-        <tr><td style="padding:6px 0;color:#9A7858;">Plan Number</td><td style="font-weight:600;color:#3A2515;">${params.planNumber}</td></tr>
-        <tr><td style="padding:6px 0;color:#9A7858;">Amount Due</td><td style="font-weight:600;color:#B84040;">${fmt(params.amountDue)}</td></tr>
-        <tr><td style="padding:6px 0;color:#9A7858;">Was Due On</td><td style="color:#3A2515;">${params.dueDate}</td></tr>
-      </table>
-      <p style="color:#3A2515;">Please contact us immediately to settle your account and avoid cancellation of your plan.</p>
-      <p style="color:#9A7858;font-size:12px;text-align:center;margin-top:20px;">Theia Gems — Fine Jewelry</p>
+      <p style="color:#B84040;font-size:17px;font-weight:600;margin-bottom:16px;">Overdue Reminder! 💎✨</p>
+      <p style="color:#3A2515;">Hi ${params.customerName}!</p>
+      <p style="color:#3A2515;">A gentle reminder that your payment for your layaway item amounting to <strong>${fmt(params.amountDue)}</strong> is already overdue.</p>
+      <p style="color:#3A2515;">Kindly settle the payment at your earliest convenience to avoid any delays with your layaway plan. If payment has already been made, please disregard this message.</p>
+      <p style="color:#3A2515;margin-top:20px;">Thank you! 🤍<br/>Theia Gems</p>
     </div>`;
-    await this.mailerService.sendMail({ to: params.to, subject: `OVERDUE — Installment Plan ${params.planNumber}`, html });
+    await this.mailerService.sendMail({ to: params.to, subject: 'Overdue Reminder!', html });
   }
 
   // ── TRANSFER NOTIFICATIONS ──────────────────────────────────────────────
