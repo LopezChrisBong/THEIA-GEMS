@@ -59,20 +59,7 @@
               </v-col>
             </v-row>
             <v-row>
-              <v-col cols="12" md="6">
-                <v-autocomplete
-                  v-model="editedItem.receivedBy"
-                  :items="users"
-                  item-title="fullName"
-                  item-value="id"
-                  label="Received By *"
-                  :rules="[rules.required]"
-                  variant="outlined"
-                  density="compact"
-                  clearable
-                ></v-autocomplete>
-              </v-col>
-              <v-col cols="12" md="6">
+              <v-col cols="12">
                 <v-text-field
                   v-model="editedItem.paymentDate"
                   label="Payment Date *"
@@ -211,7 +198,6 @@ export default {
         notes: "",
       },
       layawayPlans: [],
-      users: [],
       paymentMethods: [
         { text: "Cash", value: "cash" },
         { text: "Credit Card", value: "credit_card" },
@@ -232,12 +218,16 @@ export default {
     formTitle() {
       return this.editedIndex === -1 ? "New Layaway Payment" : "Edit Layaway Payment";
     },
+    currentUserId() {
+      return Number(this.$store.state.user?.userID || this.$store.state.user?.id) || null;
+    },
   },
   watch: {
     dialog(val) {
       if (val && this.editedIndex === -1) {
         this.generateReceiptNumber();
         this.setCurrentDateTime();
+        this.editedItem.receivedBy = this.currentUserId;
       }
       val || this.closeD();
     },
@@ -261,21 +251,11 @@ export default {
   methods: {
     async loadDropdowns() {
       try {
-        const [plansRes, usersRes] = await Promise.all([
-          this.axiosCall("/layaway-plans", "GET"),
-          this.axiosCall("/users", "GET"),
-        ]);
-
+        const plansRes = await this.axiosCall("/layaway-plans", "GET");
         if (plansRes.data) {
           this.layawayPlans = plansRes.data.map((p) => ({
             ...p,
             displayName: `${p.planNumber} - ${p.customer?.firstName || ""} ${p.customer?.lastName || ""} (₱${parseFloat(p.remainingBalance || 0).toLocaleString()})`,
-          }));
-        }
-        if (usersRes.data) {
-          this.users = usersRes.data.map((user) => ({
-            ...user,
-            fullName: `${user.first_name} ${user.last_name}`,
           }));
         }
       } catch (error) {

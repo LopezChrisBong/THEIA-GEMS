@@ -29,12 +29,25 @@
     <!-- PERIOD STRIP -->
     <div class="period-strip">
       <div class="period-title">Performance Overview</div>
-      <div class="period-tabs">
-        <button v-for="tab in periodTabs" :key="tab.key"
-          class="period-tab" :class="{ on: activePeriod === tab.key }"
-          @click="activePeriod = tab.key; loadTrend()">
-          {{ tab.label }}
-        </button>
+      <div class="period-controls">
+        <div class="branch-select-wrap" v-if="!userBranchId">
+          <v-icon size="13" :color="accentColor">mdi-store-outline</v-icon>
+          <select v-model="selectedBranch" @change="onBranchChange" class="branch-select">
+            <option :value="null">All Branches</option>
+            <option v-for="b in branchList" :key="b.branchId" :value="b.branchId">{{ b.branchName }}</option>
+          </select>
+        </div>
+        <div class="branch-locked" v-else>
+          <v-icon size="13" :color="accentColor">mdi-store-outline</v-icon>
+          {{ lockedBranchName }}
+        </div>
+        <div class="period-tabs">
+          <button v-for="tab in periodTabs" :key="tab.key"
+            class="period-tab" :class="{ on: activePeriod === tab.key }"
+            @click="activePeriod = tab.key; loadTrend()">
+            {{ tab.label }}
+          </button>
+        </div>
       </div>
     </div>
 
@@ -251,6 +264,10 @@ export default {
       ],
       todayLabel: new Date().toLocaleDateString("en-PH", { weekday: "long", year: "numeric", month: "long", day: "numeric" }),
 
+      // Branch
+      branchList: [],
+      selectedBranch: null,
+
       // KPI
       kpis: [
         { label: "Today's Sales", icon: "💰", value: "—", delta: "—", up: true, sparkLine: "", sparkArea: "" },
@@ -287,6 +304,16 @@ export default {
 
   computed: {
     accentColor() { return this.darkMode ? "#C9A35B" : "#9B6B3A"; },
+
+    userBranchId() {
+      const id = this.$store.state.user?.branchId;
+      return id ? Number(id) : null;
+    },
+
+    lockedBranchName() {
+      const b = this.branchList.find((br) => br.branchId === this.userBranchId);
+      return b ? b.branchName : "My Branch";
+    },
 
     trendTotal() {
       return this.trendData.reduce((s, d) => s + (d.totalAmount || 0), 0);
@@ -334,6 +361,8 @@ export default {
   },
 
   mounted() {
+    if (this.userBranchId) this.selectedBranch = this.userBranchId;
+    this.loadBranches();
     this.loadAll();
   },
 
@@ -341,6 +370,18 @@ export default {
     toggleDark() {
       this.darkMode = !this.darkMode;
       localStorage.setItem("theia-dark", String(this.darkMode));
+    },
+
+    loadBranches() {
+      this.axiosCall("/branches", "GET").then((res) => {
+        if (res && res.data) {
+          this.branchList = res.data;
+        }
+      });
+    },
+
+    onBranchChange() {
+      this.loadAll();
     },
 
     formatNumber(v) {
@@ -367,7 +408,8 @@ export default {
     async loadTodayKPIs() {
       try {
         const today = new Date().toISOString().slice(0, 10);
-        const res = await this.axiosCall(`/sales/daily-summary?date=${today}`, "GET");
+        const branchParam = this.selectedBranch ? `&branchId=${this.selectedBranch}` : "";
+        const res = await this.axiosCall(`/sales/daily-summary?date=${today}${branchParam}`, "GET");
         if (res && res.data) {
           const d = res.data;
           const kpi0 = this.kpis[0];
@@ -411,7 +453,8 @@ export default {
         const start = new Date(); start.setDate(start.getDate() - days + 1);
         const startStr = start.toISOString().slice(0, 10);
         const endStr = end.toISOString().slice(0, 10);
-        const res = await this.axiosCall(`/sales/report?period=daily&startDate=${startStr}&endDate=${endStr}`, "GET");
+        const branchParam = this.selectedBranch ? `&branchId=${this.selectedBranch}` : "";
+        const res = await this.axiosCall(`/sales/report?period=daily&startDate=${startStr}&endDate=${endStr}${branchParam}`, "GET");
         if (res && res.data && res.data.grouped) {
           this.trendData = res.data.grouped.map(g => ({
             label: g.label ? g.label.split(" ").slice(0, 2).join(" ") : "",
@@ -458,7 +501,8 @@ export default {
     async loadRecentSales() {
       this.salesLoading = true;
       try {
-        const res = await this.axiosCall("/sales", "GET");
+        const url = this.selectedBranch ? `/sales/branch/${this.selectedBranch}` : "/sales";
+        const res = await this.axiosCall(url, "GET");
         if (res && res.data) {
           this.recentSales = res.data.slice(0, 10);
         }
@@ -468,7 +512,8 @@ export default {
 
     async loadInventory() {
       try {
-        const res = await this.axiosCall("/jewelry-items", "GET");
+        const url = this.selectedBranch ? `/jewelry-items?branchId=${this.selectedBranch}` : "/jewelry-items";
+        const res = await this.axiosCall(url, "GET");
         if (res && res.data) {
           const all = res.data;
           const inStock = all.filter(i => i.status === "IN_STOCK").length;
@@ -491,7 +536,8 @@ export default {
 
     async loadLayaways() {
       try {
-        const res = await this.axiosCall("/layaway-plans", "GET");
+        const url = this.selectedBranch ? `/layaway-plans/branch/${this.selectedBranch}` : "/layaway-plans";
+        const res = await this.axiosCall(url, "GET");
         if (res && res.data) {
           const plans = res.data;
           const active = plans.filter(p => p.status === "active");
@@ -697,6 +743,60 @@ export default {
   transition: color 0.3s;
 }
 .dark .period-title { color: #F4EEE2; }
+
+.period-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.branch-select-wrap {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  border-radius: 10px;
+  background: #FDFAF6;
+  border: 1px solid rgba(155,107,58,0.2);
+  transition: background 0.3s, border-color 0.3s;
+}
+.dark .branch-select-wrap {
+  background: rgba(0,0,0,0.25);
+  border-color: rgba(201,163,91,0.2);
+}
+
+.branch-select {
+  border: none;
+  background: none;
+  outline: none;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Outfit', sans-serif;
+  color: #3A2515;
+  cursor: pointer;
+}
+.dark .branch-select { color: #E3C485; }
+.dark .branch-select option { background: #1E1913; color: #E3C485; }
+
+.branch-locked {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  border-radius: 10px;
+  background: rgba(155,107,58,0.08);
+  border: 1px solid rgba(155,107,58,0.14);
+  font-size: 12px;
+  font-weight: 600;
+  color: #9B6B3A;
+  transition: background 0.3s, border-color 0.3s, color 0.3s;
+}
+.dark .branch-locked {
+  background: rgba(0,0,0,0.25);
+  border-color: rgba(201,163,91,0.14);
+  color: #E3C485;
+}
 
 .period-tabs {
   display: flex;
