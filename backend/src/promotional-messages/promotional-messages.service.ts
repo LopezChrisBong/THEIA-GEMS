@@ -8,6 +8,7 @@ import {
   SendMethod,
 } from './entities/promotional-message.entity';
 import { CreatePromotionalMessageDto } from './dto/create-promotional-message.dto';
+import { CreateBulkPromotionalMessageDto } from './dto/create-bulk-promotional-message.dto';
 import { UpdatePromotionalMessageDto } from './dto/update-promotional-message.dto';
 import { SmsService } from 'src/sms/sms.service';
 import { MailService } from 'src/mail/mail.service';
@@ -23,7 +24,7 @@ export class PromotionalMessagesService {
     private readonly dataSource: DataSource,
   ) {}
 
-private async dispatchMessage(
+  private async dispatchMessage(
     message: PromotionalMessage,
     customer: { fullname: string; ct_email?: string; ct_phone?: string } | null,
   ): Promise<void> {
@@ -89,8 +90,12 @@ private async dispatchMessage(
     ) {
       const customer = await this.dataSource
         .createQueryBuilder(Customer, 'ct')
-        .select(['ct.id', 'ct.email', 'ct.phone',
-          "CONCAT(ct.first_name, ' ', ct.last_name) as fullname"])
+        .select([
+          'ct.id',
+          'ct.email',
+          'ct.phone',
+          "CONCAT(ct.first_name, ' ', ct.last_name) as fullname",
+        ])
         .where('ct.id = :id', { id: rest.customerId })
         .getRawOne();
       if (customer) {
@@ -101,14 +106,71 @@ private async dispatchMessage(
     return result;
   }
 
+  async createBulk(dto: CreateBulkPromotionalMessageDto): Promise<{
+    created: number;
+    sent: number;
+    failed: number;
+    messages: PromotionalMessage[];
+  }> {
+    const { customerIds, scheduledDate, ...rest } = dto;
+
+    const messages = await Promise.all(
+      customerIds.map((customerId) =>
+        this.promotionalMessageRepository.save(
+          this.promotionalMessageRepository.create({
+            ...rest,
+            customerId,
+            scheduledDate: scheduledDate ? new Date(scheduledDate) : null,
+          }),
+        ),
+      ),
+    );
+
+    let sent = 0;
+    let failed = 0;
+
+    if (
+      rest.status !== MessageStatus.DRAFT &&
+      rest.status !== MessageStatus.SCHEDULED
+    ) {
+      for (const message of messages) {
+        try {
+          const customer = await this.dataSource
+            .createQueryBuilder(Customer, 'ct')
+            .select([
+              'ct.id',
+              'ct.email',
+              'ct.phone',
+              "CONCAT(ct.first_name, ' ', ct.last_name) as fullname",
+            ])
+            .where('ct.id = :id', { id: message.customerId })
+            .getRawOne();
+
+          if (customer) {
+            await this.dispatchMessage(message, customer);
+            sent++;
+          }
+        } catch {
+          failed++;
+        }
+      }
+    }
+
+    return { created: messages.length, sent, failed, messages };
+  }
+
   async sendNow(id: number): Promise<PromotionalMessage> {
     const message = await this.findOne(id);
 
     if (message.customerId) {
       const customer = await this.dataSource
         .createQueryBuilder(Customer, 'ct')
-        .select(['ct.id', 'ct.email', 'ct.phone',
-          "CONCAT(ct.first_name, ' ', ct.last_name) as fullname"])
+        .select([
+          'ct.id',
+          'ct.email',
+          'ct.phone',
+          "CONCAT(ct.first_name, ' ', ct.last_name) as fullname",
+        ])
         .where('ct.id = :id', { id: message.customerId })
         .getRawOne();
       if (customer) {

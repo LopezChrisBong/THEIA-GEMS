@@ -93,10 +93,55 @@
         <span class="topbar-date">{{ currentDate }}</span>
 
         <v-spacer />
-<!-- 
+<!--
         <button class="btn-new-sale" @click="$router.push(`/${userType}/pos`)">
           + New Sale
         </button> -->
+
+        <!-- NOTIFICATIONS -->
+        <v-menu v-if="notifAccess" transition="scale-transition" :close-on-content-click="false" location="bottom end">
+          <template #activator="{ props }">
+            <button v-bind="props" class="btn-bell">
+              <v-icon size="18" color="rgba(253,250,246,0.9)">mdi-bell-outline</v-icon>
+              <span v-if="notif_cnt > 0" class="bell-badge">{{ notif_cnt > 9 ? '9+' : notif_cnt }}</span>
+            </button>
+          </template>
+
+          <div class="notif-panel">
+            <div class="notif-panel-hdr">
+              <span>Notifications</span>
+              <button
+                v-if="notif_cnt > 0"
+                class="notif-mark-all"
+                @click="markAllAsRead"
+              >Mark all as read</button>
+            </div>
+
+            <div class="notif-list">
+              <div
+                v-for="n in notification_items"
+                :key="n.id"
+                class="notif-item"
+                :class="{ unread: !n.isOpenned }"
+                @click="onNotifClick(n)"
+              >
+                <div class="notif-dot" :style="{ opacity: n.isOpenned ? 0 : 1 }"></div>
+                <div class="notif-body">
+                  <div class="notif-msg">{{ n.msg }}</div>
+                  <div class="notif-meta">
+                    <span v-if="n.notif_from_name">{{ n.notif_from_name }} · </span>
+                    {{ formatDateTimeAgo(n.created_at) }}
+                  </div>
+                </div>
+              </div>
+
+              <div v-if="notification_items.length === 0" class="notif-empty">
+                <v-icon size="22" color="#C4A882">mdi-bell-off-outline</v-icon>
+                <div>No notifications yet</div>
+              </div>
+            </div>
+          </div>
+        </v-menu>
 
         <v-menu transition="scale-transition">
           <template #activator="{ props }">
@@ -147,6 +192,7 @@ export default {
       showUserMenu: false,
       notification_items: [],
       notif_cnt: 0,
+      notifAccess: false,
       interval: null,
       profImg: null,
     };
@@ -181,13 +227,7 @@ export default {
 
   mounted() {
     this.loadMenu();
-    this.getMyNotifs();
-    this.getMyNewNotifsCount();
-
-    this.interval = setInterval(() => {
-      this.getMyNotifs();
-      this.getMyNewNotifsCount();
-    }, 180000);
+    this.initNotifications();
   },
 
   beforeUnmount() {
@@ -220,12 +260,32 @@ export default {
       this.axiosCall("/assigned-modules/getMyAssignedModules/my", "GET").then(
         (resp) => {
           this.links = JSON.parse(resp.data.assign_mods);
+          this.links.push({
+            title: "Notifications Test",
+            icon: "mdi-test-tube",
+            route: "/notifications-test",
+          });
           if (userTypeID === 1) this.userType = "admin";
           else if (userTypeID === 2 && roleID === 5)
             this.userType = "superadmin";
           else this.userType = "employee";
         },
       );
+    },
+
+    initNotifications() {
+      this.axiosCall("/notifications/getMyNotifAccess", "GET").then((res) => {
+        this.notifAccess = !!(res && res.data);
+        if (!this.notifAccess) return;
+
+        this.getMyNotifs();
+        this.getMyNewNotifsCount();
+
+        this.interval = setInterval(() => {
+          this.getMyNotifs();
+          this.getMyNewNotifsCount();
+        }, 180000);
+      });
     },
 
     getMyNotifs() {
@@ -238,6 +298,25 @@ export default {
       this.axiosCall("/notifications/getMyNewNotifsCount", "GET").then(
         (res) => (this.notif_cnt = res.data),
       );
+    },
+
+    onNotifClick(n) {
+      this.axiosCall("/notifications/markOneAsRead", "POST", { id: n.id }).then(() => {
+        this.getMyNotifs();
+        this.getMyNewNotifsCount();
+        if (n.redirect_route) {
+          this.$router.push(`/${this.userType}${n.redirect_route}`);
+        }
+      });
+    },
+
+    markAllAsRead() {
+      const unread = this.notification_items.filter((n) => !n.isOpenned);
+      if (!unread.length) return;
+      this.axiosCall("/notifications/markAllAsRead", "POST", unread).then(() => {
+        this.getMyNotifs();
+        this.getMyNewNotifsCount();
+      });
     },
 
     logout() {
@@ -479,6 +558,142 @@ export default {
 
 .btn-new-sale:hover {
   background: #EDE0CC;
+}
+
+/* ─── NOTIFICATION BELL ─── */
+.btn-bell {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.18);
+  cursor: pointer;
+  transition: all 0.13s;
+  margin-right: 10px;
+}
+
+.btn-bell:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+.bell-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #B84040;
+  color: #fff;
+  font-size: 9px;
+  font-weight: 700;
+  min-width: 16px;
+  height: 16px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+  border: 1.5px solid #B67D6E;
+  font-family: 'Outfit', sans-serif;
+}
+
+.notif-panel {
+  width: 360px;
+  max-width: 90vw;
+  background: #FDFAF6;
+  border-radius: 14px;
+  border: 1px solid rgba(155,107,58,0.16);
+  box-shadow: 0 8px 28px rgba(80,30,10,0.18);
+  overflow: hidden;
+  font-family: 'Outfit', sans-serif;
+}
+
+.notif-panel-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #3A2515;
+  background: #F5EFE4;
+  border-bottom: 1px solid rgba(155,107,58,0.14);
+}
+
+.notif-mark-all {
+  background: none;
+  border: none;
+  color: #9B6B3A;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: 'Outfit', sans-serif;
+}
+
+.notif-mark-all:hover {
+  color: #6B4A30;
+  text-decoration: underline;
+}
+
+.notif-list {
+  max-height: 380px;
+  overflow-y: auto;
+}
+
+.notif-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(155,107,58,0.08);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.notif-item:hover {
+  background: #F5EFE4;
+}
+
+.notif-item.unread {
+  background: rgba(155,107,58,0.05);
+}
+
+.notif-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #9B6B3A;
+  margin-top: 5px;
+  flex-shrink: 0;
+}
+
+.notif-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.notif-msg {
+  font-size: 12.5px;
+  color: #3A2515;
+  line-height: 1.4;
+}
+
+.notif-meta {
+  font-size: 10.5px;
+  color: #9A7858;
+  margin-top: 3px;
+}
+
+.notif-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 36px 20px;
+  color: #9A7858;
+  font-size: 12px;
 }
 
 .btn-sign-out {
