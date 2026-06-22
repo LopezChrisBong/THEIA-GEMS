@@ -24,6 +24,12 @@ export enum SaleType {
   CONSIGNMENT = 'consignment',
 }
 
+export enum SalesChannel {
+  IG = 'ig',
+  WEBSITE = 'website',
+  WALK_IN = 'walk_in',
+}
+
 @Entity('sales')
 export class Sale {
   @PrimaryGeneratedColumn()
@@ -89,6 +95,14 @@ export class Sale {
     default: SaleType.REGULAR,
   })
   saleType: SaleType;
+
+  @Column({
+    name: 'sales_channel',
+    type: 'enum',
+    enum: SalesChannel,
+    default: SalesChannel.WALK_IN,
+  })
+  salesChannel: SalesChannel;
 
   @Column({ type: 'text', nullable: true })
   notes: string;

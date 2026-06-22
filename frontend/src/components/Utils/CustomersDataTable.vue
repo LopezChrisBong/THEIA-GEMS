@@ -16,6 +16,10 @@
             class="search-input-proto"
           />
         </div>
+        <button class="btn-export" @click="exportCustomers()" :disabled="exporting">
+          <v-icon size="13" color="#9B6B3A">{{ exporting ? 'mdi-loading mdi-spin' : 'mdi-file-excel-outline' }}</v-icon>
+          {{ exporting ? "Exporting..." : "Export Customers" }}
+        </button>
         <button class="btn-add" @click="addNew()">
           <v-icon size="13" color="white">mdi-plus</v-icon>
           Add Customer
@@ -62,6 +66,7 @@
               <th @click="sortBy('customerCode')">Code</th>
               <th @click="sortBy('firstName')">Name</th>
               <th @click="sortBy('phone')">Phone</th>
+              <th @click="sortBy('instagram')">Instagram</th>
               <th @click="sortBy('isRepeatBuyer')">Repeat Buyer</th>
               <th @click="sortBy('totalPurchases')">Total Purchases</th>
               <th @click="sortBy('purchaseCount')">Orders</th>
@@ -80,6 +85,12 @@
                 <span v-if="item.email" class="dim">{{ item.email }}</span>
               </td>
               <td>{{ item.phone || '—' }}</td>
+              <td>
+                <span v-if="item.instagram" class="ig-badge">
+                  <v-icon size="12">mdi-instagram</v-icon> {{ item.instagram }}
+                </span>
+                <span v-else class="dim">—</span>
+              </td>
               <td>
                 <span class="repeat-badge" :class="item.isRepeatBuyer ? 'r-yes' : 'r-no'">
                   {{ item.isRepeatBuyer ? 'Yes' : 'No' }}
@@ -106,7 +117,7 @@
               </td>
             </tr>
             <tr v-if="filteredData.length === 0">
-              <td colspan="10">
+              <td colspan="11">
                 <div class="empty-state">
                   <div class="empty-icon">
                     <v-icon size="20" color="#9B6B3A">mdi-account-search</v-icon>
@@ -160,6 +171,8 @@
               <span v-if="viewData.phone">{{ viewData.phone }}</span>
               <span v-if="viewData.email" class="ph-dot">·</span>
               <span v-if="viewData.email" class="dim">{{ viewData.email }}</span>
+              <span v-if="viewData.instagram" class="ph-dot">·</span>
+              <span v-if="viewData.instagram" class="dim"><v-icon size="11">mdi-instagram</v-icon> {{ viewData.instagram }}</span>
             </div>
           </div>
           <div class="ph-tier-wrap">
@@ -296,6 +309,7 @@
 </template>
 
 <script>
+import * as XLSX from "xlsx";
 import CustomersDialog from "../../components/Dialogs/Forms/CustomersDialog.vue";
 import eventBus from "@/eventBus";
 
@@ -316,6 +330,7 @@ export default {
     updateData: null,
     loading: false,
     deleting: false,
+    exporting: false,
     action: null,
     dialogConfirmDelete: false,
     dialogView: false,
@@ -346,7 +361,7 @@ export default {
       if (this.search) {
         const q = this.search.toLowerCase();
         result = result.filter((c) =>
-          [c.firstName, c.lastName, c.customerCode, c.phone, c.email]
+          [c.firstName, c.lastName, c.customerCode, c.phone, c.email, c.instagram]
             .filter(Boolean)
             .some((f) => String(f).toLowerCase().includes(q))
         );
@@ -506,6 +521,62 @@ export default {
       this.action = "Add";
     },
 
+    exportCustomers() {
+      if (!this.filteredData.length) {
+        this.fadeAwayMessage.show = true;
+        this.fadeAwayMessage.type = "error";
+        this.fadeAwayMessage.header = "Nothing to Export";
+        this.fadeAwayMessage.message = "There are no customers matching the current filters.";
+        return;
+      }
+
+      this.exporting = true;
+      try {
+        const rows = this.filteredData.map((c) => ({
+          ID: c.id,
+          "Customer Code": c.customerCode || "",
+          "First Name": c.firstName || "",
+          "Last Name": c.lastName || "",
+          Email: c.email || "",
+          Phone: c.phone || "",
+          Address: c.address || "",
+          Instagram: c.instagram || "",
+          "Date of Birth": c.dateOfBirth ? this.formatDate(c.dateOfBirth) : "",
+          "Repeat Buyer": c.isRepeatBuyer ? "Yes" : "No",
+          "Total Purchases": Number(c.totalPurchases || 0),
+          Orders: c.purchaseCount || 0,
+          "Last Purchase": c.lastPurchaseAt ? this.formatDate(c.lastPurchaseAt) : "",
+          Registered: c.registeredAt ? this.formatDate(c.registeredAt) : "",
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(rows);
+        worksheet["!cols"] = [
+          { wch: 6 }, { wch: 14 }, { wch: 16 }, { wch: 16 }, { wch: 26 },
+          { wch: 16 }, { wch: 30 }, { wch: 20 }, { wch: 14 }, { wch: 12 },
+          { wch: 16 }, { wch: 8 }, { wch: 14 }, { wch: 14 },
+        ];
+
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Customers");
+
+        const today = new Date().toISOString().slice(0, 10);
+        XLSX.writeFile(workbook, `theia-gems-customers-${today}.xlsx`);
+
+        this.fadeAwayMessage.show = true;
+        this.fadeAwayMessage.type = "success";
+        this.fadeAwayMessage.header = "Export Complete";
+        this.fadeAwayMessage.message = `${rows.length} customer record(s) exported successfully.`;
+      } catch (error) {
+        console.error("Failed to export customers:", error);
+        this.fadeAwayMessage.show = true;
+        this.fadeAwayMessage.type = "error";
+        this.fadeAwayMessage.header = "Error";
+        this.fadeAwayMessage.message = "Failed to export customer data";
+      } finally {
+        this.exporting = false;
+      }
+    },
+
     editItem(item) {
       this.updateData = { ...item };
       this.action = "Update";
@@ -636,6 +707,40 @@ export default {
   background: #C49455;
 }
 
+.btn-export {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: #FDFAF6;
+  color: #9B6B3A;
+  border: 1px solid rgba(155,107,58,0.3);
+  padding: 8px 14px;
+  border-radius: 9px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Outfit', sans-serif;
+  cursor: pointer;
+  transition: all 0.13s;
+}
+
+.btn-export:hover {
+  background: #EDE0CC;
+  border-color: #9B6B3A;
+}
+
+.btn-export[disabled] {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.ig-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #9A7858;
+}
+
 /* ─── Table Card ─── */
 .cust-table-card {
   background: #FDFAF6;
@@ -713,7 +818,7 @@ export default {
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
-  min-width: 860px;
+  min-width: 980px;
 }
 
 .cust-table thead th {

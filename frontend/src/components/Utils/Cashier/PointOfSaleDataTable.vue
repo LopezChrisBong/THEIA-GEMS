@@ -108,7 +108,20 @@
 
       <!-- ── FULL PAYMENT ── -->
       <div v-if="payMode === 'full'" class="pay-form">
-        <div class="fld-lbl">Customer (optional)</div>
+        <div class="fld-lbl">Sales Channel</div>
+        <div class="channel-tabs">
+          <button class="channel-tab" :class="{ sel: salesChannel === 'walk_in' }" @click="salesChannel = 'walk_in'">
+            <v-icon size="13">mdi-store-outline</v-icon> Walk-in
+          </button>
+          <button class="channel-tab" :class="{ sel: salesChannel === 'ig' }" @click="salesChannel = 'ig'">
+            <v-icon size="13">mdi-instagram</v-icon> Instagram
+          </button>
+          <button class="channel-tab" :class="{ sel: salesChannel === 'website' }" @click="salesChannel = 'website'">
+            <v-icon size="13">mdi-web</v-icon> Website
+          </button>
+        </div>
+
+        <div class="fld-lbl" style="margin-top:12px">Customer (optional)</div>
         <div class="cust-wrap" @click.stop>
           <input
             v-model="fullCustSearch"
@@ -133,8 +146,22 @@
           </div>
         </div>
 
-        <div class="fld-lbl" style="margin-top:12px">Discount Amount</div>
-        <input v-model.number="discountAmount" class="fld-inp" type="number" placeholder="0.00" min="0" />
+        <div class="fld-lbl" style="margin-top:12px">
+          Discount Amount
+          <span class="fld-lbl-hint">(max {{ formatCurrency(MAX_DISCOUNT_AMOUNT) }})</span>
+        </div>
+        <input
+          v-model.number="discountAmount"
+          class="fld-inp"
+          type="number"
+          placeholder="0.00"
+          min="0"
+          :max="MAX_DISCOUNT_AMOUNT"
+          @input="onDiscountInput"
+        />
+        <div v-if="discountCapped" class="discount-warn">
+          Discount capped at {{ formatCurrency(MAX_DISCOUNT_AMOUNT) }}.
+        </div>
 
         <div class="pay-divider"></div>
 
@@ -175,7 +202,20 @@
 
       <!-- ── INSTALLMENT ── -->
       <div v-if="payMode === 'install'" class="pay-form">
-        <div class="install-notice">
+        <div class="fld-lbl">Sales Channel</div>
+        <div class="channel-tabs">
+          <button class="channel-tab" :class="{ sel: salesChannel === 'walk_in' }" @click="salesChannel = 'walk_in'">
+            <v-icon size="13">mdi-store-outline</v-icon> Walk-in
+          </button>
+          <button class="channel-tab" :class="{ sel: salesChannel === 'ig' }" @click="salesChannel = 'ig'">
+            <v-icon size="13">mdi-instagram</v-icon> Instagram
+          </button>
+          <button class="channel-tab" :class="{ sel: salesChannel === 'website' }" @click="salesChannel = 'website'">
+            <v-icon size="13">mdi-web</v-icon> Website
+          </button>
+        </div>
+
+        <div class="install-notice" style="margin-top:12px">
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style="flex-shrink:0">
             <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3"/>
             <path d="M8 7v4M8 5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
@@ -369,7 +409,9 @@ export default {
       cartItems: [],
 
       payMode: "full",
+      salesChannel: "walk_in",
       discountAmount: 0,
+      discountCapped: false,
       payMethod: "cash",
       amountTendered: null,
       fullCustSearch: "",
@@ -450,6 +492,12 @@ export default {
       const tag = document.activeElement?.tagName?.toLowerCase();
       if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
       this.focusSearch();
+    },
+
+    onDiscountInput() {
+      const clamped = this.clampDiscount(this.discountAmount);
+      this.discountCapped = Number(this.discountAmount) > this.MAX_DISCOUNT_AMOUNT;
+      this.discountAmount = clamped;
     },
 
     updateClock() {
@@ -683,6 +731,7 @@ export default {
           changeAmount: this.change,
           paymentStatus: "paid",
           saleType: "regular",
+          salesChannel: this.salesChannel,
         });
         const saleId = saleRes.data.id;
 
@@ -807,6 +856,7 @@ export default {
           changeAmount: 0,
           paymentStatus: "layaway",
           saleType: "layaway",
+          salesChannel: this.salesChannel,
           notes: this.instNotes || undefined,
         });
         const saleId = saleRes.data.id;
@@ -912,7 +962,9 @@ export default {
 
     clearCart() {
       this.cartItems = [];
+      this.salesChannel = "walk_in";
       this.discountAmount = 0;
+      this.discountCapped = false;
       this.payMethod = "cash";
       this.amountTendered = null;
       this.fullCustSearch = "";
@@ -1350,6 +1402,26 @@ ${payLines}
 }
 .pay-meth:hover { border-color: #C49455; color: #9B6B3A; }
 .pay-meth.sel { border-color: #9B6B3A; color: #9B6B3A; background: #EDE0CC; font-weight: 500; }
+
+/* Sales Channel */
+.channel-tabs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 7px; margin-bottom: 12px; }
+.channel-tab {
+  display: flex; align-items: center; justify-content: center; gap: 4px;
+  background: #F5EFE4; border: 1px solid rgba(155,107,58,0.16);
+  border-radius: 8px; padding: 8px 4px; font-size: 11px;
+  font-family: 'Outfit', sans-serif; color: #9A7858; cursor: pointer;
+  text-align: center; transition: all 0.12s;
+}
+.channel-tab:hover { border-color: #C49455; color: #9B6B3A; }
+.channel-tab.sel { border-color: #9B6B3A; color: #9B6B3A; background: #EDE0CC; font-weight: 500; }
+
+/* Discount */
+.fld-lbl-hint { text-transform: none; letter-spacing: 0; font-size: 10px; color: #C4A882; margin-left: 4px; }
+.discount-warn {
+  font-size: 11px; color: #B84040; margin-top: -8px; margin-bottom: 10px;
+  background: rgba(184,64,64,0.08); border: 1px solid rgba(184,64,64,0.2);
+  border-radius: 6px; padding: 5px 9px;
+}
 
 /* Change */
 .change-row {

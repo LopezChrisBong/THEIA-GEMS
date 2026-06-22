@@ -29,6 +29,9 @@ export class Customer {
   @Column({ type: 'text', nullable: true })
   address: string;
 
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  instagram: string;
+
   @Column({ name: 'date_of_birth', type: 'date', nullable: true })
   dateOfBirth: Date;
 

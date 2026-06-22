@@ -316,23 +316,30 @@ export default {
     async save() {
       if (!this.$refs.form.validate()) return;
 
+      const payload = {
+        ...this.editedItem,
+        layawayPlanId: Number(this.editedItem.layawayPlanId),
+        receivedBy: Number(this.editedItem.receivedBy),
+        amount: Number(this.editedItem.amount),
+      };
+
       try {
         let response;
         if (this.editedIndex > -1) {
           response = await this.axiosCall(
             `/layaway-payments/${this.editedIndex}`,
             "PATCH",
-            this.editedItem
+            payload
           );
         } else {
-          response = await this.axiosCall("/layaway-payments", "POST", this.editedItem);
+          response = await this.axiosCall("/layaway-payments", "POST", payload);
         }
 
         if (response.data) {
           this.closeD();
         }
       } catch (error) {
-        console.error("Error saving layaway payment:", error);
+        console.error("Error saving layaway payment:", error?.response?.data || error);
       }
     },
   },
