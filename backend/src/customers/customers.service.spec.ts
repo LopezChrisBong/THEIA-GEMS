@@ -68,6 +68,9 @@ describe('CustomersService', () => {
       const result = await service.create({
         firstName: 'John',
         lastName: 'Doe',
+        email: 'john.doe@example.com',
+        phone: '09171234567',
+        address: '123 Sample St.',
       });
 
       expect(result).toEqual(mockCustomer);
@@ -81,6 +84,8 @@ describe('CustomersService', () => {
           firstName: 'John',
           lastName: 'Doe',
           email: 'john@example.com',
+          phone: '09171234567',
+          address: '123 Sample St.',
         }),
       ).rejects.toThrow(ConflictException);
     });

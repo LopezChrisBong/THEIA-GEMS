@@ -89,11 +89,12 @@
                     v-model="email"
                     label="Email"
                     type="email"
+                    :rules="[formRules.required, formRules.email]"
                     outlined
                     dense
                     clearable
                     color="primary"
-                    hint="Email address (optional)"
+                    hint="Customer's email address"
                     persistent-hint
                   />
                 </v-col>
@@ -102,11 +103,12 @@
                   <v-text-field
                     v-model="phone"
                     label="Phone"
+                    :rules="[formRules.required]"
                     outlined
                     dense
                     clearable
                     color="primary"
-                    hint="Phone number (optional)"
+                    hint="Customer's phone number"
                     persistent-hint
                   />
                 </v-col>
@@ -115,12 +117,27 @@
                   <v-textarea
                     v-model="address"
                     label="Address"
+                    :rules="[formRules.required]"
                     outlined
                     dense
                     clearable
                     color="primary"
                     rows="2"
-                    hint="Full address (optional)"
+                    hint="Customer's full address"
+                    persistent-hint
+                  />
+                </v-col>
+
+                <v-col cols="12" md="6" class="mb-4">
+                  <v-text-field
+                    v-model="instagram"
+                    label="Instagram"
+                    prepend-inner-icon="mdi-instagram"
+                    outlined
+                    dense
+                    clearable
+                    color="primary"
+                    hint="Instagram handle or profile link (optional)"
                     persistent-hint
                   />
                 </v-col>
@@ -218,6 +235,7 @@ export default {
       email: null,
       phone: null,
       address: null,
+      instagram: null,
       dateOfBirth: null,
       isRepeatBuyer: false,
 
@@ -245,6 +263,7 @@ export default {
           this.email = data.email;
           this.phone = data.phone;
           this.address = data.address;
+          this.instagram = data.instagram;
           this.dateOfBirth = data.dateOfBirth ? this.formatDateForInput(data.dateOfBirth) : null;
           this.isRepeatBuyer = data.isRepeatBuyer || false;
         } else {
@@ -264,6 +283,7 @@ export default {
       this.email = null;
       this.phone = null;
       this.address = null;
+      this.instagram = null;
       this.dateOfBirth = null;
       this.isRepeatBuyer = false;
     },
@@ -288,9 +308,10 @@ export default {
         customerCode: this.customerCode || null,
         firstName: this.firstName,
         lastName: this.lastName,
-        email: this.email || null,
-        phone: this.phone || null,
-        address: this.address || null,
+        email: this.email,
+        phone: this.phone,
+        address: this.address,
+        instagram: this.instagram || null,
         dateOfBirth: this.dateOfBirth || null,
         isRepeatBuyer: this.isRepeatBuyer,
       };
@@ -330,9 +351,10 @@ export default {
         customerCode: this.customerCode || null,
         firstName: this.firstName,
         lastName: this.lastName,
-        email: this.email || null,
-        phone: this.phone || null,
-        address: this.address || null,
+        email: this.email,
+        phone: this.phone,
+        address: this.address,
+        instagram: this.instagram || null,
         dateOfBirth: this.dateOfBirth || null,
         isRepeatBuyer: this.isRepeatBuyer,
       };

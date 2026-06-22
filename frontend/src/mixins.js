@@ -11,6 +11,7 @@ export default {
         token: "",
         apiUrl: process.env.VUE_APP_SERVER,
         eventHub,
+        MAX_DISCOUNT_AMOUNT: 10000,
         formRules: {
             amountExceeded: function(amount, principal, num_of_months) {
               if (parseFloat(amount) <= parseFloat(principal)) {
@@ -268,6 +269,15 @@ export default {
                 return !!thisValue || "Required";
               }
             },
+            maxDiscount: function(value) {
+              if (value === null || value === "" || value === undefined) {
+                return true;
+              }
+              return (
+                Number(value) <= 10000 ||
+                "Discount cannot exceed ₱10,000.00"
+              );
+            },
           },
       };
     },
@@ -276,6 +286,12 @@ export default {
         reloadImg(url) {
             return url + '?t=' + Date.now();
           },
+        // Clamps a discount value to [0, MAX_DISCOUNT_AMOUNT] — shared utility
+        // so every discount input across the app enforces the same ceiling.
+        clampDiscount: function(value) {
+          const n = Math.max(0, Number(value) || 0);
+          return Math.min(n, this.MAX_DISCOUNT_AMOUNT);
+        },
         toSentenceCase: function(theString) {
           var newString = theString
             .toLowerCase()

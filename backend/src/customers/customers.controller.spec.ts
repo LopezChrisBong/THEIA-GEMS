@@ -70,6 +70,9 @@ describe('CustomersController', () => {
       const result = await controller.create({
         firstName: 'John',
         lastName: 'Doe',
+        email: 'john.doe@example.com',
+        phone: '09171234567',
+        address: '123 Sample St.',
       });
 
       expect(result).toEqual(mockCustomer);

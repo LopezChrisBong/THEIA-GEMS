@@ -8,7 +8,7 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { PaymentStatus, SaleType } from '../entities/sale.entity';
+import { PaymentStatus, SaleType, SalesChannel } from '../entities/sale.entity';
 
 export class CreateSaleDto {
   @IsNotEmpty()
@@ -69,6 +69,10 @@ export class CreateSaleDto {
   @IsOptional()
   @IsEnum(SaleType)
   saleType?: SaleType;
+
+  @IsOptional()
+  @IsEnum(SalesChannel)
+  salesChannel?: SalesChannel;
 
   @IsOptional()
   @IsString()

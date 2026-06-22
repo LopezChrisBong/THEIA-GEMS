@@ -26,19 +26,24 @@ export class CreateCustomerDto {
   @MaxLength(50)
   lastName: string;
 
-  @IsOptional()
+  @IsNotEmpty()
   @IsEmail()
   @MaxLength(100)
-  email?: string;
+  email: string;
 
-  @IsOptional()
+  @IsNotEmpty()
   @IsString()
   @MaxLength(20)
-  phone?: string;
+  phone: string;
+
+  @IsNotEmpty()
+  @IsString()
+  address: string;
 
   @IsOptional()
   @IsString()
-  address?: string;
+  @MaxLength(100)
+  instagram?: string;
 
   @IsOptional()
   @IsDateString()
