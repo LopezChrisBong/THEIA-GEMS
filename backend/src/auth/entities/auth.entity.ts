@@ -63,6 +63,9 @@ export class Users {
   @Column({ type: 'tinyint', default: false })
   isAdminApproved: boolean;
 
+  @Column({ type: 'tinyint', default: false })
+  canAccessNotifications: boolean;
+
   @CreateDateColumn({
     nullable: false,
     type: 'datetime',

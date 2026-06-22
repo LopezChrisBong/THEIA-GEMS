@@ -40,6 +40,27 @@ export class NotificationsController {
     return this.notificationsService.getMyNewNotifsCount(curr_user);
   }
 
+  @Get('getMyNotifAccess')
+  getMyNotifAccess(@Headers() headers) {
+    var head_str = headers.authorization;
+
+    const curr_user = currentUser(head_str);
+    return this.notificationsService.getMyNotifAccess(curr_user);
+  }
+
+  @Get('getAssignableUsers')
+  getAssignableUsers() {
+    return this.notificationsService.getAssignableUsers();
+  }
+
+  @Post('setUserAccess')
+  setUserAccess(@Body() body: { userId: number; canAccessNotifications: boolean }) {
+    return this.notificationsService.setUserNotifAccess(
+      body.userId,
+      body.canAccessNotifications,
+    );
+  }
+
   @Post('markAllAsRead')
   markAllAsRead(@Request() req) {
     return this.notificationsService.markAllAsReadFunc(req.body);

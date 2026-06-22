@@ -77,7 +77,35 @@
                   </h3>
                 </v-col>
 
-                <v-col cols="12" class="mb-4">
+                <v-col cols="12" class="mb-4" v-if="action === 'Add'">
+                  <v-autocomplete
+                    v-model="customerIds"
+                    :items="customers"
+                    :item-title="(item) => `${item.firstName} ${item.lastName} ${item.email ? '(' + item.email + ')' : ''}`"
+                    item-value="id"
+                    label="Customers"
+                    multiple
+                    chips
+                    closable-chips
+                    outlined
+                    dense
+                    clearable
+                    color="primary"
+                    :hint="customerIds.length ? `${customerIds.length} customer(s) selected` : 'Leave empty for broadcast, or select one or more customers'"
+                    persistent-hint
+                  >
+                    <template #prepend-item>
+                      <v-list-item title="Select All Customers" @click="toggleSelectAll">
+                        <template #prepend>
+                          <v-checkbox-btn :model-value="allSelected" />
+                        </template>
+                      </v-list-item>
+                      <v-divider class="mt-2" />
+                    </template>
+                  </v-autocomplete>
+                </v-col>
+
+                <v-col cols="12" class="mb-4" v-else>
                   <v-autocomplete
                     v-model="customerId"
                     :items="customers"
@@ -235,6 +263,7 @@ export default {
       id: null,
       messageType: 'promotional',
       customerId: null,
+      customerIds: [],
       sendMethod: 'email',
       subject: null,
       messageContent: null,
@@ -272,6 +301,11 @@ export default {
       },
     };
   },
+  computed: {
+    allSelected() {
+      return this.customers.length > 0 && this.customerIds.length === this.customers.length;
+    },
+  },
   watch: {
     data: {
       handler(data) {
@@ -301,12 +335,17 @@ export default {
       this.id = null;
       this.messageType = 'promotional';
       this.customerId = null;
+      this.customerIds = [];
       this.sendMethod = 'email';
       this.subject = null;
       this.messageContent = null;
       this.scheduledDate = null;
       this.status = 'draft';
       this.sentAt = null;
+    },
+
+    toggleSelectAll() {
+      this.customerIds = this.allSelected ? [] : this.customers.map((c) => c.id);
     },
 
     formatDateTimeForInput(dateString) {
@@ -340,9 +379,53 @@ export default {
       if (!valid) return;
 
       this.loading = true;
+
+      // Multiple customers selected — fan out into one message per customer.
+      if (this.customerIds.length > 1) {
+        const data = {
+          customerIds: this.customerIds,
+          messageType: this.messageType,
+          sendMethod: this.sendMethod,
+          subject: this.subject || null,
+          messageContent: this.messageContent,
+          scheduledDate: this.scheduledDate ? new Date(this.scheduledDate).toISOString() : null,
+          status: this.status,
+          createdBy: Number(this.$store.state.user.userID),
+        };
+
+        this.axiosCall("/promotional-messages/bulk", "POST", data)
+          .then((res) => {
+            if (res && res.data && res.data.created) {
+              const { created, sent, failed } = res.data;
+              this.fadeAwayMessage.show = true;
+              this.fadeAwayMessage.type = failed > 0 ? "error" : "success";
+              this.fadeAwayMessage.header = failed > 0 ? "Partially Sent" : "Success";
+              this.fadeAwayMessage.message = `Created ${created} message(s)`
+                + (sent > 0 ? `, ${sent} sent successfully` : "")
+                + (failed > 0 ? `, ${failed} failed` : "");
+              this.closeD();
+            } else {
+              this.fadeAwayMessage.show = true;
+              this.fadeAwayMessage.type = "error";
+              this.fadeAwayMessage.header = "Error";
+              this.fadeAwayMessage.message = res?.data?.message || "Failed to create promotional messages";
+            }
+          })
+          .catch((error) => {
+            this.fadeAwayMessage.show = true;
+            this.fadeAwayMessage.type = "error";
+            this.fadeAwayMessage.header = "Error";
+            this.fadeAwayMessage.message = error?.response?.data?.message || "Failed to create promotional messages";
+          })
+          .finally(() => {
+            this.loading = false;
+          });
+        return;
+      }
+
       const data = {
         messageType: this.messageType,
-        customerId: this.customerId || null,
+        customerId: this.customerIds[0] || null,
         sendMethod: this.sendMethod,
         subject: this.subject || null,
         messageContent: this.messageContent,

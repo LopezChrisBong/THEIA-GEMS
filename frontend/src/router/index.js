@@ -41,6 +41,8 @@ import InventoryLogs from '@/views/Pages/InventoryLogs.vue';
 import Receipts from '@/views/Pages/Receipts.vue';
 import TransactionHistory from '@/views/Pages/TransactionHistory.vue';
 import SalesReport from '@/views/Pages/SalesReport.vue';
+import NotificationsTest from '@/views/Pages/NotificationsTest.vue';
+import AssignNotificationBell from '@/views/Pages/AssignNotificationBell.vue';
 // import OPCR from "../views/Pages/OPCR.vue";
 // Vue.use(VueRouter);
 
@@ -111,6 +113,11 @@ const routes = [
         component: ModulesList,
         meta: { title: "List of Modules", authRequired: true },
       },
+      {
+        path: "assign-notification-bell",
+        component: AssignNotificationBell,
+        meta: { title: "Assign Notification Bell", authRequired: true },
+      },
     ],
   },
   //superadmin]
@@ -154,6 +161,11 @@ const routes = [
         path: "modules-list",
         component: ModulesList,
         meta: { title: "List of Modules", authRequired: true },
+      },
+      {
+        path: "assign-notification-bell",
+        component: AssignNotificationBell,
+        meta: { title: "Assign Notification Bell", authRequired: true },
       },
     ],
   },
@@ -294,6 +306,11 @@ const routes = [
         component: SalesReport,
         meta: { title: "Sales Report", authRequired: true },
       },
+      {
+        path: "notifications-test",
+        component: NotificationsTest,
+        meta: { title: "Notifications Test Center", authRequired: true },
+      },
     ],
   },
 ];
@@ -318,25 +335,18 @@ router.beforeEach((to, from, next) => {
     }
 
     const baseRoute = to.path.split("/")[1];
+    const homeRoute = user.usertypeID === 1
+      ? "/admin/dashboard"
+      : user.user_roleID === 5
+        ? "/superadmin/dashboard"
+        : "/employee/dashboard";
+    const expectedBase = user.usertypeID === 1
+      ? "admin"
+      : user.user_roleID === 5
+        ? "superadmin"
+        : "employee";
 
-    // Admin
-    if (user.usertypeID === 1) {
-      return baseRoute === "admin"
-        ? next()
-        : next("/admin/dashboard");
-    }
-
-    // Superadmin
-    if (user.user_roleID === 5) {
-      return baseRoute === "superadmin"
-        ? next()
-        : next("/superadmin/dashboard");
-    }
-
-    // Employee (default)
-    return baseRoute === "employee"
-      ? next()
-      : next("/employee/dashboard");
+    return baseRoute === expectedBase ? next() : next(homeRoute);
   }
 
   next();

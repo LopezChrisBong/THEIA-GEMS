@@ -77,6 +77,22 @@ export class ConsignmentItemsService {
     return this.findByStatus(ConsignmentStatus.ACTIVE);
   }
 
+  /** Active consignment items that have been held for `days` or more without being sold. */
+  async findAgedActive(days: number): Promise<ConsignmentItem[]> {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    cutoff.setHours(23, 59, 59, 999);
+
+    return this.consignmentItemRepository
+      .createQueryBuilder('consignment')
+      .leftJoinAndSelect('consignment.jewelryItem', 'jewelryItem')
+      .leftJoinAndSelect('consignment.branch', 'branch')
+      .where('consignment.status = :status', { status: ConsignmentStatus.ACTIVE })
+      .andWhere('consignment.consignmentDate <= :cutoff', { cutoff })
+      .orderBy('consignment.consignmentDate', 'ASC')
+      .getMany();
+  }
+
   async update(id: number, updateConsignmentItemDto: UpdateConsignmentItemDto): Promise<ConsignmentItem> {
     const consignmentItem = await this.findOne(id);
     const prevAuthentic = consignmentItem.isAuthentic;

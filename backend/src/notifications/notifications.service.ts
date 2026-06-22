@@ -4,7 +4,7 @@ import { CreateNotificationDto } from './dto/create-notification.dto';
 import { UpdateNotificationDto } from './dto/update-notification.dto';
 import { DataSource, Repository } from 'typeorm';
 import { Notifications } from './entities/notification.entity';
-import { UserDetail } from 'src/entities';
+import { UserDetail, Users, UserType } from 'src/entities';
 
 @Injectable()
 export class NotificationsService {
@@ -30,6 +30,51 @@ export class NotificationsService {
       .where('notif.user_detailID_to = :id', { id: user.userdetail.id })
       .andWhere('notif.isOpenned = 0')
       .getCount();
+  }
+
+  async getMyNotifAccess(user: any): Promise<boolean> {
+    const userId = user?.userdetail?.user?.id;
+    if (!userId) return false;
+
+    // Admin and superadmin always have access — the toggle only governs employees.
+    if (user.userdetail.user.usertypeID === 1 || user.userdetail.user.user_roleID === 5) {
+      return true;
+    }
+
+    const row = await this.dataSource.manager.findOne(Users, {
+      where: { id: userId },
+    });
+    return !!row?.canAccessNotifications;
+  }
+
+  getAssignableUsers() {
+    return this.dataSource
+      .createQueryBuilder(Users, 'u')
+      .select([
+        'u.id as id',
+        'u.email as email',
+        'u.usertypeID as usertypeID',
+        'u.user_roleID as user_roleID',
+        'u.canAccessNotifications as canAccessNotifications',
+        'ut.description as usertype_desc',
+        "IF (!ISNULL(ud.mname), concat(ud.fname, ' ', SUBSTRING(ud.mname, 1, 1), '. ', ud.lname), concat(ud.fname, ' ', ud.lname)) as fullName",
+      ])
+      .leftJoin(UserDetail, 'ud', 'ud.userID = u.id')
+      .leftJoin(UserType, 'ut', 'ut.id = u.usertypeID')
+      .where('u.isValidated = 1')
+      .andWhere('u.isAdminApproved = 1')
+      .orderBy('fullName', 'ASC')
+      .getRawMany();
+  }
+
+  async setUserNotifAccess(userId: number, canAccessNotifications: boolean) {
+    await this.dataSource.manager.update(Users, userId, {
+      canAccessNotifications,
+    });
+    return {
+      msg: 'Updated successfully.',
+      status: HttpStatus.OK,
+    };
   }
 
   markAllAsReadFunc(data: any) {

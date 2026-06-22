@@ -14,6 +14,7 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { PromotionalMessagesService } from './promotional-messages.service';
 import { CreatePromotionalMessageDto } from './dto/create-promotional-message.dto';
+import { CreateBulkPromotionalMessageDto } from './dto/create-bulk-promotional-message.dto';
 import { UpdatePromotionalMessageDto } from './dto/update-promotional-message.dto';
 import {
   PromotionalMessage,
@@ -36,6 +37,11 @@ export class PromotionalMessagesController {
     @Body() createPromotionalMessageDto: CreatePromotionalMessageDto,
   ): Promise<PromotionalMessage> {
     return this.promotionalMessagesService.create(createPromotionalMessageDto);
+  }
+
+  @Post('bulk')
+  createBulk(@Body() createBulkDto: CreateBulkPromotionalMessageDto) {
+    return this.promotionalMessagesService.createBulk(createBulkDto);
   }
 
   @Get()
@@ -92,7 +98,10 @@ export class PromotionalMessagesController {
     @Param('id', ParseIntPipe) id: number,
     @Body('scheduledDate') scheduledDate: string,
   ): Promise<PromotionalMessage> {
-    return this.promotionalMessagesService.schedule(id, new Date(scheduledDate));
+    return this.promotionalMessagesService.schedule(
+      id,
+      new Date(scheduledDate),
+    );
   }
 
   @Post(':id/send')
@@ -103,9 +112,7 @@ export class PromotionalMessagesController {
   }
 
   @Post(':id/send-now')
-  sendNow(
-    @Param('id', ParseIntPipe) id: number,
-  ): Promise<PromotionalMessage> {
+  sendNow(@Param('id', ParseIntPipe) id: number): Promise<PromotionalMessage> {
     return this.promotionalMessagesService.sendNow(id);
   }
 
@@ -121,7 +128,10 @@ export class PromotionalMessagesController {
     @Param('id', ParseIntPipe) id: number,
     @Body() updatePromotionalMessageDto: UpdatePromotionalMessageDto,
   ): Promise<PromotionalMessage> {
-    return this.promotionalMessagesService.update(id, updatePromotionalMessageDto);
+    return this.promotionalMessagesService.update(
+      id,
+      updatePromotionalMessageDto,
+    );
   }
 
   @Delete(':id')

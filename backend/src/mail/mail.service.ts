@@ -259,6 +259,134 @@ export class MailService {
     await this.mailerService.sendMail({ to: params.to, subject: `Your Consignment Item Sold — ${params.itemCode}`, html });
   }
 
+  // ── AGED CONSIGNMENT ALERT (OWNER) ──────────────────────────────────────
+  async sendAgedConsignmentReminder(params: {
+    to: string;
+    days: number;
+    items: {
+      itemCode: string;
+      consignorName: string;
+      branch: string;
+      consignmentDate: string;
+      daysHeld: number;
+      sellingPrice: number;
+    }[];
+  }) {
+    const fmt = (v: number) => '₱' + Number(v).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const rows = params.items.map((i) => `
+      <tr>
+        <td style="padding:8px 6px;color:#3A2515;font-weight:600;">${i.itemCode}</td>
+        <td style="padding:8px 6px;color:#3A2515;">${i.consignorName}</td>
+        <td style="padding:8px 6px;color:#6B4A30;">${i.branch}</td>
+        <td style="padding:8px 6px;color:#6B4A30;">${i.consignmentDate}</td>
+        <td style="padding:8px 6px;color:#B84040;font-weight:600;text-align:center;">${i.daysHeld}</td>
+        <td style="padding:8px 6px;color:#3A2515;text-align:right;">${fmt(i.sellingPrice)}</td>
+      </tr>`).join('');
+
+    const html = `<div style="font-family:Arial,sans-serif;max-width:680px;margin:0 auto;padding:24px;background:#FDFAF6;border:1px solid #e8dcc8;border-radius:12px;">
+      <h2 style="font-family:Georgia,serif;color:#3A2515;text-align:center;letter-spacing:0.06em;">THEIA GEMS</h2>
+      <p style="color:#B84040;font-weight:600;text-align:center;margin-top:4px;">Aged Consignment Alert</p>
+      <p style="color:#3A2515;">Hi,</p>
+      <p style="color:#3A2515;">
+        The following <strong>${params.items.length}</strong> consignment item${params.items.length !== 1 ? 's' : ''}
+        have been with Theia Gems for <strong>${params.days}+ days</strong> and ${params.items.length !== 1 ? 'are' : 'is'} still unsold.
+        You may want to follow up with the consignor(s), consider a price adjustment, or arrange a return.
+      </p>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;margin:16px 0;">
+        <thead>
+          <tr style="border-bottom:2px solid #e8dcc8;">
+            <th style="padding:6px;text-align:left;color:#9A7858;font-size:11px;text-transform:uppercase;">Item</th>
+            <th style="padding:6px;text-align:left;color:#9A7858;font-size:11px;text-transform:uppercase;">Consignor</th>
+            <th style="padding:6px;text-align:left;color:#9A7858;font-size:11px;text-transform:uppercase;">Branch</th>
+            <th style="padding:6px;text-align:left;color:#9A7858;font-size:11px;text-transform:uppercase;">Consigned On</th>
+            <th style="padding:6px;text-align:center;color:#9A7858;font-size:11px;text-transform:uppercase;">Days Held</th>
+            <th style="padding:6px;text-align:right;color:#9A7858;font-size:11px;text-transform:uppercase;">Selling Price</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+      <p style="color:#9A7858;font-size:12px;text-align:center;margin-top:20px;">This is an automated daily alert from the Theia Gems system.</p>
+    </div>`;
+
+    await this.mailerService.sendMail({
+      to: params.to,
+      subject: `Aged Consignment Alert — ${params.items.length} item${params.items.length !== 1 ? 's' : ''} over ${params.days} days unsold`,
+      html,
+    });
+  }
+
+  // ── DAILY SALES REPORT (OWNER) ──────────────────────────────────────────
+  async sendDailySalesReport(params: {
+    to: string;
+    dateLabel: string;
+    branchReports: {
+      branchName: string;
+      summary: {
+        totalOrders: number;
+        totalRevenue: number;
+        totalDiscount: number;
+        totalCost?: number;
+        totalProfit?: number;
+      };
+    }[];
+    attachment: Buffer;
+    filename: string;
+  }) {
+    const fmt = (v: number) => '₱' + Number(v || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const grandOrders = params.branchReports.reduce((s, b) => s + b.summary.totalOrders, 0);
+    const grandRevenue = params.branchReports.reduce((s, b) => s + b.summary.totalRevenue, 0);
+    const grandProfit = params.branchReports.reduce((s, b) => s + (b.summary.totalProfit || 0), 0);
+
+    const branchRows = params.branchReports.map((b) => `
+      <tr>
+        <td style="padding:8px 6px;color:#3A2515;font-weight:600;">${b.branchName}</td>
+        <td style="padding:8px 6px;color:#3A2515;text-align:center;">${b.summary.totalOrders}</td>
+        <td style="padding:8px 6px;color:#3D7A5A;font-weight:600;text-align:right;">${fmt(b.summary.totalRevenue)}</td>
+        <td style="padding:8px 6px;color:#9B6B3A;text-align:right;">${fmt(b.summary.totalProfit || 0)}</td>
+      </tr>`).join('');
+
+    const html = `<div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;padding:24px;background:#FDFAF6;border:1px solid #e8dcc8;border-radius:12px;">
+      <h2 style="font-family:Georgia,serif;color:#3A2515;text-align:center;letter-spacing:0.06em;">THEIA GEMS</h2>
+      <p style="color:#9B6B3A;font-weight:600;text-align:center;margin-top:4px;">End-of-Day Sales Report — ${params.dateLabel}</p>
+
+      <table style="width:100%;border-collapse:collapse;font-size:14px;margin:16px 0;">
+        <tr><td style="padding:6px 0;color:#9A7858;">Total Orders (all branches)</td><td style="font-weight:600;color:#3A2515;text-align:right;">${grandOrders}</td></tr>
+        <tr><td style="padding:6px 0;color:#9A7858;">Total Revenue</td><td style="font-weight:700;color:#3D7A5A;text-align:right;">${fmt(grandRevenue)}</td></tr>
+        <tr><td style="padding:6px 0;color:#9A7858;">Total Profit</td><td style="font-weight:700;color:#9B6B3A;text-align:right;">${fmt(grandProfit)}</td></tr>
+      </table>
+
+      <p style="color:#3A2515;font-weight:600;margin-top:18px;">Per-Branch Breakdown</p>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;margin:10px 0;">
+        <thead>
+          <tr style="border-bottom:2px solid #e8dcc8;">
+            <th style="padding:6px;text-align:left;color:#9A7858;font-size:11px;text-transform:uppercase;">Branch</th>
+            <th style="padding:6px;text-align:center;color:#9A7858;font-size:11px;text-transform:uppercase;">Orders</th>
+            <th style="padding:6px;text-align:right;color:#9A7858;font-size:11px;text-transform:uppercase;">Revenue</th>
+            <th style="padding:6px;text-align:right;color:#9A7858;font-size:11px;text-transform:uppercase;">Profit</th>
+          </tr>
+        </thead>
+        <tbody>${branchRows}</tbody>
+      </table>
+
+      <p style="color:#3A2515;">The full item-by-item breakdown for every branch is attached as an Excel file (one sheet per branch).</p>
+      <p style="color:#9A7858;font-size:12px;text-align:center;margin-top:20px;">This is an automated end-of-day report from the Theia Gems system.</p>
+    </div>`;
+
+    await this.mailerService.sendMail({
+      to: params.to,
+      subject: `Daily Sales Report — ${params.dateLabel} (${grandOrders} order${grandOrders !== 1 ? 's' : ''}, ${params.branchReports.length} branch${params.branchReports.length !== 1 ? 'es' : ''})`,
+      html,
+      attachments: [
+        {
+          filename: params.filename,
+          content: params.attachment,
+          contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        },
+      ],
+    });
+  }
+
   async sendPromotional(params: { to: string; subject: string; body: string; customerName?: string }) {
     const html = `
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#FDFAF6;border:1px solid #e8dcc8;border-radius:12px;">
