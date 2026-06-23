@@ -193,7 +193,7 @@
           <span class="change-amt">{{ formatCurrency(change) }}</span>
         </div>
 
-        <button class="btn-charge" @click="processCharge" :disabled="loading || cartItems.length === 0">
+        <button class="btn-charge" @click="confirmCharge" :disabled="loading || cartItems.length === 0">
           <span v-if="loading" class="btn-spinner"></span>
           {{ loading ? 'Processing...' : 'CHARGE ' + formatCurrency(grandTotal) }}
         </button>
@@ -283,6 +283,7 @@
             <select v-model.number="instTerm" class="fld-inp">
               <option value="">Select</option>
               <option :value="3">3 months</option>
+              <option :value="4">4 months</option>
               <option :value="6">6 months</option>
               <option :value="12">12 months</option>
               <option :value="18">18 months</option>
@@ -316,7 +317,7 @@
         <div class="fld-lbl" style="margin-top:12px">Notes / Remarks</div>
         <input v-model="instNotes" class="fld-inp" type="text" placeholder="Optional notes..." />
 
-        <button class="btn-charge btn-install" @click="processInstallment" :disabled="loading || cartItems.length === 0">
+        <button class="btn-charge btn-install" @click="confirmInstallment" :disabled="loading || cartItems.length === 0">
           <span v-if="loading" class="btn-spinner"></span>
           {{ loading ? 'Processing...' : 'CONFIRM INSTALLMENT' }}
         </button>
@@ -391,6 +392,64 @@
         </div>
       </div>
     </div>
+
+    <!-- ═══ PRE-PURCHASE TERMS & CONDITIONS MODAL ═══ -->
+    <div v-if="showTermsModal" class="terms-overlay">
+      <div class="terms-modal">
+        <div class="terms-emblem"><span class="terms-emblem-mark">T°</span></div>
+        <div class="terms-brand">T°HEIA GEMS</div>
+
+        <div class="terms-title">PRE-PURCHASE<br />TERMS &amp; CONDITIONS</div>
+        <div class="terms-star">✦</div>
+
+        <div class="terms-items">
+          <div class="terms-row">
+            <div class="terms-icon-circle">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M6 8h12l-1 12H7L6 8z" stroke="#9B6B3A" stroke-width="1.4" stroke-linejoin="round" />
+                <path d="M9 8V6a3 3 0 0 1 6 0v2" stroke="#9B6B3A" stroke-width="1.4" />
+                <line x1="4" y1="20" x2="20" y2="4" stroke="#9B6B3A" stroke-width="1.4" stroke-linecap="round" />
+              </svg>
+            </div>
+            <div class="terms-text">ALL PURCHASES ARE NO RETURN, NO EXCHANGE, AND NO REFUND.</div>
+          </div>
+
+          <div class="terms-row">
+            <div class="terms-icon-circle">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <circle cx="12" cy="15" r="6" stroke="#9B6B3A" stroke-width="1.4" />
+                <path d="M9 9.5L12 4l3 5.5" stroke="#9B6B3A" stroke-width="1.4" stroke-linejoin="round" />
+              </svg>
+            </div>
+            <div class="terms-text">ALL CUSTOMIZED RINGS AND BESPOKE JEWELRY ARE FINAL.</div>
+          </div>
+
+          <div class="terms-row">
+            <div class="terms-icon-circle">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M5 9L12 3l7 6-7 12L5 9z" stroke="#9B6B3A" stroke-width="1.4" stroke-linejoin="round" />
+                <path d="M5 9h14M9 9l3 12 3-12M9 9L12 3M15 9L12 3" stroke="#9B6B3A" stroke-width="1" stroke-linejoin="round" />
+              </svg>
+            </div>
+            <div class="terms-text">BY PROCEEDING WITH PAYMENT, THE CLIENT CONFIRMS FULL UNDERSTANDING AND ACCEPTANCE OF THIS POLICY.</div>
+          </div>
+        </div>
+
+        <div class="terms-star">✦</div>
+
+        <div class="terms-footer">
+          THANK YOU FOR CHOOSING THEIA GEMS.<br />WE TRULY APPRECIATE YOUR TRUST.
+        </div>
+
+        <div class="terms-actions">
+          <button class="btn-terms-cancel" @click="cancelTerms">Cancel</button>
+          <button class="btn-terms-agree" @click="agreeTerms">
+            <v-icon size="14" style="margin-right:6px">mdi-check-circle-outline</v-icon>
+            I Agree &amp; Proceed
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -439,6 +498,9 @@ export default {
 
       showReceipt: false,
       receiptData: null,
+
+      showTermsModal: false,
+      pendingAction: null,
     };
   },
   computed: {
@@ -700,6 +762,44 @@ export default {
 
     mapPayMethod(m) {
       return m;
+    },
+
+    // ── PRE-PURCHASE TERMS GATE ──
+    confirmCharge() {
+      this.errorMsg = "";
+      if (this.cartItems.length === 0) {
+        this.errorMsg = "Cart is empty.";
+        return;
+      }
+      if (!this.amountTendered || this.amountTendered < this.grandTotal) {
+        this.errorMsg = "Amount tendered must be at least the grand total.";
+        return;
+      }
+      this.pendingAction = "full";
+      this.showTermsModal = true;
+    },
+
+    confirmInstallment() {
+      this.errorMsg = "";
+      if (this.cartItems.length === 0) { this.errorMsg = "Cart is empty."; return; }
+      if (!this.instCustomer.trim()) { this.errorMsg = "Customer name is required."; return; }
+      if (!this.instPhone.trim()) { this.errorMsg = "Contact number is required."; return; }
+      if (!this.instDP || this.instDP <= 0) { this.errorMsg = "Down payment is required."; return; }
+      if (!this.instTerm) { this.errorMsg = "Payment term is required."; return; }
+      this.pendingAction = "install";
+      this.showTermsModal = true;
+    },
+
+    cancelTerms() {
+      this.showTermsModal = false;
+      this.pendingAction = null;
+    },
+
+    agreeTerms() {
+      this.showTermsModal = false;
+      if (this.pendingAction === "full") this.processCharge();
+      else if (this.pendingAction === "install") this.processInstallment();
+      this.pendingAction = null;
     },
 
     // ── FULL PAYMENT ──
@@ -1568,6 +1668,156 @@ ${payLines}
   transition: all 0.13s; letter-spacing: 0.04em;
 }
 .btn-print-rcpt:hover { background: #EDE0CC; border-color: #9B6B3A; }
+
+/* ─── TERMS & CONDITIONS MODAL ─── */
+.terms-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(58,37,21,0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.terms-modal {
+  background: #FDFAF6;
+  border: 1px solid rgba(155,107,58,0.3);
+  border-radius: 28px 28px 16px 16px;
+  padding: 34px 30px 26px;
+  width: 380px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 12px 48px rgba(58,37,21,0.3);
+  font-family: 'Outfit', sans-serif;
+  text-align: center;
+}
+
+.terms-emblem {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(155,107,58,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 8px;
+}
+
+.terms-emblem-mark {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 20px;
+  font-weight: 600;
+  color: #9B6B3A;
+}
+
+.terms-brand {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  color: #3A2515;
+  margin-bottom: 20px;
+}
+
+.terms-title {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: #3A2515;
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.terms-star {
+  color: #C49455;
+  font-size: 13px;
+  margin: 6px 0 18px;
+}
+
+.terms-items {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  text-align: left;
+  margin-bottom: 4px;
+}
+
+.terms-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.terms-icon-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1.3px solid rgba(155,107,58,0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.terms-text {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #3A2515;
+  line-height: 1.6;
+  padding-top: 8px;
+}
+
+.terms-footer {
+  font-size: 10.5px;
+  color: #9A7858;
+  letter-spacing: 0.04em;
+  line-height: 1.7;
+  margin-top: 4px;
+}
+
+.terms-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.btn-terms-cancel {
+  flex: 1;
+  background: none;
+  border: 1px solid rgba(155,107,58,0.25);
+  border-radius: 10px;
+  padding: 11px;
+  font-size: 12px;
+  font-family: 'Outfit', sans-serif;
+  color: #9A7858;
+  cursor: pointer;
+  transition: all 0.13s;
+}
+.btn-terms-cancel:hover { border-color: #C49455; color: #6B4A30; }
+
+.btn-terms-agree {
+  flex: 1.5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #9B6B3A;
+  color: #FDFAF6;
+  border: none;
+  border-radius: 10px;
+  padding: 11px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Outfit', sans-serif;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(155,107,58,0.3);
+  transition: background 0.13s;
+}
+.btn-terms-agree:hover { background: #C49455; }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 4px; }
