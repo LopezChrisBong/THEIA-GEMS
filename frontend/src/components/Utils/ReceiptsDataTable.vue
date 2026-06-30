@@ -328,11 +328,11 @@ export default {
       const itemLines = saleItems.length
         ? saleItems.map((si) => {
             const ji = si.jewelryItem || {};
-            const isJewelry = !!(ji.jewelryTypeId || ji.stoneTypeId || ji.designModelId);
+            const isJewelry = !!(ji.jewelryTypeId || ji.stoneTypeId);
             const name = ji.brand || ji.description || ji.itemCode || "—";
             let details = "";
             if (isJewelry) {
-              details = [ji.stoneType?.name, ji.designModel?.modelName].filter(Boolean).join(" · ");
+              details = [ji.stoneType?.name].filter(Boolean).join(" · ");
             } else {
               details = [ji.brand, ji.description ? ji.description.substring(0, 40) : ""].filter(Boolean).join(" · ");
             }

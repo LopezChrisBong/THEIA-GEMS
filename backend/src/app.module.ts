@@ -39,7 +39,6 @@ import { UserActivityLogsModule } from './user-activity-logs/user-activity-logs.
 import { SystemSettingsModule } from './system-settings/system-settings.module';
 import { StoneTypesModule } from './stone-types/stone-types.module';
 import { JewelryTypesModule } from './jewelry-types/jewelry-types.module';
-import { DesignModelsModule } from './design-models/design-models.module';
 import { JewelryItemsModule } from './jewelry-items/jewelry-items.module';
 import { JewelryItemImagesModule } from './jewelry-item-images/jewelry-item-images.module';
 import { SchedulerModule } from './scheduler/scheduler.module';
@@ -95,7 +94,6 @@ import { SchedulerModule } from './scheduler/scheduler.module';
     SystemSettingsModule,
     StoneTypesModule,
     JewelryTypesModule,
-    DesignModelsModule,
     JewelryItemsModule,
     JewelryItemImagesModule,
     SchedulerModule,

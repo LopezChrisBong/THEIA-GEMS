@@ -325,8 +325,6 @@ export class MailService {
         totalOrders: number;
         totalRevenue: number;
         totalDiscount: number;
-        totalCost?: number;
-        totalProfit?: number;
       };
     }[];
     attachment: Buffer;
@@ -336,14 +334,12 @@ export class MailService {
 
     const grandOrders = params.branchReports.reduce((s, b) => s + b.summary.totalOrders, 0);
     const grandRevenue = params.branchReports.reduce((s, b) => s + b.summary.totalRevenue, 0);
-    const grandProfit = params.branchReports.reduce((s, b) => s + (b.summary.totalProfit || 0), 0);
 
     const branchRows = params.branchReports.map((b) => `
       <tr>
         <td style="padding:8px 6px;color:#3A2515;font-weight:600;">${b.branchName}</td>
         <td style="padding:8px 6px;color:#3A2515;text-align:center;">${b.summary.totalOrders}</td>
         <td style="padding:8px 6px;color:#3D7A5A;font-weight:600;text-align:right;">${fmt(b.summary.totalRevenue)}</td>
-        <td style="padding:8px 6px;color:#9B6B3A;text-align:right;">${fmt(b.summary.totalProfit || 0)}</td>
       </tr>`).join('');
 
     const html = `<div style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;padding:24px;background:#FDFAF6;border:1px solid #e8dcc8;border-radius:12px;">
@@ -353,7 +349,6 @@ export class MailService {
       <table style="width:100%;border-collapse:collapse;font-size:14px;margin:16px 0;">
         <tr><td style="padding:6px 0;color:#9A7858;">Total Orders (all branches)</td><td style="font-weight:600;color:#3A2515;text-align:right;">${grandOrders}</td></tr>
         <tr><td style="padding:6px 0;color:#9A7858;">Total Revenue</td><td style="font-weight:700;color:#3D7A5A;text-align:right;">${fmt(grandRevenue)}</td></tr>
-        <tr><td style="padding:6px 0;color:#9A7858;">Total Profit</td><td style="font-weight:700;color:#9B6B3A;text-align:right;">${fmt(grandProfit)}</td></tr>
       </table>
 
       <p style="color:#3A2515;font-weight:600;margin-top:18px;">Per-Branch Breakdown</p>
@@ -363,7 +358,6 @@ export class MailService {
             <th style="padding:6px;text-align:left;color:#9A7858;font-size:11px;text-transform:uppercase;">Branch</th>
             <th style="padding:6px;text-align:center;color:#9A7858;font-size:11px;text-transform:uppercase;">Orders</th>
             <th style="padding:6px;text-align:right;color:#9A7858;font-size:11px;text-transform:uppercase;">Revenue</th>
-            <th style="padding:6px;text-align:right;color:#9A7858;font-size:11px;text-transform:uppercase;">Profit</th>
           </tr>
         </thead>
         <tbody>${branchRows}</tbody>

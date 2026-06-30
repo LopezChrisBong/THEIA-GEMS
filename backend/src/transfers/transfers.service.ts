@@ -6,7 +6,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Transfer, TransferStatus } from './entities/transfer.entity';
 import { CreateTransferDto } from './dto/create-transfer.dto';
 import { UpdateTransferDto } from './dto/update-transfer.dto';
@@ -18,6 +18,7 @@ import { TransactionLogsService } from '../transaction-logs/transaction-logs.ser
 import { TransactionAction } from '../transaction-logs/entities/transaction-log.entity';
 import { MailService } from '../mail/mail.service';
 import { SmsService } from '../sms/sms.service';
+import { Users } from '../auth/entities/auth.entity';
 
 const ALL_RELATIONS = ['fromBranch', 'toBranch', 'requester', 'approver', 'transferrer', 'receiver'];
 
@@ -40,6 +41,40 @@ export class TransfersService {
     private readonly mailService: MailService,
     private readonly smsService: SmsService,
   ) {}
+
+  /**
+   * The `Users` entity only holds login credentials (email/role) — display names
+   * (fname/lname) live in `UserDetail`. Merge them onto the loaded requester/
+   * approver/transferrer/receiver relations so the frontend can show real names.
+   */
+  private async attachUserNames(transfers: Transfer[]): Promise<Transfer[]> {
+    const userIds = new Set<number>();
+    for (const t of transfers) {
+      if (t.requestedBy) userIds.add(t.requestedBy);
+      if (t.approvedBy) userIds.add(t.approvedBy);
+      if (t.transferredBy) userIds.add(t.transferredBy);
+      if (t.receivedBy) userIds.add(t.receivedBy);
+    }
+    if (userIds.size === 0) return transfers;
+
+    const details = await this.userDetailRepository.find({ where: { userID: In([...userIds]) } });
+    const detailMap = new Map(details.map((d) => [d.userID, d]));
+
+    const merge = (user?: Users) => {
+      if (!user) return;
+      const detail = detailMap.get(user.id);
+      (user as any).fname = detail?.fname ?? null;
+      (user as any).lname = detail?.lname ?? null;
+    };
+
+    for (const t of transfers) {
+      merge(t.requester);
+      merge(t.approver);
+      merge(t.transferrer);
+      merge(t.receiver);
+    }
+    return transfers;
+  }
 
   async create(createTransferDto: CreateTransferDto): Promise<Transfer> {
     const existing = await this.transferRepository.findOne({
@@ -94,10 +129,11 @@ export class TransfersService {
   }
 
   async findAll(): Promise<Transfer[]> {
-    return this.transferRepository.find({
+    const transfers = await this.transferRepository.find({
       relations: ALL_RELATIONS,
       order: { createdAt: 'DESC' },
     });
+    return this.attachUserNames(transfers);
   }
 
   async findOne(id: number): Promise<Transfer> {
@@ -110,6 +146,7 @@ export class TransfersService {
       throw new NotFoundException(`Transfer with ID ${id} not found`);
     }
 
+    await this.attachUserNames([transfer]);
     return transfer;
   }
 
@@ -123,31 +160,35 @@ export class TransfersService {
       throw new NotFoundException(`Transfer ${transferNumber} not found`);
     }
 
+    await this.attachUserNames([transfer]);
     return transfer;
   }
 
   async findByStatus(status: TransferStatus): Promise<Transfer[]> {
-    return this.transferRepository.find({
+    const transfers = await this.transferRepository.find({
       where: { status },
       relations: ALL_RELATIONS,
       order: { createdAt: 'DESC' },
     });
+    return this.attachUserNames(transfers);
   }
 
   async findByFromBranch(branchId: number): Promise<Transfer[]> {
-    return this.transferRepository.find({
+    const transfers = await this.transferRepository.find({
       where: { fromBranchId: branchId },
       relations: ALL_RELATIONS,
       order: { createdAt: 'DESC' },
     });
+    return this.attachUserNames(transfers);
   }
 
   async findByToBranch(branchId: number): Promise<Transfer[]> {
-    return this.transferRepository.find({
+    const transfers = await this.transferRepository.find({
       where: { toBranchId: branchId },
       relations: ALL_RELATIONS,
       order: { createdAt: 'DESC' },
     });
+    return this.attachUserNames(transfers);
   }
 
   async findPending(): Promise<Transfer[]> {

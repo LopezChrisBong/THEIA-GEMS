@@ -147,7 +147,7 @@
               <tr>
                 <th>Code</th>
                 <th>Category</th>
-                <th>Brand</th>
+                <th>Name</th>
                 <th>Material</th>
                 <th>Carat</th>
                 <th>Branch</th>

@@ -65,7 +65,7 @@
               <th @click="sortBy('itemCode')">Code</th>
               <th @click="sortBy('barcode')">Barcode</th>
               <th @click="sortBy('category')">Category</th>
-              <th @click="sortBy('brand')">Brand</th>
+              <th @click="sortBy('brand')">Name</th>
               <th @click="sortBy('material')">Description</th>
               <th @click="sortBy('ringSize')">Ring Size</th>
               <th @click="sortBy('price')">Price</th>
@@ -240,7 +240,7 @@
               </div>
             </v-col>
             <v-col cols="12" md="4">
-              <div class="view-label">Brand</div>
+              <div class="view-label">Name</div>
               <div class="view-value">{{ viewData.brand || '—' }}</div>
             </v-col>
             <v-col cols="12" md="4">
@@ -269,13 +269,6 @@
                 <span v-else class="text-medium-emphasis">—</span>
               </div>
             </v-col>
-            <v-col cols="12" md="4">
-              <div class="view-label">Cost</div>
-              <div class="view-value">
-                <span v-if="viewData.cost">₱{{ Number(viewData.cost).toLocaleString('en-PH', { minimumFractionDigits: 2 }) }}</span>
-                <span v-else class="text-medium-emphasis">—</span>
-              </div>
-            </v-col>
           </v-row>
 
           <v-divider class="my-4" />
@@ -292,12 +285,12 @@
               <div class="view-value">{{ viewData.jewelryType?.name || '—' }}</div>
             </v-col>
             <v-col cols="12" md="4">
-              <div class="view-label">Design Model</div>
-              <div class="view-value">{{ viewData.designModel?.modelName || '—' }}</div>
+              <div class="view-label">Color (Gold Type)</div>
+              <div class="view-value">{{ formatGoldType(viewData.goldType) }}</div>
             </v-col>
             <v-col cols="12" md="4">
-              <div class="view-label">Gold Type</div>
-              <div class="view-value">{{ formatGoldType(viewData.goldType) }}</div>
+              <div class="view-label">Karat</div>
+              <div class="view-value">{{ viewData.karat || '—' }}</div>
             </v-col>
             <v-col cols="12" md="4">
               <div class="view-label">Carat</div>
@@ -306,6 +299,10 @@
             <v-col cols="12" md="4">
               <div class="view-label">Ring Size</div>
               <div class="view-value">{{ viewData.ringSize || '—' }}</div>
+            </v-col>
+            <v-col cols="12" md="4">
+              <div class="view-label">Band Width</div>
+              <div class="view-value">{{ viewData.bandWidth || '—' }}</div>
             </v-col>
           </v-row>
 

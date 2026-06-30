@@ -61,11 +61,11 @@
                   />
                 </v-col>
 
-                <!-- Brand -->
+                <!-- Name -->
                 <v-col cols="12" md="4" class="mb-4">
                   <v-text-field
                     v-model="brand"
-                    label="Brand"
+                    label="Name"
                     outlined
                     dense
                     clearable
@@ -160,14 +160,14 @@
                   />
                 </v-col>
 
-                <!-- Design Model -->
+                <!-- Color (Gold Type) -->
                 <v-col cols="12" md="4" class="mb-4">
-                  <v-autocomplete
-                    v-model="designModelId"
-                    :items="designModelList"
-                    item-title="modelName"
-                    item-value="id"
-                    label="Design Model"
+                  <v-select
+                    v-model="goldType"
+                    :items="goldTypeOptions"
+                    item-title="label"
+                    item-value="value"
+                    label="Color (Gold Type)"
                     outlined
                     dense
                     clearable
@@ -175,14 +175,12 @@
                   />
                 </v-col>
 
-                <!-- Gold Type -->
+                <!-- Karat -->
                 <v-col cols="12" md="4" class="mb-4">
                   <v-select
-                    v-model="goldType"
-                    :items="goldTypeOptions"
-                    item-title="label"
-                    item-value="value"
-                    label="Gold Type"
+                    v-model="karat"
+                    :items="karatOptions"
+                    label="Karat"
                     outlined
                     dense
                     clearable
@@ -218,6 +216,19 @@
                   />
                 </v-col>
 
+                <!-- Band Width -->
+                <v-col cols="12" md="4" class="mb-4">
+                  <v-select
+                    v-model="bandWidth"
+                    :items="bandWidthOptions"
+                    label="Band Width"
+                    outlined
+                    dense
+                    clearable
+                    color="primary"
+                  />
+                </v-col>
+
                 <!-- Divider before Pricing -->
                 <v-col cols="12" class="mb-2 mt-2">
                   <v-divider />
@@ -228,20 +239,6 @@
                   <v-text-field
                     v-model.number="price"
                     label="Price (₱)"
-                    type="number"
-                    outlined
-                    dense
-                    clearable
-                    color="primary"
-                    prefix="₱"
-                  />
-                </v-col>
-
-                <!-- Cost -->
-                <v-col cols="12" md="4" class="mb-4">
-                  <v-text-field
-                    v-model.number="cost"
-                    label="Cost (₱)"
                     type="number"
                     outlined
                     dense
@@ -466,13 +463,13 @@ export default {
       material: null,
       stoneTypeId: null,
       jewelryTypeId: null,
-      designModelId: null,
       goldType: null,
+      karat: null,
       carat: null,
       size: null,
       ringSize: null,
+      bandWidth: null,
       price: null,
-      cost: null,
       status: "IN_STOCK",
       branchId: null,
       supplierId: null,
@@ -488,7 +485,6 @@ export default {
       categoryList: [],
       stoneTypeList: [],
       jewelryTypeList: [],
-      designModelList: [],
       branchList: [],
       supplierList: [],
 
@@ -496,7 +492,13 @@ export default {
         { label: "Yellow Gold (YG)", value: "YG" },
         { label: "White Gold (WG)", value: "WG" },
         { label: "Rose Gold (RG)", value: "RG" },
-        { label: "Two-Toned", value: "TWO_TONED" },
+        { label: "2-toned (YG x WG)", value: "YG x WG" },
+        { label: "2-toned (RG x WG)", value: "RG x WG" },
+      ],
+      karatOptions: ["14K", "18K", "Platinum"],
+      bandWidthOptions: [
+        "1 mm", "2 mm", "2.5 mm", "3 mm", "3.5 mm", "4 mm",
+        "4.5 mm", "5 mm", "5.5 mm", "6 mm", "6.5 mm", "7 mm",
       ],
       statusOptions: [
         { label: "In Stock", value: "IN_STOCK" },
@@ -506,6 +508,9 @@ export default {
         { label: "Layaway", value: "LAYAWAY" },
         { label: "Pulled Out", value: "PULLED_OUT" },
         { label: "Reserved", value: "RESERVED" },
+        { label: "For Preorder", value: "FOR_PREORDER" },
+        { label: "On Hand / Available", value: "ON_HAND" },
+
       ],
 
       fadeAwayMessage: {
@@ -537,13 +542,13 @@ export default {
           this.material = data.material;
           this.stoneTypeId = data.stoneTypeId;
           this.jewelryTypeId = data.jewelryTypeId;
-          this.designModelId = data.designModelId;
           this.goldType = data.goldType;
+          this.karat = data.karat;
           this.carat = data.carat;
           this.size = data.size;
           this.ringSize = data.ringSize;
+          this.bandWidth = data.bandWidth;
           this.price = data.price ? Number(data.price) : null;
-          this.cost = data.cost ? Number(data.cost) : null;
           this.status = data.status;
           this.branchId = data.branchId;
           this.supplierId = data.supplierId;
@@ -585,9 +590,6 @@ export default {
       this.axiosCall("/jewelry-types", "GET").then((res) => {
         if (res && res.data) this.jewelryTypeList = res.data;
       });
-      this.axiosCall("/design-models", "GET").then((res) => {
-        if (res && res.data) this.designModelList = res.data;
-      });
       this.axiosCall("/branches", "GET").then((res) => {
         if (res && res.data) this.branchList = res.data;
       });
@@ -606,13 +608,13 @@ export default {
       this.material = null;
       this.stoneTypeId = null;
       this.jewelryTypeId = null;
-      this.designModelId = null;
       this.goldType = null;
+      this.karat = null;
       this.carat = null;
       this.size = null;
       this.ringSize = null;
+      this.bandWidth = null;
       this.price = null;
-      this.cost = null;
       this.status = "IN_STOCK";
       this.branchId = null;
       this.supplierId = null;
@@ -638,13 +640,13 @@ export default {
         material: this.material || null,
         stoneTypeId: this.stoneTypeId || null,
         jewelryTypeId: this.jewelryTypeId || null,
-        designModelId: this.designModelId || null,
         goldType: this.goldType || null,
+        karat: this.karat || null,
         carat: this.carat || null,
         size: this.size || null,
         ringSize: this.ringSize || null,
+        bandWidth: this.bandWidth || null,
         price: this.price || null,
-        cost: this.cost || null,
         status: this.status,
         branchId: this.branchId,
         supplierId: this.supplierId || null,

@@ -50,7 +50,6 @@ export class SaleItemsController {
     itemCount: number;
     subtotal: number;
     totalDiscount: number;
-    totalMargin: number;
   }> {
     return this.saleItemsService.getSaleSummary(saleId);
   }

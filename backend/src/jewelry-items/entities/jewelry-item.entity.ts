@@ -11,7 +11,6 @@ import {
 import { Category } from 'src/categories/entities/category.entity';
 import { StoneType } from 'src/stone-types/entities/stone-type.entity';
 import { JewelryType } from 'src/jewelry-types/entities/jewelry-type.entity';
-import { DesignModel } from 'src/design-models/entities/design-model.entity';
 import { Branch } from 'src/branches/entities/branch.entity';
 import { Supplier } from 'src/suppliers/entities/supplier.entity';
 import { JewelryItemImage } from 'src/jewelry-item-images/entities/jewelry-item-image.entity';
@@ -72,13 +71,6 @@ export class JewelryItem {
   @JoinColumn({ name: 'jewelry_type_id' })
   jewelryType: JewelryType;
 
-  @Column({ name: 'design_model_id', nullable: true })
-  designModelId: number;
-
-  @ManyToOne(() => DesignModel, { nullable: true })
-  @JoinColumn({ name: 'design_model_id' })
-  designModel: DesignModel;
-
   @Column({
     name: 'gold_type',
     type: 'enum',
@@ -93,11 +85,17 @@ export class JewelryItem {
   @Column({ name: 'gold_weight', type: 'varchar', length: 50, nullable: true })
   goldWeight: string;
 
+  @Column({ name: 'karat', type: 'varchar', length: 20, nullable: true })
+  karat: string;
+
   @Column({ name: 'size', type: 'varchar', length: 50, nullable: true })
   size: string;
 
   @Column({ name: 'ring_size', type: 'varchar', length: 50, nullable: true })
   ringSize: string;
+
+  @Column({ name: 'band_width', type: 'varchar', length: 20, nullable: true })
+  bandWidth: string;
 
   @Column({ name: 'price', type: 'decimal', precision: 10, scale: 2, nullable: true })
   price: number;

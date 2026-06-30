@@ -78,7 +78,7 @@
               </v-col>
             </v-row>
             <v-row>
-              <v-col cols="12" md="4">
+              <v-col cols="12" md="6">
                 <v-text-field
                   v-model="editedItem.quantity"
                   label="Quantity *"
@@ -90,7 +90,7 @@
                   @input="calculateLineTotal"
                 ></v-text-field>
               </v-col>
-              <v-col cols="12" md="4">
+              <v-col cols="12" md="6">
                 <v-text-field
                   v-model="editedItem.unitPrice"
                   label="Unit Price *"
@@ -104,22 +104,9 @@
                   @input="calculateLineTotal"
                 ></v-text-field>
               </v-col>
-              <v-col cols="12" md="4">
-                <v-text-field
-                  v-model="editedItem.unitCost"
-                  label="Unit Cost"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  prefix="₱"
-                  variant="outlined"
-                  density="compact"
-                  @input="calculateGrossMargin"
-                ></v-text-field>
-              </v-col>
             </v-row>
             <v-row>
-              <v-col cols="12" md="4">
+              <v-col cols="12" md="6">
                 <v-text-field
                   v-model="editedItem.discountAmount"
                   label="Discount Amount"
@@ -132,22 +119,10 @@
                   @input="calculateLineTotal"
                 ></v-text-field>
               </v-col>
-              <v-col cols="12" md="4">
+              <v-col cols="12" md="6">
                 <v-text-field
                   v-model="editedItem.lineTotal"
                   label="Line Total"
-                  type="number"
-                  prefix="₱"
-                  variant="outlined"
-                  density="compact"
-                  readonly
-                  bg-color="grey-lighten-3"
-                ></v-text-field>
-              </v-col>
-              <v-col cols="12" md="4">
-                <v-text-field
-                  v-model="editedItem.grossMargin"
-                  label="Gross Margin"
                   type="number"
                   prefix="₱"
                   variant="outlined"
@@ -189,10 +164,8 @@ export default {
         serialNumberId: null,
         quantity: 1,
         unitPrice: 0,
-        unitCost: null,
         discountAmount: 0,
         lineTotal: 0,
-        grossMargin: null,
       },
       defaultItem: {
         saleId: null,
@@ -201,10 +174,8 @@ export default {
         serialNumberId: null,
         quantity: 1,
         unitPrice: 0,
-        unitCost: null,
         discountAmount: 0,
         lineTotal: 0,
-        grossMargin: null,
       },
       sales: [],
       products: [],
@@ -289,17 +260,6 @@ export default {
       const price = parseFloat(this.editedItem.unitPrice) || 0;
       const discount = parseFloat(this.editedItem.discountAmount) || 0;
       this.editedItem.lineTotal = (qty * price - discount).toFixed(2);
-      this.calculateGrossMargin();
-    },
-    calculateGrossMargin() {
-      const qty = parseFloat(this.editedItem.quantity) || 0;
-      const cost = parseFloat(this.editedItem.unitCost) || 0;
-      const lineTotal = parseFloat(this.editedItem.lineTotal) || 0;
-      if (cost > 0) {
-        this.editedItem.grossMargin = (lineTotal - qty * cost).toFixed(2);
-      } else {
-        this.editedItem.grossMargin = null;
-      }
     },
     closeD() {
       eventBus.emit("closeSaleItemsDialog", false);

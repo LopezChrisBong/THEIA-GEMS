@@ -359,10 +359,10 @@ export default {
           this.notes = data.notes;
           // Tracking fields
           const tf = data.transferrer;
-          this.transferredByName = tf ? `${tf.firstName || ''} ${tf.lastName || ''}`.trim() || null : null;
+          this.transferredByName = tf ? `${tf.fname || ''} ${tf.lname || ''}`.trim() || null : null;
           this.transferredAt = data.transferredAt || null;
           const rc = data.receiver;
-          this.receivedByName = rc ? `${rc.firstName || ''} ${rc.lastName || ''}`.trim() || null : null;
+          this.receivedByName = rc ? `${rc.fname || ''} ${rc.lname || ''}`.trim() || null : null;
           this.receivedAt = data.receivedAt || null;
           // Load items and jewelry list for Update mode
           this.loadTransferItems();

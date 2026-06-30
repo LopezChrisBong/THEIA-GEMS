@@ -58,11 +58,6 @@
         ₱{{ formatCurrency(item.unitPrice) }}
       </template>
 
-      <template v-slot:[`item.unitCost`]="{ item }">
-        <span v-if="item.unitCost">₱{{ formatCurrency(item.unitCost) }}</span>
-        <span v-else class="text-grey">-</span>
-      </template>
-
       <template v-slot:[`item.discountAmount`]="{ item }">
         <v-chip
           v-if="item.discountAmount > 0"
@@ -77,17 +72,6 @@
 
       <template v-slot:[`item.lineTotal`]="{ item }">
         <strong class="text-primary">₱{{ formatCurrency(item.lineTotal) }}</strong>
-      </template>
-
-      <template v-slot:[`item.grossMargin`]="{ item }">
-        <v-chip
-          v-if="item.grossMargin !== null && item.grossMargin !== undefined"
-          :color="getMarginColor(item.grossMargin)"
-          size="small"
-        >
-          {{ item.grossMargin >= 0 ? '+' : '' }}₱{{ formatCurrency(item.grossMargin) }}
-        </v-chip>
-        <span v-else class="text-grey">-</span>
       </template>
 
       <template v-slot:[`item.actions`]="{ item }">
@@ -153,10 +137,8 @@ export default {
         { title: "Serial #", key: "serialNumber", width: "120px" },
         { title: "Qty", key: "quantity", width: "70px" },
         { title: "Unit Price", key: "unitPrice", width: "110px" },
-        { title: "Unit Cost", key: "unitCost", width: "100px" },
         { title: "Discount", key: "discountAmount", width: "100px" },
         { title: "Line Total", key: "lineTotal", width: "120px" },
-        { title: "Margin", key: "grossMargin", width: "110px" },
         { title: "Actions", key: "actions", sortable: false, width: "100px" },
       ],
     };
@@ -190,11 +172,6 @@ export default {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2,
       });
-    },
-    getMarginColor(margin) {
-      if (margin > 0) return "success";
-      if (margin < 0) return "error";
-      return "grey";
     },
     editItem(item) {
       eventBus.emit("editSaleItem", item);

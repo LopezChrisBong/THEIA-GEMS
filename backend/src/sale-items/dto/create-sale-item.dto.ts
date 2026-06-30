@@ -22,19 +22,10 @@ export class CreateSaleItemDto {
   @IsOptional()
   @IsNumber()
   @Min(0)
-  unitCost?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
   discountAmount?: number;
 
   @IsNotEmpty()
   @IsNumber()
   @Min(0)
   lineTotal: number;
-
-  @IsOptional()
-  @IsNumber()
-  grossMargin?: number;
 }
