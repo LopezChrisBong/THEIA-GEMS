@@ -27,7 +27,6 @@ import { UserActivityLog } from 'src/user-activity-logs/entities/user-activity-l
 import { SystemSetting } from 'src/system-settings/entities/system-setting.entity';
 import { StoneType } from 'src/stone-types/entities/stone-type.entity';
 import { JewelryType } from 'src/jewelry-types/entities/jewelry-type.entity';
-import { DesignModel } from 'src/design-models/entities/design-model.entity';
 import { JewelryItem } from 'src/jewelry-items/entities/jewelry-item.entity';
 import { JewelryItemImage } from 'src/jewelry-item-images/entities/jewelry-item-image.entity';
 
@@ -61,7 +60,6 @@ const entities = [
   SystemSetting,
   StoneType,
   JewelryType,
-  DesignModel,
   JewelryItem,
   JewelryItemImage,
 ];
@@ -96,7 +94,6 @@ export {
   SystemSetting,
   StoneType,
   JewelryType,
-  DesignModel,
   JewelryItem,
   JewelryItemImage,
 };

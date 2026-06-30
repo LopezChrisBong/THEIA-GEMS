@@ -44,10 +44,6 @@ export class CreateJewelryItemDto {
   @IsOptional()
   jewelryTypeId?: number;
 
-  @IsInt()
-  @IsOptional()
-  designModelId?: number;
-
   @IsEnum(GoldType)
   @IsOptional()
   goldType?: GoldType;
@@ -64,6 +60,11 @@ export class CreateJewelryItemDto {
 
   @IsString()
   @IsOptional()
+  @MaxLength(20)
+  karat?: string;
+
+  @IsString()
+  @IsOptional()
   @MaxLength(50)
   size?: string;
 
@@ -72,13 +73,14 @@ export class CreateJewelryItemDto {
   @MaxLength(50)
   ringSize?: string;
 
-  @IsNumber()
+  @IsString()
   @IsOptional()
-  price?: number;
+  @MaxLength(20)
+  bandWidth?: string;
 
   @IsNumber()
   @IsOptional()
-  cost?: number;
+  price?: number;
 
   @IsEnum(JewelryItemStatus)
   @IsOptional()

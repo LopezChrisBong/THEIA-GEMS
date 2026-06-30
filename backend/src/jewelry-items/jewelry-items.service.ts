@@ -75,7 +75,6 @@ export class JewelryItemsService {
       .leftJoinAndSelect('item.category', 'category')
       .leftJoinAndSelect('item.stoneType', 'stoneType')
       .leftJoinAndSelect('item.jewelryType', 'jewelryType')
-      .leftJoinAndSelect('item.designModel', 'designModel')
       .leftJoinAndSelect('item.branch', 'branch')
       .leftJoinAndSelect('item.supplier', 'supplier')
       .leftJoinAndSelect('item.parentItem', 'parentItem')
@@ -117,7 +116,6 @@ export class JewelryItemsService {
         'category',
         'stoneType',
         'jewelryType',
-        'designModel',
         'branch',
         'supplier',
         'parentItem',

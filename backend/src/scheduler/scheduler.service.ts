@@ -24,8 +24,6 @@ interface BranchSalesReport {
       paidCount: number;
       partialCount: number;
       layawayCount: number;
-      totalCost: number;
-      totalProfit: number;
     };
     items: SaleLineItem[];
   };
@@ -256,10 +254,10 @@ export class SchedulerService {
       ['THEIA GEMS — DAILY SALES REPORT'],
       [`Date: ${dateLabel}`],
       [],
-      ['Branch', 'Orders', 'Revenue (₱)', 'Discount (₱)', 'Cost (₱)', 'Profit (₱)', 'Items Sold'],
+      ['Branch', 'Orders', 'Revenue (₱)', 'Discount (₱)', 'Items Sold'],
     ];
 
-    let grandOrders = 0, grandRevenue = 0, grandDiscount = 0, grandCost = 0, grandProfit = 0, grandItems = 0;
+    let grandOrders = 0, grandRevenue = 0, grandDiscount = 0, grandItems = 0;
 
     for (const { branch, report } of branchReports) {
       const s = report.summary;
@@ -268,15 +266,11 @@ export class SchedulerService {
         s.totalOrders,
         Number(s.totalRevenue.toFixed(2)),
         Number(s.totalDiscount.toFixed(2)),
-        Number((s.totalCost || 0).toFixed(2)),
-        Number((s.totalProfit || 0).toFixed(2)),
         report.items.length,
       ]);
       grandOrders += s.totalOrders;
       grandRevenue += s.totalRevenue;
       grandDiscount += s.totalDiscount;
-      grandCost += s.totalCost || 0;
-      grandProfit += s.totalProfit || 0;
       grandItems += report.items.length;
     }
 
@@ -286,8 +280,6 @@ export class SchedulerService {
       grandOrders,
       Number(grandRevenue.toFixed(2)),
       Number(grandDiscount.toFixed(2)),
-      Number(grandCost.toFixed(2)),
-      Number(grandProfit.toFixed(2)),
       grandItems,
     ]);
 
@@ -299,7 +291,7 @@ export class SchedulerService {
       const rows: (string | number)[][] = [
         [`${branch.branchName} — Items Sold (${dateLabel})`],
         [],
-        ['Sale #', 'Time', 'Item Code', 'Category', 'Brand', 'Description', 'Unit Price (₱)', 'Unit Cost (₱)', 'Profit (₱)'],
+        ['Sale #', 'Time', 'Item Code', 'Category', 'Name', 'Description', 'Unit Price (₱)'],
         ...report.items.map((i) => [
           i.saleNumber || '',
           i.saleDate ? new Date(i.saleDate).toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' }) : '',
@@ -308,8 +300,6 @@ export class SchedulerService {
           i.brand || '',
           i.description || '',
           Number(i.unitPrice.toFixed(2)),
-          i.unitCost != null ? Number(i.unitCost.toFixed(2)) : '',
-          i.profit != null ? Number(i.profit.toFixed(2)) : '',
         ]),
       ];
 

@@ -118,7 +118,7 @@
                       <table class="items-tbl">
                         <thead>
                           <tr>
-                            <th style="width:34%">Jewelry Item</th>
+                            <th style="width:34%">Name of Item</th>
                             <th style="width:18%">Consigned Price</th>
                             <th style="width:18%">Selling Price</th>
                             <th style="width:14%">Commission %</th>
@@ -432,7 +432,6 @@ export default {
       const item = this.jewelryItems.find((i) => i.id === itemId);
       if (!item) return;
       const row = this.items[idx];
-      if (item.cost != null) row.consignedPrice = Number(item.cost);
       if (item.price != null) row.sellingPrice = Number(item.price);
       row.commissionRate = this.calcCommission(row.consignedPrice, row.sellingPrice);
       row.autoFilled = true;

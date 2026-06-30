@@ -694,10 +694,8 @@ export default {
         code: item.itemCode,
         meta: metaParts.join(" · "),
         price: Number(item.price) || 0,
-        cost: Number(item.cost) || 0,
-        isJewelry: !!(item.jewelryTypeId || item.stoneTypeId || item.designModelId),
+        isJewelry: !!(item.jewelryTypeId || item.stoneTypeId),
         stoneName: item.stoneType?.name || null,
-        modelName: item.designModel?.modelName || null,
         brand: item.brand || null,
         description: item.description || null,
       });
@@ -838,15 +836,12 @@ export default {
         // Create sale items for item-level reporting
         for (const item of this.cartItems) {
           const lineTotal = item.price;
-          const grossMargin = item.cost ? lineTotal - item.cost : null;
           await this.axiosCall("/sale-items", "POST", {
             saleId,
             jewelryItemId: item.id,
             unitPrice: item.price,
-            unitCost: item.cost || null,
             discountAmount: 0,
             lineTotal,
-            grossMargin,
           });
         }
 
@@ -964,15 +959,12 @@ export default {
         // Create sale items for item-level reporting
         for (const item of this.cartItems) {
           const lineTotal = item.price;
-          const grossMargin = item.cost ? lineTotal - item.cost : null;
           await this.axiosCall("/sale-items", "POST", {
             saleId,
             jewelryItemId: item.id,
             unitPrice: item.price,
-            unitCost: item.cost || null,
             discountAmount: 0,
             lineTotal,
-            grossMargin,
           });
         }
 
@@ -1096,7 +1088,7 @@ export default {
       const itemLines = r.items.map((item) => {
         let details = "";
         if (item.isJewelry) {
-          details = [item.stoneName, item.modelName].filter(Boolean).join(" · ");
+          details = [item.stoneName].filter(Boolean).join(" · ");
         } else {
           details = [item.brand, item.description ? item.description.substring(0, 40) : ""].filter(Boolean).join(" · ");
         }

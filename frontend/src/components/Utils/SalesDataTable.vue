@@ -219,10 +219,8 @@
               <thead>
                 <tr>
                   <th>Code / Barcode</th>
-                  <th>Brand / Description</th>
+                  <th>Name / Description</th>
                   <th class="text-right">Price</th>
-                  <th class="text-right">Cost</th>
-                  <th class="text-right">Profit</th>
                 </tr>
               </thead>
               <tbody>
@@ -236,11 +234,6 @@
                     <div class="dim" style="font-size:11px">{{ si.jewelryItem?.material || '' }}</div>
                   </td>
                   <td class="text-right amount-col">₱{{ formatNumber(si.unitPrice) }}</td>
-                  <td class="text-right dim">{{ si.unitCost != null ? '₱' + formatNumber(si.unitCost) : '—' }}</td>
-                  <td class="text-right"
-                    :style="{ color: si.grossMargin > 0 ? '#3D7A5A' : si.grossMargin < 0 ? '#B84040' : '', fontWeight: '600' }">
-                    {{ si.grossMargin != null ? '₱' + formatNumber(si.grossMargin) : '—' }}
-                  </td>
                 </tr>
               </tbody>
             </table>

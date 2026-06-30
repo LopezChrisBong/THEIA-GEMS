@@ -130,20 +130,6 @@
         </div>
         <div class="summary-card">
           <div class="summary-icon-wrap">
-            <v-icon size="18" color="#9A7858">mdi-package-variant-closed</v-icon>
-          </div>
-          <div class="summary-val">₱{{ formatNumber(reportData.summary.totalCost) }}</div>
-          <div class="summary-lbl">Total Cost</div>
-        </div>
-        <div class="summary-card highlight-profit">
-          <div class="summary-icon-wrap">
-            <v-icon size="18" color="#3D7A5A">mdi-trending-up</v-icon>
-          </div>
-          <div class="summary-val profit-val">₱{{ formatNumber(reportData.summary.totalProfit) }}</div>
-          <div class="summary-lbl">Total Profit</div>
-        </div>
-        <div class="summary-card">
-          <div class="summary-icon-wrap">
             <v-icon size="18" color="#9B6B3A">mdi-tag-outline</v-icon>
           </div>
           <div class="summary-val">₱{{ formatNumber(reportData.summary.totalDiscount) }}</div>
@@ -243,11 +229,9 @@
                 <th>Code</th>
                 <th>Barcode</th>
                 <th>Category</th>
-                <th>Brand</th>
+                <th>Name</th>
                 <th>Description</th>
                 <th class="text-right">Price</th>
-                <th class="text-right">Cost</th>
-                <th class="text-right">Profit</th>
               </tr>
             </thead>
             <tbody>
@@ -264,10 +248,6 @@
                 <td>{{ item.brand || '—' }}</td>
                 <td>{{ item.description || '—' }}</td>
                 <td class="text-right amt-col">₱{{ formatNumber(item.unitPrice) }}</td>
-                <td class="text-right dim">{{ item.unitCost != null ? '₱' + formatNumber(item.unitCost) : '—' }}</td>
-                <td class="text-right" :class="item.profit > 0 ? 'profit-pos' : item.profit < 0 ? 'profit-neg' : ''">
-                  {{ item.profit != null ? '₱' + formatNumber(item.profit) : '—' }}
-                </td>
               </tr>
             </tbody>
             <tfoot>
@@ -275,12 +255,6 @@
                 <td colspan="8"><strong>Total</strong></td>
                 <td class="text-right amt-col">
                   <strong>₱{{ formatNumber(filteredItems.reduce((s, r) => s + (r.unitPrice || 0), 0)) }}</strong>
-                </td>
-                <td class="text-right dim">
-                  <strong>₱{{ formatNumber(filteredItems.reduce((s, r) => s + (r.unitCost || 0), 0)) }}</strong>
-                </td>
-                <td class="text-right profit-pos">
-                  <strong>₱{{ formatNumber(filteredItems.reduce((s, r) => s + (r.profit || 0), 0)) }}</strong>
                 </td>
               </tr>
             </tfoot>
@@ -409,10 +383,8 @@
                 <tr>
                   <th>Code</th>
                   <th>Barcode</th>
-                  <th>Brand / Description</th>
+                  <th>Name / Description</th>
                   <th class="text-right">Price</th>
-                  <th class="text-right">Cost</th>
-                  <th class="text-right">Profit</th>
                 </tr>
               </thead>
               <tbody>
@@ -424,18 +396,12 @@
                     <div class="dim small">{{ si.jewelryItem?.material || '' }}</div>
                   </td>
                   <td class="text-right amt-col">₱{{ formatNumber(si.unitPrice) }}</td>
-                  <td class="text-right dim">{{ si.unitCost != null ? '₱' + formatNumber(si.unitCost) : '—' }}</td>
-                  <td class="text-right" :class="si.grossMargin > 0 ? 'profit-pos' : si.grossMargin < 0 ? 'profit-neg' : ''">
-                    {{ si.grossMargin != null ? '₱' + formatNumber(si.grossMargin) : '—' }}
-                  </td>
                 </tr>
               </tbody>
               <tfoot>
                 <tr class="total-row">
                   <td colspan="3"><strong>Total</strong></td>
                   <td class="text-right amt-col"><strong>₱{{ formatNumber(viewSaleItems.reduce((s, r) => s + (Number(r.unitPrice) || 0), 0)) }}</strong></td>
-                  <td class="text-right dim"><strong>₱{{ formatNumber(viewSaleItems.reduce((s, r) => s + (Number(r.unitCost) || 0), 0)) }}</strong></td>
-                  <td class="text-right profit-pos"><strong>₱{{ formatNumber(viewSaleItems.reduce((s, r) => s + (Number(r.grossMargin) || 0), 0)) }}</strong></td>
                 </tr>
               </tfoot>
             </table>
@@ -600,8 +566,6 @@ export default {
         ['OVERVIEW'],
         ['Total Orders', this.reportData.summary.totalOrders],
         ['Total Revenue', this.reportData.summary.totalRevenue],
-        ['Total Cost', this.reportData.summary.totalCost],
-        ['Total Profit', this.reportData.summary.totalProfit],
         ['Total Discount', this.reportData.summary.totalDiscount],
         ['Total Tax', this.reportData.summary.totalTax],
         ['Avg. Order Value', this.reportData.summary.avgOrderValue],
@@ -624,7 +588,7 @@ export default {
       /* ── Sheet 2: Item Transactions ── */
       if (this.reportData.items && this.reportData.items.length) {
         const itemRows = [
-          ['Sale #', 'Date', 'Branch', 'Code', 'Barcode', 'Category', 'Brand', 'Description', 'Price (₱)', 'Cost (₱)', 'Profit (₱)'],
+          ['Sale #', 'Date', 'Branch', 'Code', 'Barcode', 'Category', 'Name', 'Description', 'Price (₱)'],
           ...this.reportData.items.map((i) => [
             i.saleNumber || '',
             i.saleDate ? new Date(i.saleDate).toLocaleDateString('en-PH') : '',
@@ -635,8 +599,6 @@ export default {
             i.brand || '',
             i.description || '',
             Number(Number(i.unitPrice).toFixed(2)),
-            i.unitCost != null ? Number(Number(i.unitCost).toFixed(2)) : '',
-            i.profit != null ? Number(Number(i.profit).toFixed(2)) : '',
           ]),
         ];
         XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(itemRows), 'Item Transactions');
@@ -977,11 +939,6 @@ export default {
   background: linear-gradient(135deg, #FDFAF6 60%, #F5EFE4);
 }
 
-.summary-card.highlight-profit {
-  border-color: rgba(61,122,90,0.35);
-  background: linear-gradient(135deg, #FDFAF6 60%, #EDF6F1);
-}
-
 .summary-icon-wrap { margin-bottom: 8px; }
 
 .summary-val {
@@ -991,8 +948,6 @@ export default {
   color: #3A2515;
   line-height: 1.1;
 }
-
-.profit-val { color: #3D7A5A; }
 
 .summary-lbl {
   font-size: 10px;
@@ -1124,8 +1079,6 @@ export default {
 .small { font-size: 11px; }
 .amt-col { font-weight: 600; color: #9B6B3A; }
 .period-cell { font-weight: 500; }
-.profit-pos { color: #3D7A5A; font-weight: 600; }
-.profit-neg { color: #B84040; font-weight: 600; }
 
 .cat-chip {
   display: inline-block;

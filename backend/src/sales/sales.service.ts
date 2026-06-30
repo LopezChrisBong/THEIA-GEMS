@@ -27,9 +27,7 @@ export interface SaleLineItem {
   brand: string | null;
   description: string | null;
   unitPrice: number;
-  unitCost: number | null;
   lineTotal: number;
-  profit: number | null;
 }
 
 @Injectable()
@@ -282,16 +280,12 @@ export class SalesService {
           brand: si.jewelryItem?.brand ?? null,
           description: si.jewelryItem?.material ?? null,
           unitPrice: Number(si.unitPrice),
-          unitCost: si.unitCost != null ? Number(si.unitCost) : null,
           lineTotal: Number(si.lineTotal),
-          profit: si.grossMargin != null ? Number(si.grossMargin) : null,
         };
       });
     }
 
     const totalRevenue = sales.reduce((s, r) => s + Number(r.totalAmount), 0);
-    const totalCost = lineItems.reduce((s, r) => s + (r.unitCost ?? 0), 0);
-    const totalProfit = lineItems.reduce((s, r) => s + (r.profit ?? 0), 0);
 
     const summary = {
       totalOrders: sales.length,
@@ -302,8 +296,6 @@ export class SalesService {
       paidCount: sales.filter((s) => s.paymentStatus === PaymentStatus.PAID).length,
       partialCount: sales.filter((s) => s.paymentStatus === PaymentStatus.PARTIAL).length,
       layawayCount: sales.filter((s) => s.paymentStatus === PaymentStatus.LAYAWAY).length,
-      totalCost,
-      totalProfit,
     };
 
     const groups: Record<string, { label: string; orders: number; revenue: number; discount: number }> = {};

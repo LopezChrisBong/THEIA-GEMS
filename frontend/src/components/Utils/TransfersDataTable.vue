@@ -48,7 +48,7 @@
                 <span class="repeat-badge" :class="'r-' + item.status">{{ formatStatus(item.status) }}</span>
               </td>
               <td>
-                <span v-if="item.requester">{{ item.requester.firstName }} {{ item.requester.lastName }}</span>
+                <span v-if="item.requester">{{ item.requester.fname }} {{ item.requester.lname }}</span>
                 <span v-else class="dim">—</span>
               </td>
               <td class="dim">{{ formatDate(item.transferDate) }}</td>
@@ -82,13 +82,13 @@
                     <div class="tracking-chip">
                       <v-icon size="12" color="#9A7858">mdi-account-arrow-right-outline</v-icon>
                       <span class="tracking-label">Transferred by:</span>
-                      <span class="tracking-value">{{ item.transferrer ? (item.transferrer.firstName + ' ' + item.transferrer.lastName) : '—' }}</span>
+                      <span class="tracking-value">{{ item.transferrer ? (item.transferrer.fname + ' ' + item.transferrer.lname) : '—' }}</span>
                       <span class="tracking-time" v-if="item.transferredAt">· {{ formatDate(item.transferredAt) }}</span>
                     </div>
                     <div class="tracking-chip">
                       <v-icon size="12" color="#3D7A5A">mdi-account-check-outline</v-icon>
                       <span class="tracking-label">Received by:</span>
-                      <span class="tracking-value">{{ item.receiver ? (item.receiver.firstName + ' ' + item.receiver.lastName) : '—' }}</span>
+                      <span class="tracking-value">{{ item.receiver ? (item.receiver.fname + ' ' + item.receiver.lname) : '—' }}</span>
                       <span class="tracking-time" v-if="item.receivedAt">· {{ formatDate(item.receivedAt) }}</span>
                     </div>
                   </div>
@@ -103,7 +103,7 @@
                       <thead>
                         <tr>
                           <th>Item Code</th>
-                          <th>Brand</th>
+                          <th>Name</th>
                           <th>Category</th>
                           <th>Qty</th>
                           <th>Notes</th>

@@ -25,7 +25,6 @@ import Suppliers from '@/views/Pages/Suppliers.vue';
 import JewelryItems from '@/views/Pages/JewelryItems.vue';
 import StoneTypes from '@/views/Pages/StoneTypes.vue';
 import JewelryTypes from '@/views/Pages/JewelryTypes.vue';
-import DesignModels from '@/views/Pages/DesignModels.vue';
 import ConsignmentItems from '@/views/Pages/ConsignmentItems.vue';
 import Transfers from '@/views/Pages/Transfers.vue';
 import TransferItems from '@/components/transfer-items/TransferItems.vue';
@@ -210,11 +209,6 @@ const routes = [
         path: "jewelry-types",
         component: JewelryTypes,
         meta: { title: "Jewelry Types", authRequired: true },
-      },
-      {
-        path: "design-models",
-        component: DesignModels,
-        meta: { title: "Design Models", authRequired: true },
       },
       {
         path: "branch",
