@@ -13,7 +13,9 @@ import { Branch } from 'src/branches/entities/branch.entity';
 export enum ConsignmentStatus {
   ACTIVE = 'active',
   SOLD = 'sold',
-  RETURNED = 'returned',
+  RETURNED = 'returned', // legacy — kept for backward compat with existing DB rows
+  PULLOUT = 'pullout',
+  BUYOUT = 'buyout',
 }
 
 @Entity('consignment_items')

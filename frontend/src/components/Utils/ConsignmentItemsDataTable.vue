@@ -22,7 +22,8 @@
         <button class="filter-chip" :class="{ on: filterStatus === null }" @click="filterStatus = null; initialize()">All</button>
         <button class="filter-chip" :class="{ on: filterStatus === 'active' }" @click="filterStatus = 'active'; initialize()">Active</button>
         <button class="filter-chip" :class="{ on: filterStatus === 'sold' }" @click="filterStatus = 'sold'; initialize()">Sold</button>
-        <button class="filter-chip" :class="{ on: filterStatus === 'returned' }" @click="filterStatus = 'returned'; initialize()">Returned</button>
+        <button class="filter-chip" :class="{ on: filterStatus === 'pullout' }" @click="filterStatus = 'pullout'; initialize()">Pullout</button>
+        <button class="filter-chip" :class="{ on: filterStatus === 'buyout' }" @click="filterStatus = 'buyout'; initialize()">Buy-out</button>
         <div class="filter-spacer" />
         <div class="per-pg">
           Branch:
@@ -174,7 +175,12 @@ export default {
   methods: {
     formatDate(d) { if (!d) return "—"; return new Date(d).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" }); },
     formatNumber(v) { if (v == null) return "0.00"; return Number(v).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); },
-    formatStatus(s) { if (!s) return "—"; return s.charAt(0).toUpperCase() + s.slice(1); },
+    formatStatus(s) {
+      if (!s) return "—";
+      if (s === 'pullout' || s === 'returned') return "Pullout";
+      if (s === 'buyout') return "Buy-out";
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    },
     loadBranches() { this.axiosCall("/branches", "GET").then((r) => { if (r && r.data) this.branchList = r.data; }); },
     initialize() {
       this.loading = true;
@@ -246,6 +252,8 @@ td.dim, .dim { color: #9A7858; font-size: 12px; }
 .r-active { background: rgba(61,122,90,0.1); color: #3D7A5A; }
 .r-sold { background: rgba(90,122,155,0.1); color: #5A7A9B; }
 .r-returned { background: rgba(155,107,58,0.1); color: #9B6B3A; }
+.r-pullout { background: rgba(155,107,58,0.1); color: #9B6B3A; }
+.r-buyout { background: rgba(90,90,155,0.1); color: #5A5A9B; }
 .r-primary { background: rgba(155,107,58,0.12); color: #9B6B3A; }
 .auth-badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 500; }
 .auth-yes { background: rgba(61,122,90,0.1); color: #3D7A5A; }
