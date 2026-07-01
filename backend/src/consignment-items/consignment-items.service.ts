@@ -162,7 +162,11 @@ export class ConsignmentItemsService {
   }
 
   async markAsReturned(id: number): Promise<ConsignmentItem> {
-    return this.updateStatus(id, ConsignmentStatus.RETURNED);
+    return this.updateStatus(id, ConsignmentStatus.PULLOUT);
+  }
+
+  async markAsBuyout(id: number): Promise<ConsignmentItem> {
+    return this.updateStatus(id, ConsignmentStatus.BUYOUT);
   }
 
   async remove(id: number): Promise<void> {

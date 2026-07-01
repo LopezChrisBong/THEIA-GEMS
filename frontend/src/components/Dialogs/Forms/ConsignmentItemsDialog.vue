@@ -329,7 +329,8 @@ export default {
       statusOptions: [
         { label: "Active", value: "active" },
         { label: "Sold", value: "sold" },
-        { label: "Returned", value: "returned" },
+        { label: "Pullout", value: "pullout" },
+        { label: "Buy-out", value: "buyout" },
       ],
 
       fadeAwayMessage: { show: false, type: "success", header: "Success", message: "", top: 10 },

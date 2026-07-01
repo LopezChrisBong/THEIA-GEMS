@@ -1,15 +1,18 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { StoneType } from './entities/stone-type.entity';
 import { CreateStoneTypeDto } from './dto/create-stone-type.dto';
 import { UpdateStoneTypeDto } from './dto/update-stone-type.dto';
+import { JewelryItem } from '../jewelry-items/entities/jewelry-item.entity';
 
 @Injectable()
 export class StoneTypesService {
   constructor(
     @InjectRepository(StoneType)
     private readonly stoneTypeRepository: Repository<StoneType>,
+    @InjectRepository(JewelryItem)
+    private readonly jewelryItemRepository: Repository<JewelryItem>,
   ) {}
 
   async create(createStoneTypeDto: CreateStoneTypeDto): Promise<StoneType> {
@@ -41,6 +44,14 @@ export class StoneTypesService {
 
   async remove(id: number): Promise<void> {
     const stoneType = await this.findOne(id);
+
+    const itemCount = await this.jewelryItemRepository.count({ where: { stoneTypeId: id } });
+    if (itemCount > 0) {
+      throw new ConflictException(
+        `Cannot delete "${stoneType.name}" — it is still used by ${itemCount} item(s). Reassign or remove those items first.`,
+      );
+    }
+
     await this.stoneTypeRepository.remove(stoneType);
   }
 }

@@ -92,6 +92,16 @@ export class ConsignmentItemsController {
     return this.consignmentItemsService.markAsReturned(id);
   }
 
+  @Patch(':id/pullout')
+  markAsPullout(@Param('id', ParseIntPipe) id: number): Promise<ConsignmentItem> {
+    return this.consignmentItemsService.markAsReturned(id);
+  }
+
+  @Patch(':id/buyout')
+  markAsBuyout(@Param('id', ParseIntPipe) id: number): Promise<ConsignmentItem> {
+    return this.consignmentItemsService.markAsBuyout(id);
+  }
+
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
