@@ -65,5 +65,14 @@ export class CreateConsignmentItemDto {
 
   @IsOptional()
   @IsString()
+  inclusions?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  condition?: string;
+
+  @IsOptional()
+  @IsString()
   notes?: string;
 }

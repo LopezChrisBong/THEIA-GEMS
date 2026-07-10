@@ -1,5 +1,6 @@
 ﻿import {
   Injectable,
+  Logger,
   NotFoundException,
   ConflictException,
 } from '@nestjs/common';
@@ -14,6 +15,7 @@ import { Branch } from 'src/branches/entities/branch.entity';
 import { Category } from 'src/categories/entities/category.entity';
 import { TransactionLogsService } from '../transaction-logs/transaction-logs.service';
 import { TransactionAction } from '../transaction-logs/entities/transaction-log.entity';
+import { MailService } from '../mail/mail.service';
 
 export interface SaleLineItem {
   saleItemId: number;
@@ -32,6 +34,8 @@ export interface SaleLineItem {
 
 @Injectable()
 export class SalesService {
+  private readonly logger = new Logger(SalesService.name);
+
   constructor(
     @InjectRepository(Sale)
     private readonly saleRepository: Repository<Sale>,
@@ -40,6 +44,7 @@ export class SalesService {
     @InjectRepository(SaleItem)
     private readonly saleItemRepository: Repository<SaleItem>,
     private readonly transactionLogsService: TransactionLogsService,
+    private readonly mailService: MailService,
   ) {}
 
   /** Attaches fname/lname from user_details onto each sale's cashier object. */
@@ -56,7 +61,7 @@ export class SalesService {
       .where('ud.userID IN (:...ids)', { ids })
       .getMany();
 
-    const map = new Map(details.map(d => [Number(d.userID), d]));
+    const map = new Map(details.map((d) => [Number(d.userID), d]));
     for (const sale of sales) {
       if (sale.cashier && sale.cashierId) {
         const d = map.get(Number(sale.cashierId));
@@ -175,7 +180,10 @@ export class SalesService {
   async update(id: number, updateSaleDto: UpdateSaleDto): Promise<Sale> {
     const sale = await this.findOne(id);
 
-    if (updateSaleDto.saleNumber && updateSaleDto.saleNumber !== sale.saleNumber) {
+    if (
+      updateSaleDto.saleNumber &&
+      updateSaleDto.saleNumber !== sale.saleNumber
+    ) {
       const existing = await this.saleRepository.findOne({
         where: { saleNumber: updateSaleDto.saleNumber },
       });
@@ -212,6 +220,69 @@ export class SalesService {
   async remove(id: number): Promise<void> {
     const sale = await this.findOne(id);
     await this.saleRepository.remove(sale);
+  }
+
+  /** Fire-and-forget owner email for a completed sale transaction. */
+  async notifyOwner(saleId: number): Promise<void> {
+    const ownerEmail = process.env.OWNER_EMAIL;
+    if (!ownerEmail) return;
+
+    try {
+      const sale = await this.saleRepository.findOne({
+        where: { id: saleId },
+        relations: ['branch', 'customer', 'cashier'],
+      });
+      if (!sale) return;
+
+      // Resolve cashier name from UserDetail
+      let cashierName = 'Unknown';
+      if (sale.cashierId) {
+        const ud = await this.userDetailRepository.findOne({
+          where: { userID: Number(sale.cashierId) },
+        });
+        if (ud) cashierName = `${ud.fname} ${ud.lname}`;
+      }
+
+      // Load sale items with jewelry item + category
+      const saleItems = await this.saleItemRepository.find({
+        where: { saleId },
+        relations: ['jewelryItem', 'jewelryItem.category'],
+      });
+
+      const items = saleItems.map((si) => ({
+        itemCode: si.jewelryItem?.itemCode || `#${si.jewelryItemId}`,
+        brand: si.jewelryItem?.brand || null,
+        category: si.jewelryItem?.category?.categoryName || null,
+        unitPrice: Number(si.unitPrice),
+      }));
+
+      const customer = sale.customer
+        ? `${sale.customer.firstName} ${sale.customer.lastName}`
+        : null;
+
+      await this.mailService.sendSaleNotification({
+        to: ownerEmail,
+        saleNumber: sale.saleNumber,
+        saleDate: sale.saleDate,
+        branch: sale.branch?.branchName || `Branch ${sale.branchId}`,
+        cashierName,
+        customerName: customer,
+        saleType: sale.saleType,
+        paymentStatus: sale.paymentStatus,
+        salesChannel: sale.salesChannel,
+        subtotal: Number(sale.subtotal),
+        discountAmount: Number(sale.discountAmount),
+        totalAmount: Number(sale.totalAmount),
+        amountPaid: Number(sale.amountPaid),
+        changeAmount: Number(sale.changeAmount),
+        items,
+      });
+    } catch (e: unknown) {
+      this.logger.error(
+        '[notifyOwner] email failed',
+        e instanceof Error ? e.message : String(e),
+      );
+    }
   }
 
   async generateSaleNumber(): Promise<string> {
@@ -293,12 +364,20 @@ export class SalesService {
       totalDiscount: sales.reduce((s, r) => s + Number(r.discountAmount), 0),
       totalTax: sales.reduce((s, r) => s + Number(r.taxAmount), 0),
       avgOrderValue: sales.length > 0 ? totalRevenue / sales.length : 0,
-      paidCount: sales.filter((s) => s.paymentStatus === PaymentStatus.PAID).length,
-      partialCount: sales.filter((s) => s.paymentStatus === PaymentStatus.PARTIAL).length,
-      layawayCount: sales.filter((s) => s.paymentStatus === PaymentStatus.LAYAWAY).length,
+      paidCount: sales.filter((s) => s.paymentStatus === PaymentStatus.PAID)
+        .length,
+      partialCount: sales.filter(
+        (s) => s.paymentStatus === PaymentStatus.PARTIAL,
+      ).length,
+      layawayCount: sales.filter(
+        (s) => s.paymentStatus === PaymentStatus.LAYAWAY,
+      ).length,
     };
 
-    const groups: Record<string, { label: string; orders: number; revenue: number; discount: number }> = {};
+    const groups: Record<
+      string,
+      { label: string; orders: number; revenue: number; discount: number }
+    > = {};
 
     for (const sale of sales) {
       const d = new Date(sale.saleDate);
@@ -307,7 +386,11 @@ export class SalesService {
 
       if (period === 'daily') {
         key = d.toISOString().slice(0, 10);
-        label = d.toLocaleDateString('en-PH', { year: 'numeric', month: 'short', day: 'numeric' });
+        label = d.toLocaleDateString('en-PH', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric',
+        });
       } else if (period === 'weekly') {
         const sow = new Date(d);
         sow.setDate(d.getDate() - d.getDay());
@@ -317,10 +400,14 @@ export class SalesService {
         label = `${sow.toLocaleDateString('en-PH', { month: 'short', day: 'numeric' })} – ${eow.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' })}`;
       } else {
         key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        label = d.toLocaleDateString('en-PH', { year: 'numeric', month: 'long' });
+        label = d.toLocaleDateString('en-PH', {
+          year: 'numeric',
+          month: 'long',
+        });
       }
 
-      if (!groups[key]) groups[key] = { label, orders: 0, revenue: 0, discount: 0 };
+      if (!groups[key])
+        groups[key] = { label, orders: 0, revenue: 0, discount: 0 };
       groups[key].orders += 1;
       groups[key].revenue += Number(sale.totalAmount);
       groups[key].discount += Number(sale.discountAmount);
@@ -333,7 +420,10 @@ export class SalesService {
     return { summary, grouped, sales, items: lineItems };
   }
 
-  async getDailySummary(date: Date, branchId?: number): Promise<{
+  async getDailySummary(
+    date: Date,
+    branchId?: number,
+  ): Promise<{
     totalSales: number;
     totalAmount: number;
     totalDiscount: number;

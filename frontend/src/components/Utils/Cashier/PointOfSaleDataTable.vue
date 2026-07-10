@@ -121,7 +121,7 @@
           </button>
         </div>
 
-        <div class="fld-lbl" style="margin-top:12px">Customer (optional)</div>
+        <div class="fld-lbl" style="margin-top:12px">Customer <span class="req">*</span></div>
         <div class="cust-wrap" @click.stop>
           <input
             v-model="fullCustSearch"
@@ -176,10 +176,41 @@
         <div class="pay-section">
           <div class="fld-lbl">Payment Method</div>
           <div class="pay-meths">
-            <button class="pay-meth" :class="{ sel: payMethod === 'cash' }" @click="payMethod = 'cash'">Cash</button>
-            <button class="pay-meth" :class="{ sel: payMethod === 'gcash' }" @click="payMethod = 'gcash'">GCash</button>
-            <button class="pay-meth" :class="{ sel: payMethod === 'bank_transfer' }" @click="payMethod = 'bank_transfer'">Bank Transfer</button>
-            <button class="pay-meth" :class="{ sel: payMethod === 'check' }" @click="payMethod = 'check'">Cheque</button>
+            <button class="pay-meth" :class="{ sel: payMethod === 'cash' }" @click="payMethod = 'cash'; creditCardTerminal = ''; invoiceNumber = ''; cardType = ''; bankName = ''">Cash</button>
+            <button class="pay-meth" :class="{ sel: payMethod === 'gcash' }" @click="payMethod = 'gcash'; creditCardTerminal = ''; invoiceNumber = ''; cardType = ''; bankName = ''">GCash</button>
+            <button class="pay-meth" :class="{ sel: payMethod === 'bank_transfer' }" @click="payMethod = 'bank_transfer'; creditCardTerminal = ''; invoiceNumber = ''; cardType = ''">Bank Transfer</button>
+            <button class="pay-meth" :class="{ sel: payMethod === 'check' }" @click="payMethod = 'check'; creditCardTerminal = ''; invoiceNumber = ''; cardType = ''; bankName = ''">Cheque</button>
+            <button class="pay-meth" :class="{ sel: payMethod === 'credit_card' }" @click="payMethod = 'credit_card'; bankName = ''">Credit Card</button>
+          </div>
+
+          <div v-if="payMethod === 'bank_transfer'" class="pay-detail-box">
+            <div class="fld-lbl">Bank Name <span class="req">*</span></div>
+            <input v-model="bankName" class="fld-inp" type="text" placeholder="e.g. BDO, BPI, Metrobank..." style="margin-bottom:0" />
+          </div>
+
+          <div v-if="payMethod === 'credit_card'" class="pay-detail-box">
+            <div class="fld-lbl">Terminal <span class="req">*</span></div>
+            <div class="terminal-tabs">
+              <button class="pay-meth" :class="{ sel: creditCardTerminal === 'BDO Terminal' }" @click="creditCardTerminal = 'BDO Terminal'">BDO Terminal</button>
+              <button class="pay-meth" :class="{ sel: creditCardTerminal === 'BPI Terminal' }" @click="creditCardTerminal = 'BPI Terminal'">BPI Terminal</button>
+              <button class="pay-meth" :class="{ sel: creditCardTerminal === 'PayMaya Terminal' }" @click="creditCardTerminal = 'PayMaya Terminal'">PayMaya Terminal</button>
+            </div>
+            <div v-if="creditCardTerminal" class="grid-2" style="margin-top:10px">
+              <div>
+                <div class="fld-lbl">Invoice Number <span class="req">*</span></div>
+                <input v-model="invoiceNumber" class="fld-inp" type="text" placeholder="Invoice #" style="margin-bottom:0" />
+              </div>
+              <div>
+                <div class="fld-lbl">Card Type <span class="req">*</span></div>
+                <select v-model="cardType" class="fld-inp" style="margin-bottom:0">
+                  <option value="">Select type</option>
+                  <option>Visa</option>
+                  <option>Mastercard</option>
+                  <option>JCB</option>
+                  <option>American Express</option>
+                </select>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -399,7 +430,7 @@
         <div class="terms-emblem"><span class="terms-emblem-mark">T°</span></div>
         <div class="terms-brand">T°HEIA GEMS</div>
 
-        <div class="terms-title">PRE-PURCHASE<br />TERMS &amp; CONDITIONS</div>
+        <div class="terms-title">RETURN &amp; EXCHANGE<br />POLICY</div>
         <div class="terms-star">✦</div>
 
         <div class="terms-items">
@@ -411,34 +442,45 @@
                 <line x1="4" y1="20" x2="20" y2="4" stroke="#9B6B3A" stroke-width="1.4" stroke-linecap="round" />
               </svg>
             </div>
-            <div class="terms-text">ALL PURCHASES ARE NO RETURN, NO EXCHANGE, AND NO REFUND.</div>
+            <div class="terms-text">A. NO VOLUNTARY RETURNS — ALL SALES ARE FINAL. THEIA DOES NOT ACCEPT RETURNS OR EXCHANGES DUE TO CHANGE OF MIND, PREFERENCE, SIZE ISSUES, OR NON-DEFECT REASONS. THIS INCLUDES PREORDERS, CUSTOM/RESIZED ITEMS, CLEARANCE, AND ENGRAVED ITEMS.</div>
           </div>
 
           <div class="terms-row">
             <div class="terms-icon-circle">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <circle cx="12" cy="15" r="6" stroke="#9B6B3A" stroke-width="1.4" />
-                <path d="M9 9.5L12 4l3 5.5" stroke="#9B6B3A" stroke-width="1.4" stroke-linejoin="round" />
+                <path d="M12 3L4 7v5c0 5 3.8 9.2 8 10.5C16.2 21.2 20 17 20 12V7L12 3z" stroke="#9B6B3A" stroke-width="1.4" stroke-linejoin="round" />
+                <path d="M9 12l2 2 4-4" stroke="#9B6B3A" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
             </div>
-            <div class="terms-text">ALL CUSTOMIZED RINGS AND BESPOKE JEWELRY ARE FINAL.</div>
+            <div class="terms-text">B. DEFECTIVE / WRONG ITEMS — YOUR RIGHTS UNDER PHILIPPINE LAW ARE FULLY PROTECTED. UPON VERIFICATION, THEIA WILL PROVIDE THE APPROPRIATE REMEDY (REPAIR, REPLACEMENT, OR REFUND) UNDER RA 7394 AND RA 11967 SEC. 20 (2023).</div>
           </div>
 
           <div class="terms-row">
             <div class="terms-icon-circle">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                <path d="M5 9L12 3l7 6-7 12L5 9z" stroke="#9B6B3A" stroke-width="1.4" stroke-linejoin="round" />
-                <path d="M5 9h14M9 9l3 12 3-12M9 9L12 3M15 9L12 3" stroke="#9B6B3A" stroke-width="1" stroke-linejoin="round" />
+                <rect x="4" y="3" width="16" height="18" rx="2" stroke="#9B6B3A" stroke-width="1.4" />
+                <path d="M8 8h8M8 12h8M8 16h5" stroke="#9B6B3A" stroke-width="1.4" stroke-linecap="round" />
               </svg>
             </div>
-            <div class="terms-text">BY PROCEEDING WITH PAYMENT, THE CLIENT CONFIRMS FULL UNDERSTANDING AND ACCEPTANCE OF THIS POLICY.</div>
+            <div class="terms-text">C. TO FILE A CLAIM — NOTIFY THEIA WITHIN 1 YEAR FROM DELIVERY. PROVIDE YOUR ORDER NUMBER, RECIPIENT NAME, UNBOXING PHOTOS/VIDEOS (IF APPLICABLE), AND CLEAR PHOTOS/VIDEOS OF THE ISSUE. ITEM MAY BE REQUIRED FOR INSPECTION.</div>
+          </div>
+
+          <div class="terms-row">
+            <div class="terms-icon-circle">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M12 3L2 21h20L12 3z" stroke="#9B6B3A" stroke-width="1.4" stroke-linejoin="round" />
+                <path d="M12 10v4M12 17v.5" stroke="#9B6B3A" stroke-width="1.5" stroke-linecap="round" />
+              </svg>
+            </div>
+            <div class="terms-text">D. EXCLUSIONS — DEFECT CLAIMS MAY BE DENIED IF THE ISSUE WAS CAUSED BY MISHANDLING, ACCIDENTS, UNAUTHORIZED ALTERATIONS OR REPAIRS, NORMAL WEAR AND TEAR, OR CHEMICAL EXPOSURE. (RA 7394, ART. 68, 1992)</div>
           </div>
         </div>
 
         <div class="terms-star">✦</div>
 
         <div class="terms-footer">
-          THANK YOU FOR CHOOSING THEIA GEMS.<br />WE TRULY APPRECIATE YOUR TRUST.
+          BY PROCEEDING, YOU CONFIRM THAT YOU HAVE READ AND UNDERSTOOD THIS POLICY.<br />
+          <span style="margin-top:4px;display:inline-block">THANK YOU FOR CHOOSING THEIA GEMS.</span>
         </div>
 
         <div class="terms-actions">
@@ -473,6 +515,10 @@ export default {
       discountCapped: false,
       payMethod: "cash",
       amountTendered: null,
+      creditCardTerminal: "",
+      invoiceNumber: "",
+      cardType: "",
+      bankName: "",
       fullCustSearch: "",
       fullCustObj: null,
       fullCustResults: [],
@@ -769,8 +815,21 @@ export default {
         this.errorMsg = "Cart is empty.";
         return;
       }
+      if (!this.fullCustObj && !this.fullCustSearch.trim()) {
+        this.errorMsg = "Customer is required.";
+        return;
+      }
       if (!this.amountTendered || this.amountTendered < this.grandTotal) {
         this.errorMsg = "Amount tendered must be at least the grand total.";
+        return;
+      }
+      if (this.payMethod === "credit_card") {
+        if (!this.creditCardTerminal) { this.errorMsg = "Please select a card terminal."; return; }
+        if (!this.invoiceNumber.trim()) { this.errorMsg = "Invoice number is required for credit card payments."; return; }
+        if (!this.cardType) { this.errorMsg = "Card type is required for credit card payments."; return; }
+      }
+      if (this.payMethod === "bank_transfer" && !this.bankName.trim()) {
+        this.errorMsg = "Bank name is required for bank transfer payments.";
         return;
       }
       this.pendingAction = "full";
@@ -846,6 +905,11 @@ export default {
         }
 
         const payNumRes = await this.axiosCall("/payments/generate-number", "GET");
+        const payNotes = this.payMethod === "credit_card"
+          ? `Terminal: ${this.creditCardTerminal} | Invoice: ${this.invoiceNumber} | Card: ${this.cardType}`
+          : this.payMethod === "bank_transfer"
+          ? `Bank: ${this.bankName}`
+          : undefined;
         await this.axiosCall("/payments", "POST", {
           paymentNumber: payNumRes.data,
           saleId,
@@ -854,6 +918,7 @@ export default {
           paymentMethod: this.mapPayMethod(this.payMethod),
           paymentType: "full",
           paymentDate: new Date().toISOString(),
+          notes: payNotes,
         });
 
         for (const item of this.cartItems) {
@@ -878,6 +943,8 @@ export default {
           branchId: this.branchId,
           printedBy: this.cashierId,
         });
+
+        this.axiosCall("/sales/" + saleId + "/notify-owner", "POST").catch(() => {});
 
         this.receiptData = {
           receiptNumber: rcptRes.data.receiptNumber,
@@ -1023,6 +1090,8 @@ export default {
           printedBy: this.cashierId,
         });
 
+        this.axiosCall("/sales/" + saleId + "/notify-owner", "POST").catch(() => {});
+
         this.receiptData = {
           receiptNumber: rcptRes.data.receiptNumber,
           saleNumber,
@@ -1059,6 +1128,10 @@ export default {
       this.discountCapped = false;
       this.payMethod = "cash";
       this.amountTendered = null;
+      this.creditCardTerminal = "";
+      this.invoiceNumber = "";
+      this.cardType = "";
+      this.bankName = "";
       this.fullCustSearch = "";
       this.fullCustObj = null;
       this.instCustomer = "";
@@ -1128,6 +1201,9 @@ export default {
   .total-row { display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin: 4px 0; }
   .bold { font-weight: bold; }
   .footer { text-align: center; margin-top: 10px; font-size: 9px; line-height: 1.6; }
+  .policy { margin-top: 8px; font-size: 7.5px; line-height: 1.5; color: #000; }
+  .plbl { text-align: center; font-weight: bold; font-size: 8px; letter-spacing: 0.5px; margin-bottom: 4px; border-top: 1px solid #000; padding-top: 6px; }
+  .psec { margin-bottom: 4px; }
 </style>
 </head><body>
 <div class="center">
@@ -1153,6 +1229,13 @@ ${payLines}
   <div>Thank you for your purchase!</div>
   <div>Please come again.</div>
   <div style="margin-top:4px;font-size:8px">This serves as your official receipt.</div>
+</div>
+<div class="policy">
+  <div class="plbl">THEIA RETURN &amp; EXCHANGE POLICY</div>
+  <div class="psec"><b>A. No Voluntary Returns.</b> All sales are final. THEIA does not accept returns or exchanges due to change of mind, preference, ordering error, size issues, or other non-defect reasons. This applies to preorders, custom/resized items, clearance, sale items, and items with custom engraving.</div>
+  <div class="psec"><b>B. Defective, Damaged, or Wrong Items.</b> Your rights under Philippine law are protected. Upon verification, THEIA will provide repair, replacement, refund, or other remedies under the Consumer Act and applicable laws. RA 11967, Sec. 20 (2023)</div>
+  <div class="psec"><b>C. How to File a Claim.</b> Notify THEIA within 1 year from date of delivery and provide: order number, recipient name, unboxing photos/videos (if applicable), and clear photos/videos of the issue. Item may be required for inspection. RA 11967, Sec. 20 (2023)</div>
+  <div class="psec"><b>D. Exclusions.</b> Claims may be denied if the issue was caused by unreasonable use, mishandling, accidents, unauthorized alterations/repairs, third-party resizing, normal wear and tear, or chemical exposure. RA 7394, Art. 68 (1992)</div>
 </div>
 </body></html>`;
 
@@ -1486,6 +1569,15 @@ ${payLines}
 /* Payment Methods */
 .pay-section { margin-top: 14px; }
 .pay-meths { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 7px; }
+
+.pay-detail-box {
+  margin-top: 10px;
+  background: rgba(155,107,58,0.05);
+  border: 1px solid rgba(155,107,58,0.16);
+  border-radius: 10px;
+  padding: 12px;
+}
+.terminal-tabs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 6px; }
 .pay-meth {
   background: #F5EFE4; border: 1px solid rgba(155,107,58,0.16);
   border-radius: 8px; padding: 8px 6px; font-size: 11px;

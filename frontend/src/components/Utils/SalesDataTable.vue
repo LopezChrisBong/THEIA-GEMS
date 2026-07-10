@@ -46,6 +46,7 @@
               <th @click="sortBy('totalAmount')">Total</th>
               <th @click="sortBy('paymentStatus')">Payment</th>
               <th @click="sortBy('saleType')">Type</th>
+              <th @click="sortBy('salesChannel')">Channel</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -77,6 +78,11 @@
                 </span>
               </td>
               <td>
+                <span class="repeat-badge" :class="getChannelClass(item.salesChannel)">
+                  {{ formatChannel(item.salesChannel) }}
+                </span>
+              </td>
+              <td>
                 <div class="act-btns">
                   <button class="act-btn view-btn" title="View Sale" @click="viewSale(item)">
                     <v-icon size="14">mdi-eye-outline</v-icon>
@@ -85,7 +91,7 @@
               </td>
             </tr>
             <tr v-if="filteredData.length === 0">
-              <td colspan="9">
+              <td colspan="10">
                 <div class="empty-state">
                   <div class="empty-icon"><v-icon size="20" color="#9B6B3A">mdi-receipt-text-outline</v-icon></div>
                   <div class="empty-title">No sales found</div>
@@ -153,6 +159,12 @@
               <span class="sv-lbl">Type</span>
               <span class="sv-val">
                 <span class="repeat-badge" :class="getTypeClass(viewData.saleType)">{{ formatStatus(viewData.saleType) }}</span>
+              </span>
+            </div>
+            <div class="sv-row">
+              <span class="sv-lbl">Channel</span>
+              <span class="sv-val">
+                <span class="repeat-badge" :class="getChannelClass(viewData.salesChannel)">{{ formatChannel(viewData.salesChannel) }}</span>
               </span>
             </div>
           </div>
@@ -344,6 +356,7 @@ export default {
             s.cashier ? s.cashier.firstName + ' ' + s.cashier.lastName : '',
             s.paymentStatus,
             s.saleType,
+            s.salesChannel,
           ].filter(Boolean).some((f) => String(f).toLowerCase().includes(q))
         );
       }
@@ -403,6 +416,16 @@ export default {
     getTypeClass(type) {
       const map = { regular: "r-regular", layaway: "r-layaway", consignment: "r-consign" };
       return map[type] || "r-default";
+    },
+
+    formatChannel(ch) {
+      const map = { walk_in: "Walk-in", ig: "Instagram", website: "Website" };
+      return map[ch] || (ch ? ch.charAt(0).toUpperCase() + ch.slice(1) : "—");
+    },
+
+    getChannelClass(ch) {
+      const map = { walk_in: "r-channel-walkin", ig: "r-channel-ig", website: "r-channel-web" };
+      return map[ch] || "r-default";
     },
 
     initialize() {
@@ -482,6 +505,9 @@ export default {
 .r-regular { background: rgba(155,107,58,0.1); color: #9B6B3A; }
 .r-consign { background: rgba(130,80,160,0.1); color: #7A4A9B; }
 .r-default { background: rgba(150,150,150,0.1); color: #888; }
+.r-channel-walkin { background: rgba(61,122,90,0.1); color: #3D7A5A; }
+.r-channel-ig { background: rgba(180,60,130,0.1); color: #B43C82; }
+.r-channel-web { background: rgba(90,122,155,0.12); color: #5A7A9B; }
 .r-printed { background: rgba(61,122,90,0.1); color: #3D7A5A; }
 .r-not-printed { background: rgba(155,107,58,0.1); color: #9B6B3A; }
 

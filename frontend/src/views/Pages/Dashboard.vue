@@ -520,7 +520,7 @@ export default {
           const layaway = all.filter(i => i.status === "LAYAWAY").length;
           const consign = all.filter(i => i.status === "CONSIGNMENT").length;
           this.inventoryStats = [
-            { label: "In Stock", value: String(inStock) },
+            { label: "On Hand / Available", value: String(inStock) },
             { label: "On Layaway", value: String(layaway) },
             { label: "Consignment", value: String(consign) },
           ];

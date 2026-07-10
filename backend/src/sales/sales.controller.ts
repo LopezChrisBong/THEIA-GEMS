@@ -131,6 +131,12 @@ export class SalesController {
     return this.salesService.recordPayment(id, amount);
   }
 
+  @Post(':id/notify-owner')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  notifyOwner(@Param('id', ParseIntPipe) id: number): Promise<void> {
+    return this.salesService.notifyOwner(id);
+  }
+
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id', ParseIntPipe) id: number): Promise<void> {

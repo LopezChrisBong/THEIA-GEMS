@@ -501,16 +501,10 @@ export default {
         "4.5 mm", "5 mm", "5.5 mm", "6 mm", "6.5 mm", "7 mm",
       ],
       statusOptions: [
-        { label: "In Stock", value: "IN_STOCK" },
-        { label: "Sold", value: "SOLD" },
-        { label: "Transferred", value: "TRANSFERRED" },
-        { label: "Consignment", value: "CONSIGNMENT" },
-        { label: "Layaway", value: "LAYAWAY" },
-        { label: "Pulled Out", value: "PULLED_OUT" },
-        { label: "Reserved", value: "RESERVED" },
+        { label: "On Hand / Available", value: "IN_STOCK" },
         { label: "For Preorder", value: "FOR_PREORDER" },
-        { label: "On Hand / Available", value: "ON_HAND" },
-
+        { label: "Pull out", value: "PULLED_OUT" },
+        { label: "Consignment", value: "CONSIGNMENT" },
       ],
 
       fadeAwayMessage: {
