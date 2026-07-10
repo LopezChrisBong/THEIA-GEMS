@@ -41,6 +41,8 @@
               <th>Item</th>
               <th>Consignor</th>
               <th>Genuine/Entrupy</th>
+              <th>Condition</th>
+              <th>Inclusions</th>
               <th>Consigned Price</th>
               <th>Selling Price</th>
               <th>Commission</th>
@@ -72,6 +74,8 @@
                 </span>
                 <span v-else class="dim">—</span>
               </td>
+              <td>{{ item.condition || '—' }}</td>
+              <td>{{ item.inclusions || '—' }}</td>
               <td class="text-right">₱{{ formatNumber(item.consignedPrice) }}</td>
               <td class="text-right">₱{{ formatNumber(item.sellingPrice) }}</td>
               <td class="text-center">{{ item.commissionRate ? item.commissionRate + '%' : '—' }}</td>
@@ -111,7 +115,7 @@
               </td>
             </tr>
             <tr v-if="filteredData.length === 0">
-              <td colspan="10">
+              <td colspan="12">
                 <div class="empty-state">
                   <div class="empty-icon"><v-icon size="20" color="#9B6B3A">mdi-handshake-outline</v-icon></div>
                   <div class="empty-title">No consignment items found</div>

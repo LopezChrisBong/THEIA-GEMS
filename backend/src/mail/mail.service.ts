@@ -381,6 +381,144 @@ export class MailService {
     });
   }
 
+  // ── SALE TRANSACTION NOTIFICATION (OWNER) ──────────────────────────────
+  async sendSaleNotification(params: {
+    to: string;
+    saleNumber: string;
+    saleDate: Date;
+    branch: string;
+    cashierName: string;
+    customerName: string | null;
+    saleType: string;
+    paymentStatus: string;
+    salesChannel: string;
+    subtotal: number;
+    discountAmount: number;
+    totalAmount: number;
+    amountPaid: number;
+    changeAmount: number;
+    items: {
+      itemCode: string;
+      brand: string | null;
+      category: string | null;
+      unitPrice: number;
+    }[];
+  }) {
+    const fmt = (v: number) =>
+      '₱' + Number(v || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const dateStr = new Date(params.saleDate).toLocaleString('en-PH', {
+      year: 'numeric', month: 'long', day: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
+
+    const formatLabel = (s: string) =>
+      s ? s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()) : '—';
+
+    const itemRows = params.items.map((item) => `
+      <tr>
+        <td style="padding:8px 10px;color:#3A2515;font-weight:600;font-family:monospace;">${item.itemCode}</td>
+        <td style="padding:8px 10px;color:#3A2515;">${item.brand || '—'}</td>
+        <td style="padding:8px 10px;color:#6B4A30;">${item.category || '—'}</td>
+        <td style="padding:8px 10px;color:#3D7A5A;font-weight:600;text-align:right;">${fmt(item.unitPrice)}</td>
+      </tr>`).join('');
+
+    const html = `
+<div style="font-family:Arial,sans-serif;max-width:660px;margin:0 auto;padding:28px 24px;background:#FDFAF6;border:1px solid #e8dcc8;border-radius:14px;">
+
+  <h2 style="font-family:Georgia,serif;color:#3A2515;text-align:center;letter-spacing:0.08em;margin:0 0 4px;">THEIA GEMS</h2>
+  <p style="text-align:center;color:#9B6B3A;font-size:13px;font-weight:600;margin:0 0 20px;letter-spacing:0.06em;">NEW SALE TRANSACTION</p>
+
+  <!-- Sale Info -->
+  <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:20px;">
+    <tr>
+      <td style="padding:5px 0;color:#9A7858;width:45%;">Sale Number</td>
+      <td style="padding:5px 0;color:#3A2515;font-weight:700;">${params.saleNumber}</td>
+    </tr>
+    <tr>
+      <td style="padding:5px 0;color:#9A7858;">Date &amp; Time</td>
+      <td style="padding:5px 0;color:#3A2515;">${dateStr}</td>
+    </tr>
+    <tr>
+      <td style="padding:5px 0;color:#9A7858;">Branch</td>
+      <td style="padding:5px 0;color:#3A2515;">${params.branch}</td>
+    </tr>
+    <tr>
+      <td style="padding:5px 0;color:#9A7858;">Cashier</td>
+      <td style="padding:5px 0;color:#3A2515;">${params.cashierName}</td>
+    </tr>
+    <tr>
+      <td style="padding:5px 0;color:#9A7858;">Customer</td>
+      <td style="padding:5px 0;color:#3A2515;">${params.customerName || 'Walk-in'}</td>
+    </tr>
+    <tr>
+      <td style="padding:5px 0;color:#9A7858;">Sale Type</td>
+      <td style="padding:5px 0;color:#3A2515;">${formatLabel(params.saleType)}</td>
+    </tr>
+    <tr>
+      <td style="padding:5px 0;color:#9A7858;">Channel</td>
+      <td style="padding:5px 0;color:#3A2515;">${formatLabel(params.salesChannel)}</td>
+    </tr>
+    <tr>
+      <td style="padding:5px 0;color:#9A7858;">Payment Status</td>
+      <td style="padding:5px 0;font-weight:600;color:#3D7A5A;">${formatLabel(params.paymentStatus)}</td>
+    </tr>
+  </table>
+
+  <hr style="border:none;border-top:1px solid #e8dcc8;margin:0 0 20px;" />
+
+  <!-- Items -->
+  <p style="color:#3A2515;font-weight:600;font-size:13px;margin:0 0 10px;text-transform:uppercase;letter-spacing:0.08em;">Items Sold (${params.items.length})</p>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:20px;">
+    <thead>
+      <tr style="border-bottom:2px solid #e8dcc8;">
+        <th style="padding:6px 10px;text-align:left;color:#9A7858;font-size:11px;text-transform:uppercase;font-weight:600;">Item Code</th>
+        <th style="padding:6px 10px;text-align:left;color:#9A7858;font-size:11px;text-transform:uppercase;font-weight:600;">Name</th>
+        <th style="padding:6px 10px;text-align:left;color:#9A7858;font-size:11px;text-transform:uppercase;font-weight:600;">Category</th>
+        <th style="padding:6px 10px;text-align:right;color:#9A7858;font-size:11px;text-transform:uppercase;font-weight:600;">Price</th>
+      </tr>
+    </thead>
+    <tbody>${itemRows}</tbody>
+  </table>
+
+  <hr style="border:none;border-top:1px solid #e8dcc8;margin:0 0 16px;" />
+
+  <!-- Totals -->
+  <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:20px;">
+    ${params.discountAmount > 0 ? `
+    <tr>
+      <td style="padding:5px 0;color:#9A7858;">Subtotal</td>
+      <td style="padding:5px 0;color:#3A2515;text-align:right;">${fmt(params.subtotal)}</td>
+    </tr>
+    <tr>
+      <td style="padding:5px 0;color:#9A7858;">Discount</td>
+      <td style="padding:5px 0;color:#B84040;text-align:right;">- ${fmt(params.discountAmount)}</td>
+    </tr>` : ''}
+    <tr>
+      <td style="padding:5px 0;color:#3A2515;font-weight:700;font-size:15px;">Total Amount</td>
+      <td style="padding:5px 0;color:#3D7A5A;font-weight:700;font-size:15px;text-align:right;">${fmt(params.totalAmount)}</td>
+    </tr>
+    <tr>
+      <td style="padding:5px 0;color:#9A7858;">Amount Paid</td>
+      <td style="padding:5px 0;color:#3A2515;text-align:right;">${fmt(params.amountPaid)}</td>
+    </tr>
+    ${params.changeAmount > 0 ? `
+    <tr>
+      <td style="padding:5px 0;color:#9A7858;">Change</td>
+      <td style="padding:5px 0;color:#3A2515;text-align:right;">${fmt(params.changeAmount)}</td>
+    </tr>` : ''}
+  </table>
+
+  <p style="color:#9A7858;font-size:11px;text-align:center;margin:0;">This is an automated notification from the Theia Gems system.</p>
+</div>`;
+
+    await this.mailerService.sendMail({
+      to: params.to,
+      subject: `New Sale — ${params.saleNumber} | ${fmt(params.totalAmount)} | ${params.branch}`,
+      html,
+    });
+  }
+
   async sendPromotional(params: { to: string; subject: string; body: string; customerName?: string }) {
     const html = `
       <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;background:#FDFAF6;border:1px solid #e8dcc8;border-radius:12px;">

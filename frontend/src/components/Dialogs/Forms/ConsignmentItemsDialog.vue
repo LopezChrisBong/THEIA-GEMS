@@ -92,7 +92,25 @@
                   />
                 </v-col>
 
-                <v-col cols="12" md="9" class="mb-3">
+                <v-col cols="12" md="6" class="mb-3">
+                  <v-text-field
+                    v-model="condition"
+                    label="Condition"
+                    outlined dense clearable color="primary"
+                    hint="Item condition (e.g. Excellent, Good, Fair)" persistent-hint
+                  />
+                </v-col>
+
+                <v-col cols="12" md="6" class="mb-3">
+                  <v-text-field
+                    v-model="inclusions"
+                    label="Inclusions"
+                    outlined dense clearable color="primary"
+                    hint="Items included with the consignment" persistent-hint
+                  />
+                </v-col>
+
+                <v-col cols="12" md="12" class="mb-3">
                   <v-textarea
                     v-model="notes"
                     label="Notes"
@@ -311,6 +329,8 @@ export default {
       consignmentDate: null,
       status: "active",
       isAuthentic: null,
+      inclusions: null,
+      condition: null,
       notes: null,
 
       // Multi-item rows (Add mode)
@@ -372,6 +392,8 @@ export default {
           this.consignmentDate = data.consignmentDate ? this.formatDateForInput(data.consignmentDate) : null;
           this.status = data.status || "active";
           this.isAuthentic = data.isAuthentic ?? null;
+          this.inclusions = data.inclusions || null;
+          this.condition = data.condition || null;
           this.notes = data.notes;
         } else {
           this.resetForm();
@@ -410,6 +432,8 @@ export default {
       this.consignmentDate = new Date().toISOString().split("T")[0];
       this.status = "active";
       this.isAuthentic = null;
+      this.inclusions = null;
+      this.condition = null;
       this.notes = null;
       this.items = [this.emptyRow()];
       this.itemsError = "";
@@ -500,6 +524,8 @@ export default {
         consignmentDate: this.consignmentDate,
         status: this.status,
         isAuthentic: this.isAuthentic ?? null,
+        inclusions: this.inclusions || null,
+        condition: this.condition || null,
         notes: this.notes || null,
       };
 
@@ -547,6 +573,8 @@ export default {
         consignmentDate: this.consignmentDate,
         status: this.status,
         isAuthentic: this.isAuthentic ?? null,
+        inclusions: this.inclusions || null,
+        condition: this.condition || null,
         notes: this.notes || null,
       };
 

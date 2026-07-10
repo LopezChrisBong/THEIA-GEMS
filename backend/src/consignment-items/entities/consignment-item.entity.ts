@@ -68,6 +68,12 @@ export class ConsignmentItem {
   @Column({ name: 'is_authentic', type: 'boolean', nullable: true })
   isAuthentic: boolean;
 
+  @Column({ name: 'inclusions', type: 'text', nullable: true })
+  inclusions: string;
+
+  @Column({ name: 'condition', type: 'varchar', length: 255, nullable: true })
+  condition: string;
+
   @Column({ type: 'text', nullable: true })
   notes: string;
 

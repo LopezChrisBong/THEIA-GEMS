@@ -536,7 +536,7 @@
               </template>
               <template v-slot:[`item.status`]="{ item }">
                 <v-chip :color="item.status === 'IN_STOCK' ? 'success' : 'grey'" size="x-small" variant="flat">
-                  {{ item.status.replace(/_/g, ' ') }}
+                  {{ formatStatus(item.status) }}
                 </v-chip>
               </template>
             </v-data-table>
@@ -618,13 +618,13 @@ export default {
     filterBranch: null,
     filterStatus: null,
     statusOptions: [
-      { label: "In Stock", value: "IN_STOCK" },
-      { label: "Sold", value: "SOLD" },
-      { label: "Transferred", value: "TRANSFERRED" },
+      { label: "On Hand / Available", value: "IN_STOCK" },
+      { label: "For Preorder", value: "FOR_PREORDER" },
+      { label: "Pull out", value: "PULLED_OUT" },
       { label: "Consignment", value: "CONSIGNMENT" },
+      { label: "Sold", value: "SOLD" },
       { label: "Layaway", value: "LAYAWAY" },
-      { label: "Pulled Out", value: "PULLED_OUT" },
-      { label: "Reserved", value: "RESERVED" },
+      { label: "Transferred", value: "TRANSFERRED" },
     ],
     data: [],
     categoryList: [],
@@ -794,7 +794,17 @@ export default {
 
     formatStatus(status) {
       if (!status) return "";
-      return status.replace(/_/g, " ");
+      const labels = {
+        IN_STOCK: "On Hand / Available",
+        FOR_PREORDER: "For Preorder",
+        PULLED_OUT: "Pull out",
+        CONSIGNMENT: "Consignment",
+        SOLD: "Sold",
+        LAYAWAY: "Layaway",
+        TRANSFERRED: "Transferred",
+        RESERVED: "For Preorder",
+      };
+      return labels[status] ?? status.charAt(0) + status.slice(1).toLowerCase().replace(/_/g, " ");
     },
 
     formatGoldType(goldType) {

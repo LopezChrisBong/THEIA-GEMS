@@ -31,6 +31,7 @@ export enum JewelryItemStatus {
   LAYAWAY = 'LAYAWAY',
   PULLED_OUT = 'PULLED_OUT',
   RESERVED = 'RESERVED',
+  FOR_PREORDER = 'FOR_PREORDER',
 }
 
 @Entity('jewelry_items')

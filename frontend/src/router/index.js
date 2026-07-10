@@ -40,6 +40,7 @@ import InventoryLogs from '@/views/Pages/InventoryLogs.vue';
 import Receipts from '@/views/Pages/Receipts.vue';
 import TransactionHistory from '@/views/Pages/TransactionHistory.vue';
 import SalesReport from '@/views/Pages/SalesReport.vue';
+import InventoryReport from '@/views/Pages/InventoryReport.vue';
 import NotificationsTest from '@/views/Pages/NotificationsTest.vue';
 import AssignNotificationBell from '@/views/Pages/AssignNotificationBell.vue';
 // import OPCR from "../views/Pages/OPCR.vue";
@@ -299,6 +300,11 @@ const routes = [
         path: "sales-report",
         component: SalesReport,
         meta: { title: "Sales Report", authRequired: true },
+      },
+      {
+        path: "inventory-report",
+        component: InventoryReport,
+        meta: { title: "Inventory Report", authRequired: true },
       },
       {
         path: "notifications-test",
