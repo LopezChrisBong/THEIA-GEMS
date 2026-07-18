@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import * as XLSX from 'xlsx';
 import { LayawayPlansService } from '../layaway-plans/layaway-plans.service';
 import { ConsignmentItemsService } from '../consignment-items/consignment-items.service';
@@ -7,6 +7,8 @@ import { MailService } from '../mail/mail.service';
 import { SmsService } from '../sms/sms.service';
 import { SalesService, SaleLineItem } from '../sales/sales.service';
 import { BranchesService } from '../branches/branches.service';
+import { PaymentsService } from '../payments/payments.service';
+import { Payment, PaymentMethod } from '../payments/entities/payment.entity';
 import { Branch } from '../branches/entities/branch.entity';
 
 const REMINDER_DAYS = 3; // send reminder 3 days before due date
@@ -40,6 +42,7 @@ export class SchedulerService {
     private readonly smsService: SmsService,
     private readonly salesService: SalesService,
     private readonly branchesService: BranchesService,
+    private readonly paymentsService: PaymentsService,
   ) {}
 
   private fmtDate(d: Date | string | null): string {
@@ -211,20 +214,23 @@ export class SchedulerService {
 
       const branches = (await this.branchesService.findAll()).filter((b) => b.isActive);
 
-      const branchReports: BranchSalesReport[] = await Promise.all(
-        branches.map(async (branch) => {
-          const report = await this.salesService.getSalesReport(
-            'daily',
-            new Date(start),
-            new Date(end),
-            branch.branchId,
-          );
-          return { branch, report: report as BranchSalesReport['report'] };
-        }),
-      );
+      const [branchReports, payments] = await Promise.all([
+        Promise.all(
+          branches.map(async (branch) => {
+            const report = await this.salesService.getSalesReport(
+              'daily',
+              new Date(start),
+              new Date(end),
+              branch.branchId,
+            );
+            return { branch, report: report as BranchSalesReport['report'] };
+          }),
+        ),
+        this.paymentsService.findByDateRange(new Date(start), new Date(end)),
+      ]);
 
       const totalOrders = branchReports.reduce((s, b) => s + b.report.summary.totalOrders, 0);
-      const attachment = this.buildSalesReportExcel(branchReports, dateLabel);
+      const attachment = this.buildSalesReportExcel(branchReports, payments, start, end, dateLabel);
 
       await this.mailService.sendDailySalesReport({
         to: ownerEmail,
@@ -246,49 +252,127 @@ export class SchedulerService {
     }
   }
 
-  private buildSalesReportExcel(branchReports: BranchSalesReport[], dateLabel: string): Buffer {
+  /** Parse payment notes to determine the specific sub-type column key. */
+  private paymentColumnKey(p: Payment): string {
+    const notes = (p.notes || '').toLowerCase();
+    if (p.paymentMethod === PaymentMethod.BANK_TRANSFER) {
+      if (notes.includes('bank: bpi')) return 'BT-BPI';
+      if (notes.includes('bank: bdo')) return 'BT-BDO';
+      if (notes.includes('bank: pnb')) return 'BT-PNB';
+      return 'BT-BDO'; // fallback
+    }
+    if (p.paymentMethod === PaymentMethod.CREDIT_CARD) {
+      if (notes.includes('terminal: bpi')) return 'CC-BPI';
+      if (notes.includes('terminal: bdo')) return 'CC-BDO';
+      if (notes.includes('terminal: paymaya') || notes.includes('terminal: maya')) return 'CC-PAYMAYA';
+      return 'CC-BDO'; // fallback
+    }
+    if (p.paymentMethod === PaymentMethod.GCASH) return 'GCASH';
+    if (p.paymentMethod === PaymentMethod.CHECK) return 'CHEQUE';
+    return 'CASH';
+  }
+
+  private buildSalesReportExcel(
+    branchReports: BranchSalesReport[],
+    payments: Payment[],
+    start: Date,
+    end: Date,
+    dateLabel: string,
+  ): Buffer {
     const wb = XLSX.utils.book_new();
+    const fmt = (d: Date) => d.toISOString().slice(0, 10);
 
-    // ── Overview sheet: one row per branch + grand total ──
-    const overviewRows: (string | number)[][] = [
-      ['THEIA GEMS — DAILY SALES REPORT'],
-      [`Date: ${dateLabel}`],
-      [],
-      ['Branch', 'Orders', 'Revenue (₱)', 'Discount (₱)', 'Items Sold'],
-    ];
+    // ── Aggregate totals across all branches ──
+    let grandOrders = 0, grandRevenue = 0, grandDiscount = 0, grandTax = 0;
+    let grandPaid = 0, grandPartial = 0, grandLayaway = 0;
+    const allGrouped: Record<string, { label: string; orders: number; revenue: number; discount: number }> = {};
 
-    let grandOrders = 0, grandRevenue = 0, grandDiscount = 0, grandItems = 0;
-
-    for (const { branch, report } of branchReports) {
+    for (const { report } of branchReports) {
       const s = report.summary;
-      overviewRows.push([
-        branch.branchName,
-        s.totalOrders,
-        Number(s.totalRevenue.toFixed(2)),
-        Number(s.totalDiscount.toFixed(2)),
-        report.items.length,
-      ]);
       grandOrders += s.totalOrders;
       grandRevenue += s.totalRevenue;
       grandDiscount += s.totalDiscount;
-      grandItems += report.items.length;
+      grandTax += s.totalTax;
+      grandPaid += s.paidCount;
+      grandPartial += s.partialCount;
+      grandLayaway += s.layawayCount;
+      for (const g of (report as any).grouped ?? []) {
+        if (!allGrouped[g.label]) allGrouped[g.label] = { label: g.label, orders: 0, revenue: 0, discount: 0 };
+        allGrouped[g.label].orders += g.orders;
+        allGrouped[g.label].revenue += g.revenue;
+        allGrouped[g.label].discount += g.discount;
+      }
+    }
+    const avgOrder = grandOrders > 0 ? grandRevenue / grandOrders : 0;
+    const groupedRows = Object.values(allGrouped);
+
+    // ── Payment method columns (fixed order) ──
+    const PAY_COLS = ['CASH', 'GCASH', 'BT-BPI', 'BT-BDO', 'BT-PNB', 'CC-BDO', 'CC-BPI', 'CC-PAYMAYA', 'CHEQUE'];
+
+    // ── Build the Summary sheet ──
+    const rows: (string | number)[][] = [];
+
+    // Header
+    rows.push(['THEIA GEMS — SALES REPORT', '', `From: ${fmt(start)}`, `To: ${fmt(end)}`]);
+    rows.push(['Period: Daily']);
+    rows.push([]);
+
+    // Overview
+    rows.push(['OVERVIEW']);
+    rows.push(['Total Orders', grandOrders]);
+    rows.push(['Total Revenue', Number(grandRevenue.toFixed(2))]);
+    rows.push(['Total Discount', Number(grandDiscount.toFixed(2))]);
+    rows.push(['Total Tax', Number(grandTax.toFixed(2))]);
+    rows.push(['Avg. Order Value', Number(avgOrder.toFixed(4))]);
+    rows.push(['Paid Orders', grandPaid]);
+    rows.push(['Partial Orders', grandPartial]);
+    rows.push(['Layaway Orders', grandLayaway]);
+    rows.push([]);
+
+    // Daily Breakdown
+    rows.push(['DAILY BREAKDOWN']);
+    rows.push(['Period', 'Orders', 'Revenue (₱)', 'Discount (₱)', 'Avg. Order (₱)']);
+    for (const g of groupedRows) {
+      const avg = g.orders > 0 ? g.revenue / g.orders : 0;
+      rows.push([g.label, g.orders, Number(g.revenue.toFixed(2)), Number(g.discount.toFixed(2)), Number(avg.toFixed(2))]);
+    }
+    rows.push([]);
+    rows.push([]);
+
+    // Payment Method Breakdown
+    rows.push(['PAYMENT METHOD', ...PAY_COLS]);
+
+    const colTotals: Record<string, number> = {};
+    PAY_COLS.forEach((c) => (colTotals[c] = 0));
+
+    payments.forEach((p, idx) => {
+      const col = this.paymentColumnKey(p);
+      const amt = Number(p.amount);
+      colTotals[col] = (colTotals[col] ?? 0) + amt;
+      const row: (string | number)[] = [`TRANSACTION ${idx + 1}`];
+      for (const c of PAY_COLS) {
+        row.push(c === col ? amt : '');
+      }
+      rows.push(row);
+    });
+
+    if (payments.length === 0) {
+      rows.push(['No transactions recorded.', ...PAY_COLS.map(() => '')]);
     }
 
-    overviewRows.push([]);
-    overviewRows.push([
-      'GRAND TOTAL',
-      grandOrders,
-      Number(grandRevenue.toFixed(2)),
-      Number(grandDiscount.toFixed(2)),
-      grandItems,
-    ]);
+    rows.push([]);
+    const totalRow: (string | number)[] = ['TOTAL'];
+    for (const c of PAY_COLS) {
+      totalRow.push(colTotals[c] > 0 ? Number(colTotals[c].toFixed(2)) : 0);
+    }
+    rows.push(totalRow);
 
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(overviewRows), 'Overview');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Sales Report');
 
-    // ── One sheet per branch with every item sold that day ──
-    const usedNames = new Set<string>();
+    // ── Per-branch item detail sheets ──
+    const usedNames = new Set<string>(['Sales Report']);
     for (const { branch, report } of branchReports) {
-      const rows: (string | number)[][] = [
+      const detailRows: (string | number)[][] = [
         [`${branch.branchName} — Items Sold (${dateLabel})`],
         [],
         ['Sale #', 'Time', 'Item Code', 'Category', 'Name', 'Description', 'Unit Price (₱)'],
@@ -302,19 +386,14 @@ export class SchedulerService {
           Number(i.unitPrice.toFixed(2)),
         ]),
       ];
-
-      if (report.items.length === 0) {
-        rows.push(['No items sold today.']);
-      }
+      if (report.items.length === 0) detailRows.push(['No items sold.']);
 
       let sheetName = branch.branchName.replace(/[:\\/?*[\]]/g, '').slice(0, 31) || `Branch ${branch.branchId}`;
       let suffix = 1;
-      while (usedNames.has(sheetName)) {
-        sheetName = `${sheetName.slice(0, 28)}_${suffix++}`;
-      }
+      while (usedNames.has(sheetName)) sheetName = `${sheetName.slice(0, 28)}_${suffix++}`;
       usedNames.add(sheetName);
 
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), sheetName);
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(detailRows), sheetName);
     }
 
     return XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });

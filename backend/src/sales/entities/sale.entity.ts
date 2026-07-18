@@ -5,11 +5,13 @@ import {
   CreateDateColumn,
   UpdateDateColumn,
   ManyToOne,
+  OneToMany,
   JoinColumn,
 } from 'typeorm';
 import { Branch } from 'src/branches/entities/branch.entity';
 import { Customer } from 'src/customers/entities/customer.entity';
 import { Users } from 'src/auth/entities/auth.entity';
+import { Payment } from 'src/payments/entities/payment.entity';
 
 export enum PaymentStatus {
   PAID = 'paid',
@@ -106,6 +108,9 @@ export class Sale {
 
   @Column({ type: 'text', nullable: true })
   notes: string;
+
+  @OneToMany(() => Payment, (payment) => payment.sale)
+  payments: Payment[];
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

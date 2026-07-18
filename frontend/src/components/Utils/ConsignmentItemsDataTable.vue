@@ -40,12 +40,12 @@
             <tr>
               <th>Item</th>
               <th>Consignor</th>
-              <th>Genuine/Entrupy</th>
+              <th style="text-align:center">Genuine/Entrupy</th>
               <th>Condition</th>
               <th>Inclusions</th>
-              <th>Consigned Price</th>
-              <th>Selling Price</th>
-              <th>Commission</th>
+              <th style="text-align:right">Consigned Price</th>
+              <th style="text-align:right">Selling Price</th>
+              <th style="text-align:right">Commission</th>
               <th>Status</th>
               <th>Branch</th>
               <th>Date</th>
@@ -78,7 +78,7 @@
               <td>{{ item.inclusions || '—' }}</td>
               <td class="text-right">₱{{ formatNumber(item.consignedPrice) }}</td>
               <td class="text-right">₱{{ formatNumber(item.sellingPrice) }}</td>
-              <td class="text-center">{{ item.commissionRate ? item.commissionRate + '%' : '—' }}</td>
+              <td class="text-right">₱{{ formatNumber(Math.max(0, Number(item.sellingPrice || 0) - Number(item.consignedPrice || 0))) }}</td>
               <td>
                 <span class="repeat-badge" :class="'r-' + item.status">{{ formatStatus(item.status) }}</span>
               </td>
