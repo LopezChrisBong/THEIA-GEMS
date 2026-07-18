@@ -40,7 +40,7 @@ export class Payment {
   @Column({ name: 'sale_id' })
   saleId: number;
 
-  @ManyToOne(() => Sale, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Sale, (sale) => sale.payments, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'sale_id' })
   sale: Sale;
 

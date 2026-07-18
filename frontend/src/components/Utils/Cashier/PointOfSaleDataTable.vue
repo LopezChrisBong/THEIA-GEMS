@@ -185,7 +185,11 @@
 
           <div v-if="payMethod === 'bank_transfer'" class="pay-detail-box">
             <div class="fld-lbl">Bank Name <span class="req">*</span></div>
-            <input v-model="bankName" class="fld-inp" type="text" placeholder="e.g. BDO, BPI, Metrobank..." style="margin-bottom:0" />
+            <div class="pay-meths">
+              <button class="pay-meth" :class="{ sel: bankName === 'BPI' }" @click="bankName = 'BPI'">BPI</button>
+              <button class="pay-meth" :class="{ sel: bankName === 'BDO' }" @click="bankName = 'BDO'">BDO</button>
+              <button class="pay-meth" :class="{ sel: bankName === 'PNB' }" @click="bankName = 'PNB'">PNB</button>
+            </div>
           </div>
 
           <div v-if="payMethod === 'credit_card'" class="pay-detail-box">
@@ -427,7 +431,7 @@
     <!-- ═══ PRE-PURCHASE TERMS & CONDITIONS MODAL ═══ -->
     <div v-if="showTermsModal" class="terms-overlay">
       <div class="terms-modal">
-        <div class="terms-emblem"><span class="terms-emblem-mark">T°</span></div>
+        <div class="terms-emblem"><img src="/img/theia-logo.png" alt="Theia Gems" class="terms-emblem-logo" /></div>
         <div class="terms-brand">T°HEIA GEMS</div>
 
         <div class="terms-title">RETURN &amp; EXCHANGE<br />POLICY</div>
@@ -828,7 +832,7 @@ export default {
         if (!this.invoiceNumber.trim()) { this.errorMsg = "Invoice number is required for credit card payments."; return; }
         if (!this.cardType) { this.errorMsg = "Card type is required for credit card payments."; return; }
       }
-      if (this.payMethod === "bank_transfer" && !this.bankName.trim()) {
+      if (this.payMethod === "bank_transfer" && !this.bankName) {
         this.errorMsg = "Bank name is required for bank transfer payments.";
         return;
       }
@@ -1779,21 +1783,17 @@ ${payLines}
 }
 
 .terms-emblem {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(155,107,58,0.45);
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 8px;
 }
 
-.terms-emblem-mark {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 20px;
-  font-weight: 600;
-  color: #9B6B3A;
+.terms-emblem-logo {
+  width: 72px;
+  height: 72px;
+  object-fit: cover;
+  border-radius: 50%;
 }
 
 .terms-brand {

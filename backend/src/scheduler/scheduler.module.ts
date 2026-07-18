@@ -8,6 +8,7 @@ import { MailModule } from '../mail/mail.module';
 import { SmsModule } from '../sms/sms.module';
 import { SalesModule } from '../sales/sales.module';
 import { BranchesModule } from '../branches/branches.module';
+import { PaymentsModule } from '../payments/payments.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { BranchesModule } from '../branches/branches.module';
     SmsModule,
     SalesModule,
     BranchesModule,
+    PaymentsModule,
   ],
   controllers: [SchedulerController],
   providers: [SchedulerService],

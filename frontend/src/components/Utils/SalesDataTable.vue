@@ -47,6 +47,7 @@
               <th @click="sortBy('paymentStatus')">Payment</th>
               <th @click="sortBy('saleType')">Type</th>
               <th @click="sortBy('salesChannel')">Channel</th>
+              <th>Pay Method</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -83,6 +84,12 @@
                 </span>
               </td>
               <td>
+                <span v-if="item.payments && item.payments.length" class="repeat-badge r-paymethod">
+                  {{ formatPayMethod(item.payments) }}
+                </span>
+                <span v-else class="dim">—</span>
+              </td>
+              <td>
                 <div class="act-btns">
                   <button class="act-btn view-btn" title="View Sale" @click="viewSale(item)">
                     <v-icon size="14">mdi-eye-outline</v-icon>
@@ -91,7 +98,7 @@
               </td>
             </tr>
             <tr v-if="filteredData.length === 0">
-              <td colspan="10">
+              <td colspan="11">
                 <div class="empty-state">
                   <div class="empty-icon"><v-icon size="20" color="#9B6B3A">mdi-receipt-text-outline</v-icon></div>
                   <div class="empty-title">No sales found</div>
@@ -165,6 +172,12 @@
               <span class="sv-lbl">Channel</span>
               <span class="sv-val">
                 <span class="repeat-badge" :class="getChannelClass(viewData.salesChannel)">{{ formatChannel(viewData.salesChannel) }}</span>
+              </span>
+            </div>
+            <div class="sv-row" v-if="viewData.payments && viewData.payments.length">
+              <span class="sv-lbl">Pay Method</span>
+              <span class="sv-val">
+                <span class="repeat-badge r-paymethod">{{ formatPayMethod(viewData.payments) }}</span>
               </span>
             </div>
           </div>
@@ -357,6 +370,7 @@ export default {
             s.paymentStatus,
             s.saleType,
             s.salesChannel,
+            s.payments ? this.formatPayMethod(s.payments) : '',
           ].filter(Boolean).some((f) => String(f).toLowerCase().includes(q))
         );
       }
@@ -421,6 +435,22 @@ export default {
     formatChannel(ch) {
       const map = { walk_in: "Walk-in", ig: "Instagram", website: "Website" };
       return map[ch] || (ch ? ch.charAt(0).toUpperCase() + ch.slice(1) : "—");
+    },
+
+    formatPayMethod(payments) {
+      if (!payments || !payments.length) return "—";
+      const labelMap = {
+        cash: "Cash",
+        gcash: "GCash",
+        bank_transfer: "Bank Transfer",
+        credit_card: "Credit Card",
+        debit_card: "Debit Card",
+        maya: "Maya",
+        check: "Cheque",
+        other: "Other",
+      };
+      const unique = [...new Set(payments.map((p) => labelMap[p.paymentMethod] || p.paymentMethod))];
+      return unique.join(" / ");
     },
 
     getChannelClass(ch) {
@@ -508,6 +538,7 @@ export default {
 .r-channel-walkin { background: rgba(61,122,90,0.1); color: #3D7A5A; }
 .r-channel-ig { background: rgba(180,60,130,0.1); color: #B43C82; }
 .r-channel-web { background: rgba(90,122,155,0.12); color: #5A7A9B; }
+.r-paymethod { background: rgba(100,100,180,0.1); color: #4A4A9B; }
 .r-printed { background: rgba(61,122,90,0.1); color: #3D7A5A; }
 .r-not-printed { background: rgba(155,107,58,0.1); color: #9B6B3A; }
 

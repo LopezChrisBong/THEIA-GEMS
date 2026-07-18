@@ -553,37 +553,97 @@ export default {
         });
     },
 
-    exportExcel() {
+    paymentColumnKey(p) {
+      const notes = (p.notes || '').toLowerCase();
+      if (p.paymentMethod === 'bank_transfer') {
+        if (notes.includes('bank: bpi')) return 'BT-BPI';
+        if (notes.includes('bank: bdo')) return 'BT-BDO';
+        if (notes.includes('bank: pnb')) return 'BT-PNB';
+        return 'BT-BDO';
+      }
+      if (p.paymentMethod === 'credit_card') {
+        if (notes.includes('terminal: bpi')) return 'CC-BPI';
+        if (notes.includes('terminal: bdo')) return 'CC-BDO';
+        if (notes.includes('terminal: paymaya') || notes.includes('terminal: maya')) return 'CC-PAYMAYA';
+        return 'CC-BDO';
+      }
+      if (p.paymentMethod === 'gcash') return 'GCASH';
+      if (p.paymentMethod === 'check') return 'CHEQUE';
+      return 'CASH';
+    },
+
+    async exportExcel() {
       if (!this.reportData) return;
 
-      const wb = XLSX.utils.book_new();
+      const PAY_COLS = ['CASH', 'GCASH', 'BT-BPI', 'BT-BDO', 'BT-PNB', 'CC-BDO', 'CC-BPI', 'CC-PAYMAYA', 'CHEQUE'];
 
-      /* ── Sheet 1: Summary ── */
-      const summaryRows = [
-        ['THEIA GEMS — SALES REPORT'],
-        [`Period: ${this.periodLabel}`, '', `From: ${this.startDate}`, `To: ${this.endDate}`],
-        [],
-        ['OVERVIEW'],
-        ['Total Orders', this.reportData.summary.totalOrders],
-        ['Total Revenue', this.reportData.summary.totalRevenue],
-        ['Total Discount', this.reportData.summary.totalDiscount],
-        ['Total Tax', this.reportData.summary.totalTax],
-        ['Avg. Order Value', this.reportData.summary.avgOrderValue],
-        ['Paid Orders', this.reportData.summary.paidCount],
-        ['Partial Orders', this.reportData.summary.partialCount],
-        ['Layaway Orders', this.reportData.summary.layawayCount],
-        [],
-        [`${this.periodLabel.toUpperCase()} BREAKDOWN`],
-        ['Period', 'Orders', 'Revenue (₱)', 'Discount (₱)', 'Avg. Order (₱)'],
-        ...this.reportData.grouped.map((r) => [
-          r.label,
-          r.orders,
-          Number(r.revenue.toFixed(2)),
-          Number(r.discount.toFixed(2)),
-          Number((r.orders > 0 ? r.revenue / r.orders : 0).toFixed(2)),
-        ]),
-      ];
-      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(summaryRows), 'Summary');
+      // Fetch payment records for the selected date range
+      let payments = [];
+      try {
+        const endDateFull = this.endDate + 'T23:59:59';
+        const res = await this.axiosCall(`/payments/date-range?startDate=${this.startDate}&endDate=${endDateFull}`, 'GET');
+        if (res && res.data) payments = res.data;
+      } catch (e) {
+        // proceed without payment breakdown if fetch fails
+      }
+
+      const wb = XLSX.utils.book_new();
+      const s = this.reportData.summary;
+
+      /* ── Sheet 1: Sales Report ── */
+      const rows = [];
+
+      // Header
+      rows.push(['THEIA GEMS — SALES REPORT', '', `From: ${this.startDate}`, `To: ${this.endDate}`]);
+      rows.push([`Period: ${this.periodLabel}`]);
+      rows.push([]);
+
+      // Overview
+      rows.push(['OVERVIEW']);
+      rows.push(['Total Orders', s.totalOrders]);
+      rows.push(['Total Revenue', Number(Number(s.totalRevenue).toFixed(2))]);
+      rows.push(['Total Discount', Number(Number(s.totalDiscount).toFixed(2))]);
+      rows.push(['Total Tax', Number(Number(s.totalTax).toFixed(2))]);
+      rows.push(['Avg. Order Value', Number(Number(s.avgOrderValue).toFixed(4))]);
+      rows.push(['Paid Orders', s.paidCount]);
+      rows.push(['Partial Orders', s.partialCount]);
+      rows.push(['Layaway Orders', s.layawayCount]);
+      rows.push([]);
+
+      // Period breakdown
+      rows.push([`${this.periodLabel.toUpperCase()} BREAKDOWN`]);
+      rows.push(['Period', 'Orders', 'Revenue (₱)', 'Discount (₱)', 'Avg. Order (₱)']);
+      for (const r of this.reportData.grouped) {
+        const avg = r.orders > 0 ? r.revenue / r.orders : 0;
+        rows.push([r.label, r.orders, Number(r.revenue.toFixed(2)), Number(r.discount.toFixed(2)), Number(avg.toFixed(2))]);
+      }
+      rows.push([]);
+      rows.push([]);
+
+      // Payment method breakdown
+      rows.push(['PAYMENT METHOD', ...PAY_COLS]);
+      const colTotals = {};
+      PAY_COLS.forEach((c) => (colTotals[c] = 0));
+
+      payments.forEach((p, idx) => {
+        const col = this.paymentColumnKey(p);
+        const amt = Number(p.amount);
+        colTotals[col] = (colTotals[col] || 0) + amt;
+        const row = [`TRANSACTION ${idx + 1}`];
+        PAY_COLS.forEach((c) => row.push(c === col ? amt : ''));
+        rows.push(row);
+      });
+
+      if (payments.length === 0) {
+        rows.push(['No transactions recorded.', ...PAY_COLS.map(() => '')]);
+      }
+
+      rows.push([]);
+      const totalRow = ['TOTAL'];
+      PAY_COLS.forEach((c) => totalRow.push(colTotals[c] > 0 ? Number(colTotals[c].toFixed(2)) : 0));
+      rows.push(totalRow);
+
+      XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'Sales Report');
 
       /* ── Sheet 2: Item Transactions ── */
       if (this.reportData.items && this.reportData.items.length) {
@@ -607,19 +667,19 @@ export default {
       /* ── Sheet 3: Transactions ── */
       const txRows = [
         ['Sale #', 'Date', 'Customer', 'Branch', 'Subtotal (₱)', 'Discount (₱)', 'Tax (₱)', 'Total (₱)', 'Paid (₱)', 'Change (₱)', 'Payment Status', 'Sale Type'],
-        ...this.reportData.sales.map((s) => [
-          s.saleNumber,
-          s.saleDate ? new Date(s.saleDate).toLocaleDateString('en-PH') : '',
-          s.customer ? `${s.customer.firstName} ${s.customer.lastName}` : 'Walk-in',
-          s.branch?.branchName || '',
-          Number(Number(s.subtotal).toFixed(2)),
-          Number(Number(s.discountAmount).toFixed(2)),
-          Number(Number(s.taxAmount).toFixed(2)),
-          Number(Number(s.totalAmount).toFixed(2)),
-          Number(Number(s.amountPaid).toFixed(2)),
-          Number(Number(s.changeAmount).toFixed(2)),
-          s.paymentStatus,
-          s.saleType,
+        ...this.reportData.sales.map((sale) => [
+          sale.saleNumber,
+          sale.saleDate ? new Date(sale.saleDate).toLocaleDateString('en-PH') : '',
+          sale.customer ? `${sale.customer.firstName} ${sale.customer.lastName}` : 'Walk-in',
+          sale.branch?.branchName || '',
+          Number(Number(sale.subtotal).toFixed(2)),
+          Number(Number(sale.discountAmount).toFixed(2)),
+          Number(Number(sale.taxAmount).toFixed(2)),
+          Number(Number(sale.totalAmount).toFixed(2)),
+          Number(Number(sale.amountPaid).toFixed(2)),
+          Number(Number(sale.changeAmount).toFixed(2)),
+          sale.paymentStatus,
+          sale.saleType,
         ]),
       ];
       XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(txRows), 'Transactions');

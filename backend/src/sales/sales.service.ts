@@ -104,7 +104,7 @@ export class SalesService {
 
   async findAll(): Promise<Sale[]> {
     const sales = await this.saleRepository.find({
-      relations: ['branch', 'customer', 'cashier'],
+      relations: ['branch', 'customer', 'cashier', 'payments'],
       order: { saleDate: 'DESC' },
     });
     return this.withCashierNames(sales);

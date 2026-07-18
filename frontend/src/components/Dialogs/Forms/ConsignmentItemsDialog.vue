@@ -139,7 +139,7 @@
                             <th style="width:34%">Name of Item</th>
                             <th style="width:18%">Consigned Price</th>
                             <th style="width:18%">Selling Price</th>
-                            <th style="width:14%">Commission %</th>
+                            <th style="width:14%">Commission (₱)</th>
                             <th style="width:16%">Auto-filled</th>
                             <th style="width:40px"></th>
                           </tr>
@@ -182,10 +182,10 @@
                             <td>
                               <v-text-field
                                 v-model.number="row.commissionRate"
-                                type="number" step="0.01" min="0" max="100"
+                                type="number" step="0.01" min="0"
                                 density="compact" variant="outlined"
-                                hide-details suffix="%"
-                                placeholder="0"
+                                hide-details prefix="₱"
+                                placeholder="0.00"
                               />
                             </td>
                             <td class="autofill-cell">
@@ -258,10 +258,10 @@
                   <v-col cols="12" md="4" class="mb-3">
                     <v-text-field
                       v-model.number="commissionRate"
-                      label="Commission Rate"
-                      type="number" step="0.01" min="0" max="100"
+                      label="Commission Amount"
+                      type="number" step="0.01" min="0"
                       outlined dense color="primary"
-                      suffix="%" hint="Commission percentage" persistent-hint
+                      prefix="₱" hint="Fixed commission amount" persistent-hint
                     />
                   </v-col>
                 </template>
@@ -405,9 +405,9 @@ export default {
 
   methods: {
     calcCommission(consignedPrice, sellingPrice) {
-      if (!sellingPrice || sellingPrice <= 0 || consignedPrice == null) return null;
-      const rate = ((sellingPrice - consignedPrice) / sellingPrice) * 100;
-      return rate < 0 ? 0 : Math.round(rate * 100) / 100;
+      if (sellingPrice == null || consignedPrice == null) return null;
+      const amount = Number(sellingPrice) - Number(consignedPrice);
+      return amount < 0 ? 0 : Math.round(amount * 100) / 100;
     },
 
     recalcRowCommission(idx) {
