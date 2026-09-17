@@ -60,6 +60,7 @@
             <option :value="10">10</option>
             <option :value="25">25</option>
             <option :value="50">50</option>
+            <option :value="ALL_PER_PAGE">All</option>
           </select>
         </div>
       </div>
@@ -659,6 +660,7 @@ export default {
     action: null,
     currentPage: 1,
     perPage: 10,
+    ALL_PER_PAGE: 999999,
     sortKey: "itemCode",
     sortDir: "asc",
     dialogConfirmDelete: false,
@@ -762,6 +764,14 @@ export default {
     },
   },
 
+  watch: {
+    search() {
+      // Without this, searching while on page 2+ can slice past the (now much
+      // shorter) filtered results, showing "no results" even for real matches.
+      this.currentPage = 1;
+    },
+  },
+
   mounted() {
     if (this.userBranchId) this.filterBranch = this.userBranchId;
     this.initialize();
@@ -769,7 +779,8 @@ export default {
     this.loadJewelryTypes();
     this.loadBranches();
     eventBus.on("closeJewelryItemsDialog", () => {
-      this.initialize();
+      // Refresh the data after add/edit/cancel without jumping back to page 1.
+      this.initialize(false);
     });
   },
 
@@ -865,9 +876,9 @@ export default {
       });
     },
 
-    initialize() {
+    initialize(resetPage = true) {
       this.loading = true;
-      this.currentPage = 1;
+      if (resetPage) this.currentPage = 1;
       let url = "/jewelry-items";
       const params = [];
       if (this.filterCategory) params.push(`categoryId=${this.filterCategory}`);
