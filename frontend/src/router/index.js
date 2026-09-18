@@ -42,6 +42,7 @@ import TransactionHistory from '@/views/Pages/TransactionHistory.vue';
 import SalesReport from '@/views/Pages/SalesReport.vue';
 import InventoryReport from '@/views/Pages/InventoryReport.vue';
 import NotificationsTest from '@/views/Pages/NotificationsTest.vue';
+import PrintTest from '@/views/Pages/PrintTest.vue';
 import AssignNotificationBell from '@/views/Pages/AssignNotificationBell.vue';
 // import OPCR from "../views/Pages/OPCR.vue";
 // Vue.use(VueRouter);
@@ -310,6 +311,11 @@ const routes = [
         path: "notifications-test",
         component: NotificationsTest,
         meta: { title: "Notifications Test Center", authRequired: true },
+      },
+      {
+        path: "print-test",
+        component: PrintTest,
+        meta: { title: "Receipt Print Test", authRequired: true },
       },
     ],
   },
