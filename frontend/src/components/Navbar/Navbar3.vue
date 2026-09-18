@@ -265,6 +265,15 @@ export default {
             icon: "mdi-test-tube",
             route: "/notifications-test",
           });
+          // Owner/admin only — a branch_id on the account means it's a branch-scoped
+          // staff account, not the owner/admin tier.
+          if (!this.$store.state.user?.branchId) {
+            this.links.push({
+              title: "Print Test",
+              icon: "mdi-printer-outline",
+              route: "/print-test",
+            });
+          }
           if (userTypeID === 1) this.userType = "admin";
           else if (userTypeID === 2 && roleID === 5)
             this.userType = "superadmin";
