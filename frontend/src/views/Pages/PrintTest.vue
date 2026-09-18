@@ -22,7 +22,13 @@
           <div class="job-icon"><v-icon size="18" color="#9B6B3A">{{ preset.icon }}</v-icon></div>
           <div class="job-title">{{ preset.title }}</div>
           <div class="job-desc">{{ preset.desc }}</div>
-          <button class="btn-run" @click="printPreset(preset)">Print Sample</button>
+          <div class="job-btn-row">
+            <button class="btn-run" @click="printPreset(preset)">Print</button>
+            <button class="btn-run btn-run-pdf" :disabled="savingPresetKey === preset.key" @click="savePresetPdf(preset)">
+              <span v-if="savingPresetKey === preset.key" class="spin"></span>
+              {{ savingPresetKey === preset.key ? "Saving..." : "Save PDF" }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -48,14 +54,24 @@
         </div>
       </div>
 
-      <button
-        class="btn-send"
-        :disabled="!selectedReceiptId || loadingReceipt"
-        @click="printSelectedReceipt"
-      >
-        <span v-if="loadingReceipt" class="spin"></span>
-        {{ loadingReceipt ? "Loading..." : "Print (Test)" }}
-      </button>
+      <div class="btn-row">
+        <button
+          class="btn-send"
+          :disabled="!selectedReceiptId || loadingReceipt"
+          @click="printSelectedReceipt"
+        >
+          <span v-if="loadingReceipt" class="spin"></span>
+          {{ loadingReceipt ? "Loading..." : "Print (Test)" }}
+        </button>
+        <button
+          class="btn-send btn-send-pdf"
+          :disabled="!selectedReceiptId || savingReceiptPdf"
+          @click="savePdfSelectedReceipt"
+        >
+          <span v-if="savingReceiptPdf" class="spin"></span>
+          {{ savingReceiptPdf ? "Saving..." : "Save PDF (Test)" }}
+        </button>
+      </div>
     </div>
 
     <!-- ── ACTIVITY LOG ── -->
@@ -96,6 +112,8 @@
 </template>
 
 <script>
+import { downloadReceiptPdf } from "@/utils/receiptPdf";
+
 export default {
   name: "PrintTest",
 
@@ -104,6 +122,8 @@ export default {
       receiptList: [],
       selectedReceiptId: null,
       loadingReceipt: false,
+      savingReceiptPdf: false,
+      savingPresetKey: null,
       activityLog: [],
       fadeAwayMessage: { show: false, type: "success", header: "", message: "", top: 10 },
 
@@ -254,79 +274,95 @@ ${payLines}
       return true;
     },
 
-    printPreset(preset) {
+    buildPresetData(preset) {
       const now = new Date().toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" });
       const baseItems = [
         { name: "LANA", code: "LG866", details: "Lab Grown", price: 329890 },
         { name: "NICOLE", code: "LG795", details: "Lab Grown", price: 196900 },
       ];
 
-      let d;
       if (preset.key === "regular") {
-        d = {
+        return {
           receiptNumber: "TEST-0001", saleNumber: "SN-TEST-0001", saleDate: now,
           customerName: "Juan Dela Cruz", reprints: 0, items: baseItems,
           subtotal: 526790, discountAmt: 0, taxAmt: 0, totalAmount: 526790,
           amountPaid: 526790, changeAmt: 0, paymentStatus: "paid", isInstallment: false, isTest: true,
         };
-      } else if (preset.key === "discount") {
+      }
+      if (preset.key === "discount") {
         const subtotal = 526790, discountAmt = 20000, taxAmt = (subtotal - discountAmt) * 0.12;
-        d = {
+        return {
           receiptNumber: "TEST-0002", saleNumber: "SN-TEST-0002", saleDate: now,
           customerName: "Maria Santos", reprints: 0, items: baseItems,
           subtotal, discountAmt, taxAmt, totalAmount: subtotal - discountAmt + taxAmt,
           amountPaid: subtotal - discountAmt + taxAmt, changeAmt: 0, paymentStatus: "paid",
           isInstallment: false, isTest: true,
         };
-      } else if (preset.key === "layaway") {
-        d = {
+      }
+      if (preset.key === "layaway") {
+        return {
           receiptNumber: "TEST-0003", saleNumber: "SN-TEST-0003", saleDate: now,
           customerName: "Pedro Reyes", reprints: 0, items: [baseItems[0]],
           subtotal: 329890, discountAmt: 0, taxAmt: 0, totalAmount: 329890,
           amountPaid: 100000, changeAmt: 0, paymentStatus: "partial", isInstallment: true, isTest: true,
         };
-      } else {
-        d = {
-          receiptNumber: "TEST-0004", saleNumber: "SN-TEST-0004", saleDate: now,
-          customerName: "Ana Lim", reprints: 1, items: baseItems,
-          subtotal: 526790, discountAmt: 0, taxAmt: 0, totalAmount: 526790,
-          amountPaid: 526790, changeAmt: 5000, paymentStatus: "paid", isInstallment: false, isTest: true,
-        };
       }
+      return {
+        receiptNumber: "TEST-0004", saleNumber: "SN-TEST-0004", saleDate: now,
+        customerName: "Ana Lim", reprints: 1, items: baseItems,
+        subtotal: 526790, discountAmt: 0, taxAmt: 0, totalAmount: 526790,
+        amountPaid: 526790, changeAmt: 5000, paymentStatus: "paid", isInstallment: false, isTest: true,
+      };
+    },
 
-      const ok = this.openPrintWindow(this.buildReceiptHtml(d));
+    printPreset(preset) {
+      const ok = this.openPrintWindow(this.buildReceiptHtml(this.buildPresetData(preset)));
       this.addLog(`Sample: ${preset.title}`, ok, ok ? "Print window opened." : "Popup blocked.");
     },
 
-    async printSelectedReceipt() {
-      const item = this.receiptList.find((r) => r.id === this.selectedReceiptId);
-      if (!item) return;
-
-      this.loadingReceipt = true;
+    async savePresetPdf(preset) {
+      this.savingPresetKey = preset.key;
       try {
-        let saleItems = [];
-        if (item.sale?.id) {
-          const r = await this.axiosCall(`/sale-items/sale/${item.sale.id}`, "GET");
-          saleItems = r?.data || [];
-        }
+        const html = this.buildReceiptHtml(this.buildPresetData(preset));
+        await downloadReceiptPdf(html, `Receipt-${preset.key}-sample.pdf`);
+        this.addLog(`Sample PDF: ${preset.title}`, true, "PDF downloaded.");
+      } catch (error) {
+        this.addLog(`Sample PDF: ${preset.title}`, false, "Failed to generate PDF.");
+        this.notify(false, "Failed", "Failed to generate PDF.");
+      } finally {
+        this.savingPresetKey = null;
+      }
+    },
 
-        const sale = item.sale || {};
-        const customerName = sale.customer ? `${sale.customer.firstName} ${sale.customer.lastName}` : null;
-        const rawDate = sale.saleDate || item.printedAt;
+    async buildSelectedReceiptData() {
+      const item = this.receiptList.find((r) => r.id === this.selectedReceiptId);
+      if (!item) return null;
 
-        const items = saleItems.length
-          ? saleItems.map((si) => {
-              const ji = si.jewelryItem || {};
-              const isJewelry = !!(ji.jewelryTypeId || ji.stoneTypeId);
-              const name = ji.name || ji.description || ji.itemCode || "—";
-              const details = isJewelry
-                ? [ji.stoneType?.name].filter(Boolean).join(" · ")
-                : [ji.name, ji.description ? ji.description.substring(0, 40) : ""].filter(Boolean).join(" · ");
-              return { name, code: ji.itemCode || "", details, price: si.lineTotal };
-            })
-          : [];
+      let saleItems = [];
+      if (item.sale?.id) {
+        const r = await this.axiosCall(`/sale-items/sale/${item.sale.id}`, "GET");
+        saleItems = r?.data || [];
+      }
 
-        const d = {
+      const sale = item.sale || {};
+      const customerName = sale.customer ? `${sale.customer.firstName} ${sale.customer.lastName}` : null;
+      const rawDate = sale.saleDate || item.printedAt;
+
+      const items = saleItems.length
+        ? saleItems.map((si) => {
+            const ji = si.jewelryItem || {};
+            const isJewelry = !!(ji.jewelryTypeId || ji.stoneTypeId);
+            const name = ji.name || ji.description || ji.itemCode || "—";
+            const details = isJewelry
+              ? [ji.stoneType?.name].filter(Boolean).join(" · ")
+              : [ji.name, ji.description ? ji.description.substring(0, 40) : ""].filter(Boolean).join(" · ");
+            return { name, code: ji.itemCode || "", details, price: si.lineTotal };
+          })
+        : [];
+
+      return {
+        item,
+        d: {
           receiptNumber: item.receiptNumber,
           saleNumber: sale.saleNumber,
           saleDate: rawDate ? new Date(rawDate).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" }) : "",
@@ -342,16 +378,39 @@ ${payLines}
           paymentStatus: sale.paymentStatus,
           isInstallment: sale.saleType === "layaway",
           isTest: true,
-        };
+        },
+      };
+    },
 
-        const ok = this.openPrintWindow(this.buildReceiptHtml(d));
-        this.addLog(`Existing: ${item.receiptNumber}`, ok, ok ? "Print window opened (not recorded as a reprint)." : "Popup blocked.");
+    async printSelectedReceipt() {
+      this.loadingReceipt = true;
+      try {
+        const result = await this.buildSelectedReceiptData();
+        if (!result) return;
+        const ok = this.openPrintWindow(this.buildReceiptHtml(result.d));
+        this.addLog(`Existing: ${result.item.receiptNumber}`, ok, ok ? "Print window opened (not recorded as a reprint)." : "Popup blocked.");
       } catch (error) {
         const msg = error?.response?.data?.message || "Failed to load receipt data";
-        this.addLog(`Existing: ${item.receiptNumber}`, false, msg);
+        this.addLog("Existing receipt", false, msg);
         this.notify(false, "Failed", msg);
       } finally {
         this.loadingReceipt = false;
+      }
+    },
+
+    async savePdfSelectedReceipt() {
+      this.savingReceiptPdf = true;
+      try {
+        const result = await this.buildSelectedReceiptData();
+        if (!result) return;
+        await downloadReceiptPdf(this.buildReceiptHtml(result.d), `Receipt-${result.item.receiptNumber}.pdf`);
+        this.addLog(`Existing PDF: ${result.item.receiptNumber}`, true, "PDF downloaded (not recorded as a reprint).");
+      } catch (error) {
+        const msg = error?.response?.data?.message || "Failed to generate PDF";
+        this.addLog("Existing receipt PDF", false, msg);
+        this.notify(false, "Failed", msg);
+      } finally {
+        this.savingReceiptPdf = false;
       }
     },
   },
@@ -403,6 +462,15 @@ ${payLines}
 .btn-run:hover:not([disabled]), .btn-send:hover:not([disabled]) { background: #C49455; }
 .btn-run[disabled], .btn-send[disabled] { opacity: 0.6; cursor: default; }
 .btn-send { width: auto; padding: 10px 22px; margin-top: 14px; }
+
+.job-btn-row { display: flex; gap: 8px; }
+.btn-run-pdf { background: #6B4A30; }
+.btn-run-pdf:hover:not([disabled]) { background: #8A6142; }
+
+.btn-row { display: flex; gap: 10px; margin-top: 14px; }
+.btn-row .btn-send { margin-top: 0; }
+.btn-send-pdf { background: #6B4A30; }
+.btn-send-pdf:hover:not([disabled]) { background: #8A6142; }
 
 .btn-clear {
   background: none; border: 1px solid rgba(155,107,58,0.16); padding: 6px 12px;

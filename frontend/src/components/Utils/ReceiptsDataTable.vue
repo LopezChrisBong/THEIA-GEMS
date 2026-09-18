@@ -69,6 +69,7 @@
                 <div class="act-btns">
                   <button class="act-btn view-btn" title="View Receipt" @click="viewItem(item)"><v-icon size="14">mdi-eye-outline</v-icon></button>
                   <button class="act-btn print-btn" title="Print" @click="printReceipt(item)"><v-icon size="14">mdi-printer</v-icon></button>
+                  <button class="act-btn pdf-btn" title="Save PDF" :disabled="savingPdfId === item.id" @click="savePdfReceipt(item)"><v-icon size="14">{{ savingPdfId === item.id ? 'mdi-loading mdi-spin' : 'mdi-file-pdf-box' }}</v-icon></button>
                   <button class="act-btn" title="Edit" @click="editItem(item)"><v-icon size="14">mdi-pencil-outline</v-icon></button>
                   <button class="act-btn del" title="Delete" @click="deleteItem(item)"><v-icon size="14">mdi-delete-outline</v-icon></button>
                 </div>
@@ -247,6 +248,7 @@
 <script>
 import ReceiptsDialog from "../../components/Dialogs/Forms/ReceiptsDialog.vue";
 import eventBus from "@/eventBus";
+import { downloadReceiptPdf } from "@/utils/receiptPdf";
 
 export default {
   components: { ReceiptsDialog },
@@ -254,6 +256,7 @@ export default {
     search: "", filterPrint: null, data: [], deleteData: null, updateData: null,
     loading: false, deleting: false, action: null, dialogConfirmDelete: false,
     dialogView: false, viewData: null, saleItems: [], saleItemsLoading: false,
+    savingPdfId: null,
     fadeAwayMessage: { show: false, type: "success", header: "Success", message: "", top: 10 },
   }),
   computed: {
@@ -303,7 +306,7 @@ export default {
           .finally(() => { this.saleItemsLoading = false; });
       }
     },
-    async printReceipt(item) {
+    async buildReceiptHtml(item) {
       const fmt = (v) => "₱" + Number(v || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
       // Fetch sale items
@@ -396,8 +399,20 @@ ${payLines}
 </div>
 </body></html>`;
 
+      return html;
+    },
+
+    recordPrint(item) {
+      const userId = this.$store?.state?.user?.userID || this.$store?.state?.user?.id;
+      this.axiosCall("/receipts/" + item.id + "/print", "POST", { printedBy: userId })
+        .then(() => this.initialize())
+        .catch(() => {});
+    },
+
+    async printReceipt(item) {
+      const html = await this.buildReceiptHtml(item);
       const win = window.open("", "_blank", "width=340,height=700,toolbar=0,menubar=0,scrollbars=1");
-      if (!win) { alert("Please allow popups to print receipts."); return; }
+      if (!win) { this.fadeAwayMessage = { show: true, type: "error", header: "Popup Blocked", message: "Please allow popups to print receipts.", top: 10 }; return; }
       win.document.write(html);
       win.document.close();
       win.focus();
@@ -406,11 +421,20 @@ ${payLines}
         win.onafterprint = () => win.close();
       }, 250);
 
-      // Record the print/reprint on the backend
-      const userId = this.$store?.state?.user?.userID || this.$store?.state?.user?.id;
-      this.axiosCall("/receipts/" + item.id + "/print", "POST", { printedBy: userId })
-        .then(() => this.initialize())
-        .catch(() => {});
+      this.recordPrint(item);
+    },
+
+    async savePdfReceipt(item) {
+      this.savingPdfId = item.id;
+      try {
+        const html = await this.buildReceiptHtml(item);
+        await downloadReceiptPdf(html, `Receipt-${item.receiptNumber}.pdf`);
+        this.recordPrint(item);
+      } catch (error) {
+        this.fadeAwayMessage = { show: true, type: "error", header: "Error", message: "Failed to generate PDF", top: 10 };
+      } finally {
+        this.savingPdfId = null;
+      }
     },
     deleteItem(item) { this.dialogConfirmDelete = true; this.deleteData = item; },
     confirmDelete() {
@@ -462,6 +486,8 @@ td.mono, .mono { font-family: monospace; font-size: 12px; color: #9B6B3A; font-w
 .act-btn:hover { border-color: #C49455; color: #9B6B3A; background: #EDE0CC; }
 .act-btn.del:hover { border-color: rgba(184,64,64,0.4); color: #B84040; background: rgba(184,64,64,0.06); }
 .act-btn.print-btn:hover { border-color: #3D7A5A; color: #3D7A5A; background: rgba(61,122,90,0.06); }
+.act-btn.pdf-btn:hover { border-color: #B84040; color: #B84040; background: rgba(184,64,64,0.06); }
+.act-btn.pdf-btn[disabled] { opacity: 0.5; cursor: default; }
 .act-btn.view-btn:hover { border-color: #5A7A9B; color: #5A7A9B; background: rgba(90,122,155,0.06); }
 
 /* ── Receipt View Modal ── */

@@ -419,10 +419,15 @@
         </div>
 
         <div class="receipt-actions">
-          <button class="btn-ghost" style="margin-top:0;flex:1" @click="closeReceipt">Close</button>
           <button class="btn-print-rcpt" @click="printReceipt">
             <v-icon size="14" style="margin-right:5px">mdi-printer-outline</v-icon>Print
           </button>
+          <button class="btn-print-rcpt" :disabled="savingPdf" @click="savePdfReceipt">
+            <v-icon size="14" style="margin-right:5px">{{ savingPdf ? 'mdi-loading mdi-spin' : 'mdi-file-pdf-box' }}</v-icon>{{ savingPdf ? "Saving..." : "Save PDF" }}
+          </button>
+        </div>
+        <div class="receipt-actions" style="margin-top:8px">
+          <button class="btn-ghost" style="margin-top:0;flex:1" @click="closeReceipt">Close</button>
           <button class="btn-charge" style="margin-top:0;flex:1" @click="closeReceipt">New Sale</button>
         </div>
       </div>
@@ -500,12 +505,15 @@
 </template>
 
 <script>
+import { downloadReceiptPdf } from "@/utils/receiptPdf";
+
 export default {
   name: "PointOfSaleDataTable",
   data() {
     return {
       currentTime: "--:--",
       timeInterval: null,
+      savingPdf: false,
 
       searchCode: "",
       availableItems: [],
@@ -1156,9 +1164,9 @@ export default {
       this.receiptData = null;
     },
 
-    printReceipt() {
+    buildReceiptHtml() {
       const r = this.receiptData;
-      if (!r) return;
+      if (!r) return null;
       const fmt = (v) =>
         "₱" + Number(v || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
@@ -1243,6 +1251,12 @@ ${payLines}
 </div>
 </body></html>`;
 
+      return html;
+    },
+
+    printReceipt() {
+      const html = this.buildReceiptHtml();
+      if (!html) return;
       const win = window.open("", "_blank", "width=340,height=700,toolbar=0,menubar=0,scrollbars=1");
       if (!win) { alert("Please allow popups to print receipts."); return; }
       win.document.write(html);
@@ -1252,6 +1266,19 @@ ${payLines}
         win.print();
         win.onafterprint = () => win.close();
       }, 250);
+    },
+
+    async savePdfReceipt() {
+      const html = this.buildReceiptHtml();
+      if (!html) return;
+      this.savingPdf = true;
+      try {
+        await downloadReceiptPdf(html, `Receipt-${this.receiptData.receiptNumber}.pdf`);
+      } catch (error) {
+        alert("Failed to generate PDF. Please try again.");
+      } finally {
+        this.savingPdf = false;
+      }
     },
   },
 };
@@ -1755,7 +1782,8 @@ ${payLines}
   font-family: 'Outfit', sans-serif; color: #9B6B3A; cursor: pointer;
   transition: all 0.13s; letter-spacing: 0.04em;
 }
-.btn-print-rcpt:hover { background: #EDE0CC; border-color: #9B6B3A; }
+.btn-print-rcpt:hover:not([disabled]) { background: #EDE0CC; border-color: #9B6B3A; }
+.btn-print-rcpt[disabled] { opacity: 0.6; cursor: default; }
 
 /* ─── TERMS & CONDITIONS MODAL ─── */
 .terms-overlay {
