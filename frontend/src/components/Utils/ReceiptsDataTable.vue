@@ -248,7 +248,7 @@
 <script>
 import ReceiptsDialog from "../../components/Dialogs/Forms/ReceiptsDialog.vue";
 import eventBus from "@/eventBus";
-import { downloadReceiptPdf } from "@/utils/receiptPdf";
+import { downloadReceiptPdf, money } from "@/utils/receiptPdf";
 
 export default {
   components: { ReceiptsDialog },
@@ -402,6 +402,58 @@ ${payLines}
       return html;
     },
 
+    // Structured equivalent of buildReceiptHtml(), for the vector-text PDF generator.
+    async buildReceiptData(item) {
+      let saleItems = [];
+      if (item.sale?.id) {
+        try {
+          const r = await this.axiosCall(`/sale-items/sale/${item.sale.id}`, "GET");
+          saleItems = r?.data || [];
+        } catch (_) { /* ignore */ }
+      }
+
+      const sale = item.sale || {};
+      const customerName = sale.customer ? `${sale.customer.firstName} ${sale.customer.lastName}` : null;
+      const rawDate = sale.saleDate || item.printedAt;
+      const saleDate = rawDate ? new Date(rawDate).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" }) : "";
+      const isInstallment = sale.saleType === "layaway";
+      const discountAmt = Number(sale.discountAmount || 0);
+      const taxAmt = Number(sale.taxAmount || 0);
+      const changeAmt = Number(sale.changeAmount || 0);
+      const reprints = item.reprintCount || 0;
+
+      const items = saleItems.length
+        ? saleItems.map((si) => {
+            const ji = si.jewelryItem || {};
+            const isJewelry = !!(ji.jewelryTypeId || ji.stoneTypeId);
+            const name = ji.name || ji.description || ji.itemCode || "—";
+            const details = isJewelry
+              ? [ji.stoneType?.name].filter(Boolean).join(" · ")
+              : [ji.name, ji.description ? ji.description.substring(0, 40) : ""].filter(Boolean).join(" · ");
+            return { name, code: ji.itemCode || "", details, price: si.lineTotal };
+          })
+        : [];
+
+      const paymentLines = [{ label: "Amount Paid", value: money(sale.amountPaid) }];
+      if (changeAmt > 0) paymentLines.push({ label: "Change", value: money(changeAmt) });
+      paymentLines.push({ label: "Status", value: (sale.paymentStatus || "").replace("_", " ") });
+      if (isInstallment) paymentLines.push({ label: "INSTALLMENT PLAN", value: null, bold: true });
+
+      return {
+        receiptNumber: item.receiptNumber,
+        saleNumber: sale.saleNumber,
+        saleDate,
+        customerName,
+        reprints,
+        items,
+        subtotal: sale.subtotal,
+        discountAmt,
+        taxAmt,
+        totalAmount: sale.totalAmount,
+        paymentLines,
+      };
+    },
+
     recordPrint(item) {
       const userId = this.$store?.state?.user?.userID || this.$store?.state?.user?.id;
       this.axiosCall("/receipts/" + item.id + "/print", "POST", { printedBy: userId })
@@ -427,8 +479,8 @@ ${payLines}
     async savePdfReceipt(item) {
       this.savingPdfId = item.id;
       try {
-        const html = await this.buildReceiptHtml(item);
-        await downloadReceiptPdf(html, `Receipt-${item.receiptNumber}.pdf`);
+        const d = await this.buildReceiptData(item);
+        downloadReceiptPdf(d, `Receipt-${item.receiptNumber}.pdf`);
         this.recordPrint(item);
       } catch (error) {
         this.fadeAwayMessage = { show: true, type: "error", header: "Error", message: "Failed to generate PDF", top: 10 };
