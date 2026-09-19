@@ -505,7 +505,7 @@
 </template>
 
 <script>
-import { downloadReceiptPdf } from "@/utils/receiptPdf";
+import { downloadReceiptPdf, money } from "@/utils/receiptPdf";
 
 export default {
   name: "PointOfSaleDataTable",
@@ -1254,6 +1254,51 @@ ${payLines}
       return html;
     },
 
+    // Structured equivalent of buildReceiptHtml(), for the vector-text PDF generator.
+    buildReceiptData() {
+      const r = this.receiptData;
+      if (!r) return null;
+
+      const items = r.items.map((item) => {
+        const details = item.isJewelry
+          ? [item.stoneName].filter(Boolean).join(" · ")
+          : [item.brand, item.description ? item.description.substring(0, 40) : ""].filter(Boolean).join(" · ");
+        return { name: item.name || "", code: item.code || "", details, price: item.price };
+      });
+
+      const paymentLines = [];
+      if (r.type === "full") {
+        paymentLines.push({ label: "Amount Paid", value: money(r.amountPaid) });
+        if (r.change > 0) paymentLines.push({ label: "Change", value: money(r.change) });
+        paymentLines.push({ label: "Method", value: r.paymentMethod });
+      } else {
+        paymentLines.push({ label: "Down Payment", value: money(r.amountPaid) });
+        paymentLines.push({ label: `Monthly x${r.term}`, value: money(r.monthlyPayment) });
+        if (r.paymentMethod) paymentLines.push({ label: "Method", value: r.paymentMethod.replace("_", " ") });
+        paymentLines.push({ label: "INSTALLMENT PLAN", value: null, bold: true });
+      }
+
+      return {
+        receiptNumber: r.receiptNumber,
+        saleNumber: r.saleNumber,
+        saleDate: r.saleDate || "",
+        customerName: r.customerName,
+        reprints: 0,
+        items,
+        subtotal: r.subtotal,
+        discountAmt: r.discountAmount || 0,
+        taxAmt: 0,
+        totalAmount: r.totalAmount,
+        paymentLines,
+        policy: [
+          "A. No Voluntary Returns. All sales are final. THEIA does not accept returns or exchanges due to change of mind, preference, ordering error, size issues, or other non-defect reasons. This applies to preorders, custom/resized items, clearance, sale items, and items with custom engraving.",
+          "B. Defective, Damaged, or Wrong Items. Your rights under Philippine law are protected. Upon verification, THEIA will provide repair, replacement, refund, or other remedies under the Consumer Act and applicable laws. RA 11967, Sec. 20 (2023)",
+          "C. How to File a Claim. Notify THEIA within 1 year from date of delivery and provide: order number, recipient name, unboxing photos/videos (if applicable), and clear photos/videos of the issue. Item may be required for inspection. RA 11967, Sec. 20 (2023)",
+          "D. Exclusions. Claims may be denied if the issue was caused by unreasonable use, mishandling, accidents, unauthorized alterations/repairs, third-party resizing, normal wear and tear, or chemical exposure. RA 7394, Art. 68 (1992)",
+        ],
+      };
+    },
+
     printReceipt() {
       const html = this.buildReceiptHtml();
       if (!html) return;
@@ -1269,11 +1314,11 @@ ${payLines}
     },
 
     async savePdfReceipt() {
-      const html = this.buildReceiptHtml();
-      if (!html) return;
+      const d = this.buildReceiptData();
+      if (!d) return;
       this.savingPdf = true;
       try {
-        await downloadReceiptPdf(html, `Receipt-${this.receiptData.receiptNumber}.pdf`);
+        downloadReceiptPdf(d, `Receipt-${this.receiptData.receiptNumber}.pdf`);
       } catch (error) {
         alert("Failed to generate PDF. Please try again.");
       } finally {

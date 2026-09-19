@@ -112,7 +112,7 @@
 </template>
 
 <script>
-import { downloadReceiptPdf } from "@/utils/receiptPdf";
+import { downloadReceiptPdf, money } from "@/utils/receiptPdf";
 
 export default {
   name: "PrintTest",
@@ -192,6 +192,16 @@ export default {
 
     fmt(v) {
       return "₱" + Number(v || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    },
+
+    // Adapts the local `d` shape (built for buildReceiptHtml/print) into the
+    // paymentLines-based shape the vector-text PDF generator expects.
+    toPdfData(d) {
+      const paymentLines = [{ label: "Amount Paid", value: money(d.amountPaid) }];
+      if (d.changeAmt > 0) paymentLines.push({ label: "Change", value: money(d.changeAmt) });
+      paymentLines.push({ label: "Status", value: (d.paymentStatus || "").replace("_", " ") });
+      if (d.isInstallment) paymentLines.push({ label: "INSTALLMENT PLAN", value: null, bold: true });
+      return { ...d, paymentLines };
     },
 
     // Builds the same 80mm receipt HTML used in production (ReceiptsDataTable.vue's printReceipt).
@@ -323,8 +333,8 @@ ${payLines}
     async savePresetPdf(preset) {
       this.savingPresetKey = preset.key;
       try {
-        const html = this.buildReceiptHtml(this.buildPresetData(preset));
-        await downloadReceiptPdf(html, `Receipt-${preset.key}-sample.pdf`);
+        const d = this.toPdfData(this.buildPresetData(preset));
+        downloadReceiptPdf(d, `Receipt-${preset.key}-sample.pdf`);
         this.addLog(`Sample PDF: ${preset.title}`, true, "PDF downloaded.");
       } catch (error) {
         this.addLog(`Sample PDF: ${preset.title}`, false, "Failed to generate PDF.");
@@ -403,7 +413,7 @@ ${payLines}
       try {
         const result = await this.buildSelectedReceiptData();
         if (!result) return;
-        await downloadReceiptPdf(this.buildReceiptHtml(result.d), `Receipt-${result.item.receiptNumber}.pdf`);
+        downloadReceiptPdf(this.toPdfData(result.d), `Receipt-${result.item.receiptNumber}.pdf`);
         this.addLog(`Existing PDF: ${result.item.receiptNumber}`, true, "PDF downloaded (not recorded as a reprint).");
       } catch (error) {
         const msg = error?.response?.data?.message || "Failed to generate PDF";
