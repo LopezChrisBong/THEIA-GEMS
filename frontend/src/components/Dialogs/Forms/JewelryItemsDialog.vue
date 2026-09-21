@@ -492,8 +492,10 @@ export default {
         { label: "Yellow Gold (YG)", value: "YG" },
         { label: "White Gold (WG)", value: "WG" },
         { label: "Rose Gold (RG)", value: "RG" },
-        { label: "2-toned (YG x WG)", value: "YG x WG" },
-        { label: "2-toned (RG x WG)", value: "RG x WG" },
+        { label: "2-Toned (YG x WG)", value: "YG_WG" },
+        { label: "2-Toned (RG x WG)", value: "RG_WG" },
+        { label: "3-Toned (YG x WG x RG)", value: "THREE_TONED" },
+        { label: "2-Toned (Unspecified)", value: "TWO_TONED" },
       ],
       karatOptions: ["14K", "18K", "Platinum"],
       bandWidthOptions: [

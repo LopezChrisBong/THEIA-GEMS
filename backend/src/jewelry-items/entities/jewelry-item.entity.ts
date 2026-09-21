@@ -20,7 +20,10 @@ export enum GoldType {
   YG = 'YG',
   WG = 'WG',
   RG = 'RG',
-  TWO_TONED = 'TWO_TONED',
+  TWO_TONED = 'TWO_TONED', // legacy/unspecified 2-toned combo — kept for existing records
+  YG_WG = 'YG_WG',
+  RG_WG = 'RG_WG',
+  THREE_TONED = 'THREE_TONED',
 }
 
 export enum JewelryItemStatus {

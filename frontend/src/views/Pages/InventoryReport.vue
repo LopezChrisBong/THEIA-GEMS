@@ -144,10 +144,13 @@ const STATUS_LABELS = {
 };
 
 const GOLD_TYPE_LABELS = {
-  YG:        'Yellow Gold',
-  WG:        'White Gold',
-  RG:        'Rose Gold',
-  TWO_TONED: 'Two-Toned',
+  YG:          'Yellow Gold',
+  WG:          'White Gold',
+  RG:          'Rose Gold',
+  TWO_TONED:   '2-Toned (Unspecified)',
+  YG_WG:       '2-Toned (YG x WG)',
+  RG_WG:       '2-Toned (RG x WG)',
+  THREE_TONED: '3-Toned (YG x WG x RG)',
 };
 
 export default {
