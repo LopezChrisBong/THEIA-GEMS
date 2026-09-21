@@ -847,7 +847,10 @@ export default {
         YG: "Yellow Gold (YG)",
         WG: "White Gold (WG)",
         RG: "Rose Gold (RG)",
-        TWO_TONED: "Two-Toned",
+        TWO_TONED: "2-Toned (Unspecified)",
+        YG_WG: "2-Toned (YG x WG)",
+        RG_WG: "2-Toned (RG x WG)",
+        THREE_TONED: "3-Toned (YG x WG x RG)",
       };
       return labels[goldType] || goldType;
     },
@@ -1084,8 +1087,14 @@ export default {
         WG: "WG",
         RG: "RG",
         "2T": "TWO_TONED",
-        "WG/YG": "TWO_TONED",
-        "YG/WG": "TWO_TONED",
+        "WG/YG": "YG_WG",
+        "YG/WG": "YG_WG",
+        "WG/RG": "RG_WG",
+        "RG/WG": "RG_WG",
+        "3T": "THREE_TONED",
+        "YG/WG/RG": "THREE_TONED",
+        "YG/RG/WG": "THREE_TONED",
+        "WG/YG/RG": "THREE_TONED",
       };
       return map[key] || null;
     },
@@ -1303,6 +1312,7 @@ export default {
         if (goldVal === "YG" || goldVal.includes("YELLOW")) goldType = "YG";
         else if (goldVal === "WG" || goldVal.includes("WHITE")) goldType = "WG";
         else if (goldVal === "RG" || goldVal.includes("ROSE")) goldType = "RG";
+        else if (goldVal.includes("THREE") || goldVal.includes("3")) goldType = "THREE_TONED";
         else if (goldVal.includes("TWO") || goldVal.includes("2")) goldType = "TWO_TONED";
 
         // Price
