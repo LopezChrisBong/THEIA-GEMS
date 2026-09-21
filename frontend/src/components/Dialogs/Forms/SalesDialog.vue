@@ -63,6 +63,7 @@
                     color="primary"
                     hint="Type of sale"
                     persistent-hint
+                    :disabled="action === 'Update'"
                   />
                 </v-col>
 
@@ -86,6 +87,7 @@
                     color="primary"
                     hint="Select branch"
                     persistent-hint
+                    :disabled="action === 'Update'"
                   />
                 </v-col>
 
@@ -102,6 +104,7 @@
                     color="primary"
                     hint="Select customer (optional)"
                     persistent-hint
+                    :disabled="action === 'Update'"
                   />
                 </v-col>
 
@@ -127,6 +130,7 @@
                     hint="Subtotal before discount/tax"
                     persistent-hint
                     @update:modelValue="calculateTotal"
+                    :disabled="action === 'Update'"
                   />
                 </v-col>
 
@@ -144,6 +148,7 @@
                     hint="Discount amount"
                     persistent-hint
                     @update:modelValue="calculateTotal"
+                    :disabled="action === 'Update'"
                   />
                 </v-col>
 
@@ -161,6 +166,7 @@
                     hint="Tax amount"
                     persistent-hint
                     @update:modelValue="calculateTotal"
+                    :disabled="action === 'Update'"
                   />
                 </v-col>
 
@@ -197,6 +203,7 @@
                     hint="Amount received"
                     persistent-hint
                     @update:modelValue="calculateChange"
+                    :disabled="action === 'Update'"
                   />
                 </v-col>
 
@@ -236,6 +243,7 @@
                     color="primary"
                     hint="Current payment status"
                     persistent-hint
+                    :disabled="action === 'Update'"
                   />
                 </v-col>
 
@@ -251,6 +259,7 @@
                     rows="2"
                     hint="Additional notes"
                     persistent-hint
+                    :disabled="action === 'Update'"
                   />
                 </v-col>
               </v-row>
@@ -533,19 +542,10 @@ export default {
       if (!valid) return;
 
       this.loading = true;
+      // Only Sale Date is editable here — every other field is locked in the form,
+      // so only send the one field that can actually change.
       const data = {
-        branchId: this.branchId,
-        customerId: this.customerId || null,
         saleDate: this.saleDate,
-        subtotal: this.subtotal,
-        discountAmount: this.discountAmount || 0,
-        taxAmount: this.taxAmount || 0,
-        totalAmount: this.totalAmount,
-        amountPaid: this.amountPaid || 0,
-        changeAmount: this.changeAmount || 0,
-        paymentStatus: this.paymentStatus,
-        saleType: this.saleType,
-        notes: this.notes || null,
       };
 
       this.axiosCall("/sales/" + this.id, "PATCH", data)

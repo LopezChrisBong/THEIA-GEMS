@@ -94,6 +94,9 @@
                   <button class="act-btn view-btn" title="View Sale" @click="viewSale(item)">
                     <v-icon size="14">mdi-eye-outline</v-icon>
                   </button>
+                  <button class="act-btn edit-btn" title="Edit Sale" @click="editSale(item)">
+                    <v-icon size="14">mdi-pencil-outline</v-icon>
+                  </button>
                 </div>
               </td>
             </tr>
@@ -322,6 +325,8 @@
       </v-card>
     </v-dialog>
 
+    <SalesDialog :data="updateData" action="Update" />
+
     <fade-away-message-component
       displayType="variation2"
       v-model="fadeAwayMessage.show"
@@ -334,7 +339,10 @@
 </template>
 
 <script>
+import SalesDialog from "../../components/Dialogs/Forms/SalesDialog.vue";
+import eventBus from "@/eventBus";
 export default {
+  components: { SalesDialog },
   data: () => ({
     search: "",
     filterStatus: null,
@@ -346,6 +354,7 @@ export default {
     loading: false,
     dialogView: false,
     viewData: null,
+    updateData: null,
     payments: [],
     receipt: null,
     saleItems: [],
@@ -399,6 +408,11 @@ export default {
 
   mounted() {
     this.initialize();
+    eventBus.on("closeSalesDialog", () => this.initialize());
+  },
+
+  beforeUnmount() {
+    eventBus.off("closeSalesDialog");
   },
 
   methods: {
@@ -464,6 +478,10 @@ export default {
         .then((res) => { if (res?.data) this.data = res.data; })
         .catch(() => { this.fadeAwayMessage = { show: true, type: "error", header: "Error", message: "Failed to load sales", top: 10 }; })
         .finally(() => { this.loading = false; });
+    },
+
+    editSale(item) {
+      this.updateData = { ...item };
     },
 
     viewSale(item) {
@@ -545,6 +563,7 @@ export default {
 .act-btns { display: flex; align-items: center; gap: 4px; }
 .act-btn { width: 27px; height: 27px; border-radius: 7px; border: 1px solid rgba(155,107,58,0.16); background: #F5EFE4; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.12s; color: #9A7858; }
 .act-btn.view-btn:hover { border-color: #5A7A9B; color: #5A7A9B; background: rgba(90,122,155,0.06); }
+.act-btn.edit-btn:hover { border-color: #9B6B3A; color: #9B6B3A; background: rgba(155,107,58,0.08); }
 
 .cust-pagination { display: flex; align-items: center; justify-content: space-between; padding: 11px 18px; border-top: 1px solid rgba(155,107,58,0.16); background: #F5EFE4; }
 .pg-info { font-size: 12px; color: #9A7858; }
