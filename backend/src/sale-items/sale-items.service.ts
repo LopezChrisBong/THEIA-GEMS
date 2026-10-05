@@ -47,7 +47,7 @@ export class SaleItemsService {
   async findBySale(saleId: number): Promise<SaleItem[]> {
     return this.saleItemRepository.find({
       where: { saleId },
-      relations: ['sale', 'jewelryItem', 'jewelryItem.stoneType'],
+      relations: ['sale', 'jewelryItem', 'jewelryItem.stoneType', 'jewelryItem.category'],
     });
   }
 

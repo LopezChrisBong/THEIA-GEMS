@@ -226,6 +226,7 @@ export default {
         consignments: "mdi-package",
         transfers: "mdi-swap-horizontal",
         layaway: "mdi-calendar-clock",
+        installment: "mdi-calendar-multiple-check",
         reports: "mdi-chart-bar",
         users: "mdi-account-cog",
         settings: "mdi-cog",

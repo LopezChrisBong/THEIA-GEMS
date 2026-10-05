@@ -9,6 +9,7 @@ import {
   ParseIntPipe,
   HttpCode,
   HttpStatus,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -34,6 +35,13 @@ export class CategoriesController {
   @Get()
   findAll(): Promise<Category[]> {
     return this.categoriesService.findAll();
+  }
+
+  @Get('low-stock')
+  findLowStock(
+    @Query('threshold') threshold?: string,
+  ): Promise<{ categoryId: number; categoryName: string; count: number }[]> {
+    return this.categoriesService.findLowStock(threshold ? parseInt(threshold, 10) : 20);
   }
 
   @Get(':id')

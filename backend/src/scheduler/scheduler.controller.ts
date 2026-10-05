@@ -33,9 +33,24 @@ export class SchedulerController {
     return this.schedulerService.sendOverdueAlerts();
   }
 
+  @Post('upcoming-installment-reminders')
+  upcomingInstallmentReminders() {
+    return this.schedulerService.sendUpcomingInstallmentReminders();
+  }
+
+  @Post('overdue-installment-alerts')
+  overdueInstallmentAlerts() {
+    return this.schedulerService.sendOverdueInstallmentAlerts();
+  }
+
   @Post('aged-consignment-alerts')
   agedConsignmentAlerts() {
     return this.schedulerService.sendAgedConsignmentAlerts();
+  }
+
+  @Post('low-stock-alerts')
+  lowStockAlerts() {
+    return this.schedulerService.sendLowStockAlerts();
   }
 
   @Post('daily-sales-report')

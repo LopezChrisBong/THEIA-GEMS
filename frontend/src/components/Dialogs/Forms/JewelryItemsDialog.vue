@@ -229,6 +229,21 @@
                   />
                 </v-col>
 
+                <!-- Certificate Details -->
+                <v-col cols="12" class="mb-4">
+                  <v-textarea
+                    v-model="certificateDetails"
+                    label="Certificate Details"
+                    outlined
+                    dense
+                    clearable
+                    color="primary"
+                    rows="2"
+                    hint="e.g. GIA Report #1234567890, grading lab, date issued"
+                    persistent-hint
+                  />
+                </v-col>
+
                 <!-- Divider before Pricing -->
                 <v-col cols="12" class="mb-2 mt-2">
                   <v-divider />
@@ -475,6 +490,7 @@ export default {
       supplierId: null,
       purchaseDate: null,
       notes: null,
+      certificateDetails: null,
 
       newImages: [],
       existingImages: [],
@@ -550,6 +566,7 @@ export default {
           this.supplierId = data.supplierId;
           this.purchaseDate = data.purchaseDate;
           this.notes = data.notes;
+          this.certificateDetails = data.certificateDetails;
           this.existingImages = data.images ? [...data.images] : [];
         } else {
           // Add mode: only reset if this is the first open or switching from another context.
@@ -616,6 +633,7 @@ export default {
       this.supplierId = null;
       this.purchaseDate = null;
       this.notes = null;
+      this.certificateDetails = null;
       this.newImages = [];
       this.existingImages = [];
       this.imagePreviewUrls = [];
@@ -648,6 +666,7 @@ export default {
         supplierId: this.supplierId || null,
         purchaseDate: this.purchaseDate || null,
         notes: this.notes || null,
+        certificateDetails: this.certificateDetails || null,
       };
       // Only stamp addedBy when creating a new item
       if (this.action === 'Add') {

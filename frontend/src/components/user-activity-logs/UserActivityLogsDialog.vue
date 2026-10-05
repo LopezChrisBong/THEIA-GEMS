@@ -160,6 +160,7 @@ export default {
         "consignments",
         "transfers",
         "layaway",
+        "installment",
         "reports",
         "users",
         "settings",

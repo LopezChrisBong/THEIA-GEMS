@@ -58,13 +58,13 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="(item, idx) in cartItems" :key="item.id">
+            <tr v-for="(item, idx) in cartItems" :key="item.id" class="cart-row" @click="viewItemDetail(item)">
               <td>
                 <div class="item-name">{{ item.name }}</div>
                 <div class="item-meta">{{ item.code }}<template v-if="item.meta"> · {{ item.meta }}</template></div>
               </td>
               <td class="amt-col">{{ formatCurrency(item.price) }}</td>
-              <td><button class="rm-btn" @click="removeItem(idx)">&times;</button></td>
+              <td><button class="rm-btn" @click.stop="removeItem(idx)">&times;</button></td>
             </tr>
             <tr v-if="cartItems.length === 0">
               <td colspan="3" class="empty-cart">
@@ -97,8 +97,12 @@
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M2 8h12M2 4h12M2 12h8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
           Full Payment
         </button>
-        <button class="pay-type-tab" :class="{ active: payMode === 'install' }" @click="payMode = 'install'; errorMsg = ''">
+        <button class="pay-type-tab" :class="{ active: payMode === 'layaway' }" @click="payMode = 'layaway'; errorMsg = ''">
           <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M1 7h14M5 7v6" stroke="currentColor" stroke-width="1.3"/></svg>
+          Layaway
+        </button>
+        <button class="pay-type-tab" :class="{ active: payMode === 'installment' }" @click="payMode = 'installment'; errorMsg = ''">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M2 2v12h12M5 11V7M8.5 11V4M12 11V8.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
           Installment
         </button>
       </div>
@@ -163,14 +167,28 @@
           Discount capped at {{ formatCurrency(MAX_DISCOUNT_AMOUNT) }}.
         </div>
 
+        <div class="fld-lbl" style="margin-top:12px">Additional Payments</div>
+        <div v-for="(ap, idx) in additionalPayments" :key="'ap-' + idx" class="add-pay-row">
+          <input v-model="ap.label" class="fld-inp add-pay-label" type="text" placeholder="Label (e.g. Engraving Fee)" />
+          <input v-model.number="ap.amount" class="fld-inp add-pay-amt" type="number" placeholder="0.00" min="0" />
+          <button class="add-pay-rm" type="button" @click="removeAdditionalPayment('additionalPayments', idx)">&times;</button>
+        </div>
+        <button class="btn-add-payment" type="button" @click="addAdditionalPayment('additionalPayments')">
+          <v-icon size="13">mdi-plus</v-icon> Add Additional Payment
+        </button>
+
         <div class="pay-divider"></div>
 
         <div class="brk-row"><span>Subtotal</span><span class="brk-val">{{ formatCurrency(subtotal) }}</span></div>
         <div class="brk-row"><span>Discount</span><span class="brk-discount">- {{ formatCurrency(discountAmount || 0) }}</span></div>
+        <div v-for="(ap, idx) in validAdditionalPayments" :key="'brk-ap-' + idx" class="brk-row">
+          <span>{{ ap.label || 'Additional Payment' }}</span><span class="brk-val">+ {{ formatCurrency(ap.amount) }}</span>
+        </div>
+        <div v-if="fullSurchargeAmt > 0" class="brk-row"><span>Credit Card Surcharge (+4%)</span><span class="brk-val">+ {{ formatCurrency(fullSurchargeAmt) }}</span></div>
 
         <div class="grand-row">
           <div class="grand-lbl">GRAND TOTAL</div>
-          <div class="grand-amt">{{ formatCurrency(grandTotal) }}</div>
+          <div class="grand-amt">{{ formatCurrency(fullChargeTotal) }}</div>
         </div>
 
         <div class="pay-section">
@@ -215,6 +233,10 @@
                 </select>
               </div>
             </div>
+            <label class="cc-surcharge-check">
+              <input type="checkbox" v-model="ccSurchargeFull" />
+              <span>+4% Credit Card Surcharge</span>
+            </label>
           </div>
         </div>
 
@@ -223,20 +245,20 @@
           <input v-model.number="amountTendered" class="fld-inp" type="number" placeholder="0.00" min="0" />
         </div>
 
-        <div v-if="change > 0" class="change-row">
+        <div v-if="change > 0 && payMethod !== 'credit_card'" class="change-row">
           <span>Change</span>
           <span class="change-amt">{{ formatCurrency(change) }}</span>
         </div>
 
         <button class="btn-charge" @click="confirmCharge" :disabled="loading || cartItems.length === 0">
           <span v-if="loading" class="btn-spinner"></span>
-          {{ loading ? 'Processing...' : 'CHARGE ' + formatCurrency(grandTotal) }}
+          {{ loading ? 'Processing...' : 'CHARGE ' + formatCurrency(fullChargeTotal) }}
         </button>
         <button class="btn-ghost" @click="clearCart" :disabled="loading">Clear</button>
       </div>
 
-      <!-- ── INSTALLMENT ── -->
-      <div v-if="payMode === 'install'" class="pay-form">
+      <!-- ── LAYAWAY ── -->
+      <div v-if="payMode === 'layaway'" class="pay-form">
         <div class="fld-lbl">Sales Channel</div>
         <div class="channel-tabs">
           <button class="channel-tab" :class="{ sel: salesChannel === 'walk_in' }" @click="salesChannel = 'walk_in'">
@@ -255,7 +277,7 @@
             <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3"/>
             <path d="M8 7v4M8 5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
           </svg>
-          Customer information is required for installment purchases.
+          Customer information is required for layaway purchases.
         </div>
 
         <div class="fld-lbl">Customer <span class="req">*</span></div>
@@ -304,9 +326,23 @@
         <div class="fld-lbl">Address</div>
         <input v-model="instAddress" class="fld-inp" type="text" placeholder="Street, City, Province" />
 
+        <div class="fld-lbl" style="margin-top:12px">Additional Payments</div>
+        <div v-for="(ap, idx) in instAdditionalPayments" :key="'iap-' + idx" class="add-pay-row">
+          <input v-model="ap.label" class="fld-inp add-pay-label" type="text" placeholder="Label (e.g. Engraving Fee)" />
+          <input v-model.number="ap.amount" class="fld-inp add-pay-amt" type="number" placeholder="0.00" min="0" />
+          <button class="add-pay-rm" type="button" @click="removeAdditionalPayment('instAdditionalPayments', idx)">&times;</button>
+        </div>
+        <button class="btn-add-payment" type="button" @click="addAdditionalPayment('instAdditionalPayments')">
+          <v-icon size="13">mdi-plus</v-icon> Add Additional Payment
+        </button>
+
         <div class="pay-divider"></div>
 
         <div class="brk-row"><span>Total Amount</span><span class="brk-val">{{ formatCurrency(grandTotal) }}</span></div>
+        <div v-for="(ap, idx) in validInstAdditionalPayments" :key="'brk-iap-' + idx" class="brk-row">
+          <span>{{ ap.label || 'Additional Payment' }}</span><span class="brk-val">+ {{ formatCurrency(ap.amount) }}</span>
+        </div>
+        <div v-if="layawaySurchargeAmt > 0" class="brk-row"><span>Credit Card Surcharge (+4%)</span><span class="brk-val">+ {{ formatCurrency(layawaySurchargeAmt) }}</span></div>
 
         <div class="grid-2" style="margin-top:10px">
           <div>
@@ -315,15 +351,7 @@
           </div>
           <div>
             <div class="fld-lbl">Term (months) <span class="req">*</span></div>
-            <select v-model.number="instTerm" class="fld-inp">
-              <option value="">Select</option>
-              <option :value="3">3 months</option>
-              <option :value="4">4 months</option>
-              <option :value="6">6 months</option>
-              <option :value="12">12 months</option>
-              <option :value="18">18 months</option>
-              <option :value="24">24 months</option>
-            </select>
+            <input v-model.number="instTerm" class="fld-inp" type="number" placeholder="e.g. 6" min="1" step="1" />
           </div>
         </div>
 
@@ -343,6 +371,11 @@
           </div>
         </div>
 
+        <label v-if="instPayMethod === 'credit_card'" class="cc-surcharge-check">
+          <input type="checkbox" v-model="instCcSurcharge" />
+          <span>+4% Credit Card Surcharge</span>
+        </label>
+
         <div v-if="instDP && instTerm" class="install-summary">
           <div class="inst-sum-row"><span>Balance after DP</span><span>{{ formatCurrency(instBalance) }}</span></div>
           <div class="inst-sum-row"><span>Total with Interest</span><span>{{ formatCurrency(instTotalWithInterest) }}</span></div>
@@ -352,7 +385,142 @@
         <div class="fld-lbl" style="margin-top:12px">Notes / Remarks</div>
         <input v-model="instNotes" class="fld-inp" type="text" placeholder="Optional notes..." />
 
-        <button class="btn-charge btn-install" @click="confirmInstallment" :disabled="loading || cartItems.length === 0">
+        <button class="btn-charge btn-install" @click="confirmLayaway" :disabled="loading || cartItems.length === 0">
+          <span v-if="loading" class="btn-spinner"></span>
+          {{ loading ? 'Processing...' : 'CONFIRM LAYAWAY' }}
+        </button>
+        <button class="btn-ghost" @click="clearCart" :disabled="loading">Clear</button>
+      </div>
+
+      <!-- ── INSTALLMENT ── -->
+      <div v-if="payMode === 'installment'" class="pay-form">
+        <div class="fld-lbl">Sales Channel</div>
+        <div class="channel-tabs">
+          <button class="channel-tab" :class="{ sel: salesChannel === 'walk_in' }" @click="salesChannel = 'walk_in'">
+            <v-icon size="13">mdi-store-outline</v-icon> Walk-in
+          </button>
+          <button class="channel-tab" :class="{ sel: salesChannel === 'ig' }" @click="salesChannel = 'ig'">
+            <v-icon size="13">mdi-instagram</v-icon> Instagram
+          </button>
+          <button class="channel-tab" :class="{ sel: salesChannel === 'website' }" @click="salesChannel = 'website'">
+            <v-icon size="13">mdi-web</v-icon> Website
+          </button>
+        </div>
+
+        <div class="install-notice" style="margin-top:12px">
+          <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style="flex-shrink:0">
+            <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3"/>
+            <path d="M8 7v4M8 5v.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
+          Customer information is required for installment purchases.
+        </div>
+
+        <div class="fld-lbl">Customer <span class="req">*</span></div>
+        <div class="cust-wrap" @click.stop>
+          <input
+            v-model="ipCustomer"
+            class="fld-inp"
+            type="text"
+            placeholder="Search or enter customer name..."
+            @input="searchCustomersIp"
+            @blur="hideIpCustDropdown"
+            autocomplete="off"
+            style="margin-bottom:0"
+          />
+          <div v-if="showIpCustomerDropdown && ipCustomerResults.length > 0" class="cust-dropdown">
+            <div
+              v-for="c in ipCustomerResults"
+              :key="c.id"
+              class="cust-result"
+              @mousedown.prevent="selectIpCustomer(c)"
+            >
+              <span>{{ c.firstName }} {{ c.lastName }}</span>
+              <span class="cust-sub">{{ c.phone || c.email || '' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-top:10px">
+          <div>
+            <div class="fld-lbl">Contact No. <span class="req">*</span></div>
+            <input v-model="ipPhone" class="fld-inp" type="text" placeholder="+63 9XX XXX XXXX" />
+          </div>
+          <div>
+            <div class="fld-lbl">Valid ID Type</div>
+            <select v-model="ipIdType" class="fld-inp">
+              <option value="">Select ID</option>
+              <option>PhilSys ID</option>
+              <option>Driver's License</option>
+              <option>Passport</option>
+              <option>SSS / GSIS</option>
+              <option>Postal ID</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="fld-lbl">Address</div>
+        <input v-model="ipAddress" class="fld-inp" type="text" placeholder="Street, City, Province" />
+
+        <div class="fld-lbl" style="margin-top:12px">Additional Payments</div>
+        <div v-for="(ap, idx) in ipAdditionalPayments" :key="'ipap-' + idx" class="add-pay-row">
+          <input v-model="ap.label" class="fld-inp add-pay-label" type="text" placeholder="Label (e.g. Engraving Fee)" />
+          <input v-model.number="ap.amount" class="fld-inp add-pay-amt" type="number" placeholder="0.00" min="0" />
+          <button class="add-pay-rm" type="button" @click="removeAdditionalPayment('ipAdditionalPayments', idx)">&times;</button>
+        </div>
+        <button class="btn-add-payment" type="button" @click="addAdditionalPayment('ipAdditionalPayments')">
+          <v-icon size="13">mdi-plus</v-icon> Add Additional Payment
+        </button>
+
+        <div class="pay-divider"></div>
+
+        <div class="brk-row"><span>Total Amount</span><span class="brk-val">{{ formatCurrency(grandTotal) }}</span></div>
+        <div v-for="(ap, idx) in validIpAdditionalPayments" :key="'brk-ipap-' + idx" class="brk-row">
+          <span>{{ ap.label || 'Additional Payment' }}</span><span class="brk-val">+ {{ formatCurrency(ap.amount) }}</span>
+        </div>
+        <div v-if="ipSurchargeAmt > 0" class="brk-row"><span>Credit Card Surcharge (+4%)</span><span class="brk-val">+ {{ formatCurrency(ipSurchargeAmt) }}</span></div>
+
+        <div class="grid-2" style="margin-top:10px">
+          <div>
+            <div class="fld-lbl">Down Payment <span class="req">*</span></div>
+            <input v-model.number="ipDP" class="fld-inp" type="number" placeholder="0.00" />
+          </div>
+          <div>
+            <div class="fld-lbl">Term (months) <span class="req">*</span></div>
+            <input v-model.number="ipTerm" class="fld-inp" type="number" placeholder="e.g. 6" min="1" step="1" />
+          </div>
+        </div>
+
+        <div class="grid-2" style="margin-top:10px">
+          <div>
+            <div class="fld-lbl">Interest Rate (%)</div>
+            <input v-model.number="ipRate" class="fld-inp" type="number" placeholder="e.g. 5" />
+          </div>
+          <div>
+            <div class="fld-lbl">Payment Method</div>
+            <select v-model="ipPayMethod" class="fld-inp">
+              <option value="cash">Cash</option>
+              <option value="credit_card">Credit Card</option>
+              <option value="debit_card">Debit Card</option>
+              <option value="gcash">GCash</option>
+            </select>
+          </div>
+        </div>
+
+        <label v-if="ipPayMethod === 'credit_card'" class="cc-surcharge-check">
+          <input type="checkbox" v-model="ipCcSurcharge" />
+          <span>+4% Credit Card Surcharge</span>
+        </label>
+
+        <div v-if="ipDP && ipTerm" class="install-summary">
+          <div class="inst-sum-row"><span>Balance after DP</span><span>{{ formatCurrency(ipBalance) }}</span></div>
+          <div class="inst-sum-row"><span>Total with Interest</span><span>{{ formatCurrency(ipTotalWithInterest) }}</span></div>
+          <div class="inst-sum-row highlight"><span>Monthly Payment</span><span>{{ formatCurrency(ipMonthly) }}</span></div>
+        </div>
+
+        <div class="fld-lbl" style="margin-top:12px">Notes / Remarks</div>
+        <input v-model="ipNotes" class="fld-inp" type="text" placeholder="Optional notes..." />
+
+        <button class="btn-charge btn-install" @click="confirmInstallmentPlan" :disabled="loading || cartItems.length === 0">
           <span v-if="loading" class="btn-spinner"></span>
           {{ loading ? 'Processing...' : 'CONFIRM INSTALLMENT' }}
         </button>
@@ -364,7 +532,7 @@
     <div v-if="showReceipt" class="receipt-overlay">
       <div class="receipt-modal">
         <div class="receipt-hdr">
-          <div class="receipt-brand">THEIA GEMS</div>
+          <div class="receipt-emblem"><img src="/img/theia-logo.png" alt="Theia Gems" class="receipt-emblem-logo" /></div>
           <div class="receipt-sub">Official Receipt</div>
           <div class="receipt-num">{{ receiptData.receiptNumber }}</div>
           <div class="receipt-sale-num">{{ receiptData.saleNumber }}</div>
@@ -379,6 +547,7 @@
             <div class="ri-left">
               <div class="ri-name">{{ item.name }}</div>
               <div class="ri-code">{{ item.code }}</div>
+              <div v-if="item.isJewelry && formatJewelryDetails(item)" class="ri-details">{{ formatJewelryDetails(item) }}</div>
             </div>
             <div class="ri-price">{{ formatCurrency(item.price) }}</div>
           </div>
@@ -394,6 +563,12 @@
           <div v-if="receiptData.taxAmount > 0" class="rb-row">
             <span>VAT (12%)</span><span>{{ formatCurrency(receiptData.taxAmount) }}</span>
           </div>
+          <div v-for="(ap, idx) in receiptData.additionalPayments" :key="'rb-ap-' + idx" class="rb-row">
+            <span>{{ ap.label }}</span><span>+ {{ formatCurrency(ap.amount) }}</span>
+          </div>
+          <div v-if="receiptData.ccSurchargeAmt > 0" class="rb-row">
+            <span>Credit Card Surcharge (+4%)</span><span>+ {{ formatCurrency(receiptData.ccSurchargeAmt) }}</span>
+          </div>
         </div>
 
         <div class="receipt-total-row">
@@ -404,12 +579,15 @@
         <div class="receipt-pay-info">
           <template v-if="receiptData.type === 'full'">
             <div class="rb-row"><span>Amount Paid</span><span>{{ formatCurrency(receiptData.amountPaid) }}</span></div>
-            <div v-if="receiptData.change > 0" class="rb-row">
+            <div v-if="receiptData.change > 0 && receiptData.paymentMethod !== 'credit_card'" class="rb-row">
               <span>Change</span><span>{{ formatCurrency(receiptData.change) }}</span>
             </div>
             <div class="rb-row"><span>Method</span><span style="text-transform:capitalize">{{ receiptData.paymentMethod }}</span></div>
+            <div v-if="receiptData.invoiceNumber" class="rb-row">
+              <span>Invoice #</span><span>{{ receiptData.invoiceNumber }}</span>
+            </div>
           </template>
-          <template v-if="receiptData.type === 'installment'">
+          <template v-if="receiptData.type === 'layaway' || receiptData.type === 'installment'">
             <div class="rb-row"><span>Down Payment</span><span>{{ formatCurrency(receiptData.amountPaid) }}</span></div>
             <div class="rb-row">
               <span>Monthly (×{{ receiptData.term }})</span>
@@ -437,7 +615,6 @@
     <div v-if="showTermsModal" class="terms-overlay">
       <div class="terms-modal">
         <div class="terms-emblem"><img src="/img/theia-logo.png" alt="Theia Gems" class="terms-emblem-logo" /></div>
-        <div class="terms-brand">T°HEIA GEMS</div>
 
         <div class="terms-title">RETURN &amp; EXCHANGE<br />POLICY</div>
         <div class="terms-star">✦</div>
@@ -501,6 +678,23 @@
         </div>
       </div>
     </div>
+
+    <!-- ═══ ITEM DETAIL MODAL ═══ -->
+    <div v-if="showItemDetail" class="item-detail-overlay">
+      <div class="item-detail-modal">
+        <button class="item-detail-close" @click="closeItemDetail"><v-icon size="16">mdi-close</v-icon></button>
+        <div class="item-detail-name">{{ itemDetailData?.name }}</div>
+        <div class="item-detail-price">{{ formatCurrency(itemDetailData?.price) }}</div>
+        <div class="item-detail-divider"></div>
+        <div class="item-detail-row"><span>Item Code</span><span>{{ itemDetailData?.code || '—' }}</span></div>
+        <div class="item-detail-row"><span>Category</span><span>{{ itemDetailData?.categoryName || '—' }}</span></div>
+        <div class="item-detail-row"><span>Diamond Type</span><span>{{ itemDetailData?.stoneName || '—' }}</span></div>
+        <div class="item-detail-row"><span>Carat Size</span><span>{{ itemDetailData?.carat || '—' }}</span></div>
+        <div class="item-detail-row"><span>Karat</span><span>{{ itemDetailData?.karat || '—' }}</span></div>
+        <div class="item-detail-row"><span>Color</span><span>{{ itemDetailData?.color || '—' }}</span></div>
+        <div class="item-detail-row item-detail-cert"><span>Certificate Details</span><span>{{ itemDetailData?.certificateDetails || '—' }}</span></div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -526,6 +720,8 @@ export default {
       discountAmount: 0,
       discountCapped: false,
       payMethod: "cash",
+      ccSurchargeFull: false,
+      additionalPayments: [],
       amountTendered: null,
       creditCardTerminal: "",
       invoiceNumber: "",
@@ -546,10 +742,28 @@ export default {
       instTerm: null,
       instRate: 0,
       instPayMethod: "cash",
+      instCcSurcharge: false,
+      instAdditionalPayments: [],
       instNotes: "",
       customerResults: [],
       showCustomerDropdown: false,
       custTimer: null,
+
+      ipCustomer: "",
+      ipCustomerObj: null,
+      ipPhone: "",
+      ipIdType: "",
+      ipAddress: "",
+      ipDP: null,
+      ipTerm: null,
+      ipRate: 0,
+      ipPayMethod: "cash",
+      ipCcSurcharge: false,
+      ipAdditionalPayments: [],
+      ipNotes: "",
+      ipCustomerResults: [],
+      showIpCustomerDropdown: false,
+      ipCustTimer: null,
 
       loading: false,
       errorMsg: "",
@@ -559,6 +773,9 @@ export default {
 
       showTermsModal: false,
       pendingAction: null,
+
+      showItemDetail: false,
+      itemDetailData: null,
     };
   },
   computed: {
@@ -574,17 +791,71 @@ export default {
     grandTotal() {
       return this.subtotal - (this.discountAmount || 0);
     },
+    validAdditionalPayments() {
+      return this.additionalPayments.filter((p) => Number(p.amount) > 0);
+    },
+    additionalPaymentsTotal() {
+      return this.validAdditionalPayments.reduce((s, p) => s + Number(p.amount), 0);
+    },
+    fullBaseTotal() {
+      return this.grandTotal + this.additionalPaymentsTotal;
+    },
+    fullSurchargeAmt() {
+      return (this.payMethod === "credit_card" && this.ccSurchargeFull) ? this.fullBaseTotal * 0.04 : 0;
+    },
+    fullChargeTotal() {
+      return this.fullBaseTotal + this.fullSurchargeAmt;
+    },
     change() {
-      return Math.max(0, (this.amountTendered || 0) - this.grandTotal);
+      return Math.max(0, (this.amountTendered || 0) - this.fullChargeTotal);
+    },
+    validInstAdditionalPayments() {
+      return this.instAdditionalPayments.filter((p) => Number(p.amount) > 0);
+    },
+    instAdditionalPaymentsTotal() {
+      return this.validInstAdditionalPayments.reduce((s, p) => s + Number(p.amount), 0);
+    },
+    layawayBaseTotal() {
+      return this.grandTotal + this.instAdditionalPaymentsTotal;
+    },
+    layawaySurchargeAmt() {
+      return (this.instPayMethod === "credit_card" && this.instCcSurcharge) ? this.layawayBaseTotal * 0.04 : 0;
+    },
+    layawayChargeTotal() {
+      return this.layawayBaseTotal + this.layawaySurchargeAmt;
     },
     instBalance() {
-      return Math.max(0, this.grandTotal - (this.instDP || 0));
+      return Math.max(0, this.layawayChargeTotal - (this.instDP || 0));
     },
     instTotalWithInterest() {
       return this.instBalance * (1 + (this.instRate || 0) / 100);
     },
     instMonthly() {
       return this.instTerm ? this.instTotalWithInterest / this.instTerm : 0;
+    },
+    validIpAdditionalPayments() {
+      return this.ipAdditionalPayments.filter((p) => Number(p.amount) > 0);
+    },
+    ipAdditionalPaymentsTotal() {
+      return this.validIpAdditionalPayments.reduce((s, p) => s + Number(p.amount), 0);
+    },
+    ipBaseTotal() {
+      return this.grandTotal + this.ipAdditionalPaymentsTotal;
+    },
+    ipSurchargeAmt() {
+      return (this.ipPayMethod === "credit_card" && this.ipCcSurcharge) ? this.ipBaseTotal * 0.04 : 0;
+    },
+    ipChargeTotal() {
+      return this.ipBaseTotal + this.ipSurchargeAmt;
+    },
+    ipBalance() {
+      return Math.max(0, this.ipChargeTotal - (this.ipDP || 0));
+    },
+    ipTotalWithInterest() {
+      return this.ipBalance * (1 + (this.ipRate || 0) / 100);
+    },
+    ipMonthly() {
+      return this.ipTerm ? this.ipTotalWithInterest / this.ipTerm : 0;
     },
   },
   mounted() {
@@ -638,10 +909,21 @@ export default {
         })
       );
     },
+    formatJewelryDetails(item) {
+      return [
+        item.categoryName ? `Category: ${item.categoryName}` : null,
+        item.stoneName ? `Diamond: ${item.stoneName}` : null,
+        item.carat ? `Carat: ${item.carat}` : null,
+        item.karat ? `Karat: ${item.karat}` : null,
+        item.color ? `Color: ${item.color}` : null,
+        item.certificateDetails ? `Cert: ${item.certificateDetails}` : null,
+      ].filter(Boolean).join(" · ");
+    },
     onOutsideClick() {
       this.showDropdown = false;
       this.showCustomerDropdown = false;
       this.showFullCustDropdown = false;
+      this.showIpCustomerDropdown = false;
     },
     hideItemDropdown() {
       window.setTimeout(() => { this.showDropdown = false; }, 150);
@@ -651,6 +933,9 @@ export default {
     },
     hideFullCustDropdown() {
       window.setTimeout(() => { this.showFullCustDropdown = false; }, 150);
+    },
+    hideIpCustDropdown() {
+      window.setTimeout(() => { this.showIpCustomerDropdown = false; }, 150);
     },
 
     // ── ITEMS ──
@@ -754,6 +1039,11 @@ export default {
         price: Number(item.price) || 0,
         isJewelry: !!(item.jewelryTypeId || item.stoneTypeId),
         stoneName: item.stoneType?.name || null,
+        categoryName: item.category?.categoryName || null,
+        carat: item.carat || null,
+        karat: item.karat || null,
+        color: item.color || null,
+        certificateDetails: item.certificateDetails || null,
         brand: item.name || null,
         description: item.description || null,
       });
@@ -764,6 +1054,14 @@ export default {
     },
     removeItem(idx) {
       this.cartItems.splice(idx, 1);
+    },
+    viewItemDetail(item) {
+      this.itemDetailData = item;
+      this.showItemDetail = true;
+    },
+    closeItemDetail() {
+      this.showItemDetail = false;
+      this.itemDetailData = null;
     },
 
     // ── CUSTOMER SEARCH ──
@@ -815,9 +1113,41 @@ export default {
       this.fullCustSearch = `${c.firstName} ${c.lastName}`;
       this.showFullCustDropdown = false;
     },
+    searchCustomersIp() {
+      clearTimeout(this.ipCustTimer);
+      this.ipCustomerObj = null;
+      const q = this.ipCustomer.trim();
+      if (q.length < 2) {
+        this.ipCustomerResults = [];
+        this.showIpCustomerDropdown = false;
+        return;
+      }
+      this.ipCustTimer = setTimeout(() => {
+        this.axiosCall("/customers/search?q=" + encodeURIComponent(q), "GET")
+          .then((res) => {
+            this.ipCustomerResults = res?.data || [];
+            this.showIpCustomerDropdown = this.ipCustomerResults.length > 0;
+          })
+          .catch(() => {});
+      }, 300);
+    },
+    selectIpCustomer(c) {
+      this.ipCustomerObj = c;
+      this.ipCustomer = `${c.firstName} ${c.lastName}`;
+      this.ipPhone = c.phone || this.ipPhone;
+      this.ipAddress = c.address || this.ipAddress;
+      this.showIpCustomerDropdown = false;
+    },
 
     mapPayMethod(m) {
       return m;
+    },
+
+    addAdditionalPayment(listName) {
+      this[listName].push({ label: "", amount: null });
+    },
+    removeAdditionalPayment(listName, idx) {
+      this[listName].splice(idx, 1);
     },
 
     // ── PRE-PURCHASE TERMS GATE ──
@@ -831,7 +1161,7 @@ export default {
         this.errorMsg = "Customer is required.";
         return;
       }
-      if (!this.amountTendered || this.amountTendered < this.grandTotal) {
+      if (!this.amountTendered || this.amountTendered < this.fullChargeTotal) {
         this.errorMsg = "Amount tendered must be at least the grand total.";
         return;
       }
@@ -848,14 +1178,25 @@ export default {
       this.showTermsModal = true;
     },
 
-    confirmInstallment() {
+    confirmLayaway() {
       this.errorMsg = "";
       if (this.cartItems.length === 0) { this.errorMsg = "Cart is empty."; return; }
       if (!this.instCustomer.trim()) { this.errorMsg = "Customer name is required."; return; }
       if (!this.instPhone.trim()) { this.errorMsg = "Contact number is required."; return; }
       if (!this.instDP || this.instDP <= 0) { this.errorMsg = "Down payment is required."; return; }
       if (!this.instTerm) { this.errorMsg = "Payment term is required."; return; }
-      this.pendingAction = "install";
+      this.pendingAction = "layaway";
+      this.showTermsModal = true;
+    },
+
+    confirmInstallmentPlan() {
+      this.errorMsg = "";
+      if (this.cartItems.length === 0) { this.errorMsg = "Cart is empty."; return; }
+      if (!this.ipCustomer.trim()) { this.errorMsg = "Customer name is required."; return; }
+      if (!this.ipPhone.trim()) { this.errorMsg = "Contact number is required."; return; }
+      if (!this.ipDP || this.ipDP <= 0) { this.errorMsg = "Down payment is required."; return; }
+      if (!this.ipTerm) { this.errorMsg = "Payment term is required."; return; }
+      this.pendingAction = "installment";
       this.showTermsModal = true;
     },
 
@@ -867,7 +1208,8 @@ export default {
     agreeTerms() {
       this.showTermsModal = false;
       if (this.pendingAction === "full") this.processCharge();
-      else if (this.pendingAction === "install") this.processInstallment();
+      else if (this.pendingAction === "layaway") this.processLayaway();
+      else if (this.pendingAction === "installment") this.processInstallmentPlan();
       this.pendingAction = null;
     },
 
@@ -878,7 +1220,7 @@ export default {
         this.errorMsg = "Cart is empty.";
         return;
       }
-      if (!this.amountTendered || this.amountTendered < this.grandTotal) {
+      if (!this.amountTendered || this.amountTendered < this.fullChargeTotal) {
         this.errorMsg = "Amount tendered must be at least the grand total.";
         return;
       }
@@ -886,6 +1228,10 @@ export default {
       try {
         const saleNumRes = await this.axiosCall("/sales/generate-number", "GET");
         const saleNumber = saleNumRes.data;
+
+        const additionalPaymentsNote = this.validAdditionalPayments.length
+          ? `Additional Payments: ${this.validAdditionalPayments.map((p) => `${p.label || "Additional Payment"} (${this.formatCurrency(p.amount)})`).join(", ")}`
+          : undefined;
 
         const saleRes = await this.axiosCall("/sales", "POST", {
           saleNumber,
@@ -895,12 +1241,13 @@ export default {
           subtotal: this.subtotal,
           discountAmount: this.discountAmount || 0,
           taxAmount: 0,
-          totalAmount: this.grandTotal,
+          totalAmount: this.fullChargeTotal,
           amountPaid: this.amountTendered,
           changeAmount: this.change,
           paymentStatus: "paid",
           saleType: "regular",
           salesChannel: this.salesChannel,
+          notes: additionalPaymentsNote,
         });
         const saleId = saleRes.data.id;
 
@@ -916,9 +1263,17 @@ export default {
           });
         }
 
+        for (const ap of this.validAdditionalPayments) {
+          await this.axiosCall("/sale-additional-payments", "POST", {
+            saleId,
+            label: ap.label || "Additional Payment",
+            amount: Number(ap.amount),
+          });
+        }
+
         const payNumRes = await this.axiosCall("/payments/generate-number", "GET");
         const payNotes = this.payMethod === "credit_card"
-          ? `Terminal: ${this.creditCardTerminal} | Invoice: ${this.invoiceNumber} | Card: ${this.cardType}`
+          ? `Terminal: ${this.creditCardTerminal} | Invoice: ${this.invoiceNumber} | Card: ${this.cardType}` + (this.fullSurchargeAmt > 0 ? ` | +4% Surcharge: ${this.formatCurrency(this.fullSurchargeAmt)}` : "")
           : this.payMethod === "bank_transfer"
           ? `Bank: ${this.bankName}`
           : undefined;
@@ -926,10 +1281,11 @@ export default {
           paymentNumber: payNumRes.data,
           saleId,
           receivedBy: this.cashierId,
-          amount: this.grandTotal,
+          amount: this.fullChargeTotal,
           paymentMethod: this.mapPayMethod(this.payMethod),
           paymentType: "full",
           paymentDate: new Date().toISOString(),
+          referenceNumber: this.payMethod === "credit_card" ? this.invoiceNumber : undefined,
           notes: payNotes,
         });
 
@@ -944,7 +1300,7 @@ export default {
           await this.axiosCall(
             "/customers/" + this.fullCustObj.id + "/purchase",
             "PATCH",
-            { amount: this.grandTotal }
+            { amount: this.fullChargeTotal }
           );
         }
 
@@ -967,10 +1323,13 @@ export default {
           subtotal: this.subtotal,
           discountAmount: this.discountAmount || 0,
           taxAmount: 0,
-          totalAmount: this.grandTotal,
+          additionalPayments: this.validAdditionalPayments.map((p) => ({ label: p.label || "Additional Payment", amount: Number(p.amount) })),
+          ccSurchargeAmt: this.fullSurchargeAmt,
+          totalAmount: this.fullChargeTotal,
           amountPaid: this.amountTendered,
           change: this.change,
           paymentMethod: this.payMethod,
+          invoiceNumber: this.payMethod === "credit_card" ? this.invoiceNumber : null,
           type: "full",
         };
         this.showReceipt = true;
@@ -985,8 +1344,8 @@ export default {
       }
     },
 
-    // ── INSTALLMENT ──
-    async processInstallment() {
+    // ── LAYAWAY ──
+    async processLayaway() {
       this.errorMsg = "";
       if (this.cartItems.length === 0) { this.errorMsg = "Cart is empty."; return; }
       if (!this.instCustomer.trim()) { this.errorMsg = "Customer name is required."; return; }
@@ -1015,7 +1374,11 @@ export default {
         const saleNumRes = await this.axiosCall("/sales/generate-number", "GET");
         const saleNumber = saleNumRes.data;
 
-        const installTotal = this.grandTotal;
+        const installTotal = this.layawayChargeTotal;
+        const additionalPaymentsNote = this.validInstAdditionalPayments.length
+          ? `Additional Payments: ${this.validInstAdditionalPayments.map((p) => `${p.label || "Additional Payment"} (${this.formatCurrency(p.amount)})`).join(", ")}`
+          : "";
+        const combinedNotes = [this.instNotes, additionalPaymentsNote].filter(Boolean).join(" | ") || undefined;
 
         const saleRes = await this.axiosCall("/sales", "POST", {
           saleNumber,
@@ -1031,7 +1394,7 @@ export default {
           paymentStatus: "layaway",
           saleType: "layaway",
           salesChannel: this.salesChannel,
-          notes: this.instNotes || undefined,
+          notes: combinedNotes,
         });
         const saleId = saleRes.data.id;
 
@@ -1044,6 +1407,14 @@ export default {
             unitPrice: item.price,
             discountAmount: 0,
             lineTotal,
+          });
+        }
+
+        for (const ap of this.validInstAdditionalPayments) {
+          await this.axiosCall("/sale-additional-payments", "POST", {
+            saleId,
+            label: ap.label || "Additional Payment",
+            amount: Number(ap.amount),
           });
         }
 
@@ -1113,13 +1484,177 @@ export default {
           subtotal: this.subtotal,
           discountAmount: 0,
           taxAmount: 0,
+          additionalPayments: this.validInstAdditionalPayments.map((p) => ({ label: p.label || "Additional Payment", amount: Number(p.amount) })),
+          ccSurchargeAmt: this.layawaySurchargeAmt,
           totalAmount: installTotal,
           amountPaid: this.instDP,
           change: 0,
-          type: "installment",
+          type: "layaway",
           monthlyPayment: monthly,
           term: this.instTerm,
           paymentMethod: this.instPayMethod,
+        };
+        this.showReceipt = true;
+        this.clearCart();
+        this.loadAvailableItems();
+      } catch (e) {
+        this.errorMsg =
+          e?.response?.data?.message ||
+          "Failed to process layaway. Please try again.";
+      } finally {
+        this.loading = false;
+      }
+    },
+
+    // ── INSTALLMENT ──
+    async processInstallmentPlan() {
+      this.errorMsg = "";
+      if (this.cartItems.length === 0) { this.errorMsg = "Cart is empty."; return; }
+      if (!this.ipCustomer.trim()) { this.errorMsg = "Customer name is required."; return; }
+      if (!this.ipPhone.trim()) { this.errorMsg = "Contact number is required."; return; }
+      if (!this.ipDP || this.ipDP <= 0) { this.errorMsg = "Down payment is required."; return; }
+      if (!this.ipTerm) { this.errorMsg = "Payment term is required."; return; }
+
+      this.loading = true;
+      try {
+        let customerId = this.ipCustomerObj?.id;
+        if (!customerId) {
+          const parts = this.ipCustomer.trim().split(/\s+/);
+          const lastName = parts.length > 1 ? parts.pop() : "";
+          const firstName = parts.join(" ") || lastName;
+          const custCodeRes = await this.axiosCall("/customers/generate-code", "GET");
+          const newCustRes = await this.axiosCall("/customers", "POST", {
+            customerCode: custCodeRes.data,
+            firstName,
+            lastName,
+            phone: this.ipPhone,
+            address: this.ipAddress || undefined,
+          });
+          customerId = newCustRes.data.id;
+        }
+
+        const saleNumRes = await this.axiosCall("/sales/generate-number", "GET");
+        const saleNumber = saleNumRes.data;
+
+        const installTotal = this.ipChargeTotal;
+        const additionalPaymentsNote = this.validIpAdditionalPayments.length
+          ? `Additional Payments: ${this.validIpAdditionalPayments.map((p) => `${p.label || "Additional Payment"} (${this.formatCurrency(p.amount)})`).join(", ")}`
+          : "";
+        const combinedNotes = [this.ipNotes, additionalPaymentsNote].filter(Boolean).join(" | ") || undefined;
+
+        const saleRes = await this.axiosCall("/sales", "POST", {
+          saleNumber,
+          branchId: this.branchId,
+          customerId,
+          cashierId: this.cashierId,
+          subtotal: this.subtotal,
+          discountAmount: 0,
+          taxAmount: 0,
+          totalAmount: installTotal,
+          amountPaid: this.ipDP,
+          changeAmount: 0,
+          paymentStatus: "installment",
+          saleType: "installment",
+          salesChannel: this.salesChannel,
+          notes: combinedNotes,
+        });
+        const saleId = saleRes.data.id;
+
+        // Create sale items for item-level reporting
+        for (const item of this.cartItems) {
+          const lineTotal = item.price;
+          await this.axiosCall("/sale-items", "POST", {
+            saleId,
+            jewelryItemId: item.id,
+            unitPrice: item.price,
+            discountAmount: 0,
+            lineTotal,
+          });
+        }
+
+        for (const ap of this.validIpAdditionalPayments) {
+          await this.axiosCall("/sale-additional-payments", "POST", {
+            saleId,
+            label: ap.label || "Additional Payment",
+            amount: Number(ap.amount),
+          });
+        }
+
+        const payNumRes = await this.axiosCall("/payments/generate-number", "GET");
+        await this.axiosCall("/payments", "POST", {
+          paymentNumber: payNumRes.data,
+          saleId,
+          receivedBy: this.cashierId,
+          amount: this.ipDP,
+          paymentMethod: this.ipPayMethod,
+          paymentType: "deposit",
+          paymentDate: new Date().toISOString(),
+          notes: "Down payment",
+        });
+
+        const planNumRes = await this.axiosCall("/installment-plans/generate-number", "GET");
+        const today = new Date();
+        const endDate = new Date(today);
+        endDate.setMonth(endDate.getMonth() + this.ipTerm);
+        const nextDate = new Date(today);
+        nextDate.setMonth(nextDate.getMonth() + 1);
+
+        const balance = Math.max(0, installTotal - this.ipDP);
+        const totalWithInterest = balance * (1 + (this.ipRate || 0) / 100);
+        const monthly = this.ipTerm ? totalWithInterest / this.ipTerm : 0;
+
+        await this.axiosCall("/installment-plans", "POST", {
+          planNumber: planNumRes.data,
+          saleId,
+          customerId,
+          branchId: this.branchId,
+          totalAmount: installTotal,
+          downPayment: this.ipDP,
+          remainingBalance: totalWithInterest,
+          monthlyPayment: monthly,
+          numberOfPayments: this.ipTerm,
+          startDate: today.toISOString().split("T")[0],
+          endDate: endDate.toISOString().split("T")[0],
+          nextPaymentDate: nextDate.toISOString().split("T")[0],
+          notes: this.ipNotes || undefined,
+        });
+
+        for (const item of this.cartItems) {
+          await this.axiosCall("/jewelry-items/" + item.id, "PATCH", { status: "INSTALLMENT" });
+        }
+
+        await this.axiosCall("/customers/" + customerId + "/purchase", "PATCH", {
+          amount: installTotal,
+        });
+
+        const rcptNumRes = await this.axiosCall("/receipts/generate-number", "GET");
+        const rcptRes = await this.axiosCall("/receipts", "POST", {
+          saleId,
+          receiptNumber: rcptNumRes.data,
+          branchId: this.branchId,
+          printedBy: this.cashierId,
+        });
+
+        this.axiosCall("/sales/" + saleId + "/notify-owner", "POST").catch(() => {});
+
+        this.receiptData = {
+          receiptNumber: rcptRes.data.receiptNumber,
+          saleNumber,
+          saleDate: new Date().toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" }),
+          customerName: this.ipCustomer.trim() || null,
+          items: [...this.cartItems],
+          subtotal: this.subtotal,
+          discountAmount: 0,
+          taxAmount: 0,
+          additionalPayments: this.validIpAdditionalPayments.map((p) => ({ label: p.label || "Additional Payment", amount: Number(p.amount) })),
+          ccSurchargeAmt: this.ipSurchargeAmt,
+          totalAmount: installTotal,
+          amountPaid: this.ipDP,
+          change: 0,
+          type: "installment",
+          monthlyPayment: monthly,
+          term: this.ipTerm,
+          paymentMethod: this.ipPayMethod,
         };
         this.showReceipt = true;
         this.clearCart();
@@ -1139,6 +1674,8 @@ export default {
       this.discountAmount = 0;
       this.discountCapped = false;
       this.payMethod = "cash";
+      this.ccSurchargeFull = false;
+      this.additionalPayments = [];
       this.amountTendered = null;
       this.creditCardTerminal = "";
       this.invoiceNumber = "";
@@ -1155,7 +1692,21 @@ export default {
       this.instTerm = null;
       this.instRate = 0;
       this.instPayMethod = "cash";
+      this.instCcSurcharge = false;
+      this.instAdditionalPayments = [];
       this.instNotes = "";
+      this.ipCustomer = "";
+      this.ipCustomerObj = null;
+      this.ipPhone = "";
+      this.ipIdType = "";
+      this.ipAddress = "";
+      this.ipDP = null;
+      this.ipTerm = null;
+      this.ipRate = 0;
+      this.ipPayMethod = "cash";
+      this.ipCcSurcharge = false;
+      this.ipAdditionalPayments = [];
+      this.ipNotes = "";
       this.errorMsg = "";
     },
 
@@ -1171,27 +1722,29 @@ export default {
         "₱" + Number(v || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
       const itemLines = r.items.map((item) => {
-        let details = "";
-        if (item.isJewelry) {
-          details = [item.stoneName].filter(Boolean).join(" · ");
-        } else {
-          details = [item.brand, item.description ? item.description.substring(0, 40) : ""].filter(Boolean).join(" · ");
-        }
+        const details = item.isJewelry
+          ? this.formatJewelryDetails(item)
+          : [item.brand, item.description ? item.description.substring(0, 40) : ""].filter(Boolean).join(" · ");
         return `<div class="row"><span class="iname">${item.name || ""}</span><span class="iprice">${fmt(item.price)}</span></div>` +
           `<div class="icode">${item.code || ""}</div>` +
           (details ? `<div class="icode" style="margin-bottom:4px">${details}</div>` : "");
       }).join("");
 
+      const additionalPaymentLines = (r.additionalPayments || [])
+        .map((ap) => `<div class="row"><span>${ap.label}</span><span>+${fmt(ap.amount)}</span></div>`)
+        .join("");
+
       let payLines = "";
       if (r.type === "full") {
         payLines += `<div class="row"><span>Amount Paid</span><span>${fmt(r.amountPaid)}</span></div>`;
-        if (r.change > 0) payLines += `<div class="row"><span>Change</span><span>${fmt(r.change)}</span></div>`;
+        if (r.change > 0 && r.paymentMethod !== "credit_card") payLines += `<div class="row"><span>Change</span><span>${fmt(r.change)}</span></div>`;
         payLines += `<div class="row"><span>Method</span><span style="text-transform:capitalize">${r.paymentMethod}</span></div>`;
+        if (r.invoiceNumber) payLines += `<div class="row"><span>Invoice #</span><span>${r.invoiceNumber}</span></div>`;
       } else {
         payLines += `<div class="row"><span>Down Payment</span><span>${fmt(r.amountPaid)}</span></div>`;
         payLines += `<div class="row"><span>Monthly ×${r.term}</span><span>${fmt(r.monthlyPayment)}</span></div>`;
         if (r.paymentMethod) payLines += `<div class="row"><span>Method</span><span style="text-transform:capitalize">${r.paymentMethod.replace("_", " ")}</span></div>`;
-        payLines += `<div class="row bold"><span>INSTALLMENT PLAN</span></div>`;
+        payLines += `<div class="row bold"><span>${r.type === "installment" ? "INSTALLMENT PLAN" : "LAYAWAY PLAN"}</span></div>`;
       }
 
       const html = `<!DOCTYPE html><html><head>
@@ -1232,6 +1785,8 @@ ${itemLines}
 <hr class="hr">
 <div class="row"><span>Subtotal</span><span>${fmt(r.subtotal)}</span></div>
 ${r.discountAmount > 0 ? `<div class="row"><span>Discount</span><span>-${fmt(r.discountAmount)}</span></div>` : ""}
+${additionalPaymentLines}
+${r.ccSurchargeAmt > 0 ? `<div class="row"><span>Credit Card Surcharge (+4%)</span><span>+${fmt(r.ccSurchargeAmt)}</span></div>` : ""}
 <hr class="hrs">
 <div class="total-row"><span>TOTAL</span><span>${fmt(r.totalAmount)}</span></div>
 <hr class="hr">
@@ -1261,7 +1816,7 @@ ${payLines}
 
       const items = r.items.map((item) => {
         const details = item.isJewelry
-          ? [item.stoneName].filter(Boolean).join(" · ")
+          ? this.formatJewelryDetails(item)
           : [item.brand, item.description ? item.description.substring(0, 40) : ""].filter(Boolean).join(" · ");
         return { name: item.name || "", code: item.code || "", details, price: item.price };
       });
@@ -1269,13 +1824,14 @@ ${payLines}
       const paymentLines = [];
       if (r.type === "full") {
         paymentLines.push({ label: "Amount Paid", value: money(r.amountPaid) });
-        if (r.change > 0) paymentLines.push({ label: "Change", value: money(r.change) });
+        if (r.change > 0 && r.paymentMethod !== "credit_card") paymentLines.push({ label: "Change", value: money(r.change) });
         paymentLines.push({ label: "Method", value: r.paymentMethod });
+        if (r.invoiceNumber) paymentLines.push({ label: "Invoice #", value: r.invoiceNumber });
       } else {
         paymentLines.push({ label: "Down Payment", value: money(r.amountPaid) });
         paymentLines.push({ label: `Monthly x${r.term}`, value: money(r.monthlyPayment) });
         if (r.paymentMethod) paymentLines.push({ label: "Method", value: r.paymentMethod.replace("_", " ") });
-        paymentLines.push({ label: "INSTALLMENT PLAN", value: null, bold: true });
+        paymentLines.push({ label: r.type === "installment" ? "INSTALLMENT PLAN" : "LAYAWAY PLAN", value: null, bold: true });
       }
 
       return {
@@ -1288,6 +1844,8 @@ ${payLines}
         subtotal: r.subtotal,
         discountAmt: r.discountAmount || 0,
         taxAmt: 0,
+        additionalPayments: r.additionalPayments || [],
+        ccSurchargeAmt: r.ccSurchargeAmt || 0,
         totalAmount: r.totalAmount,
         paymentLines,
         policy: [
@@ -1481,6 +2039,7 @@ ${payLines}
 }
 .pos-table tbody tr:hover { background: #EDE0CC; }
 .pos-table tbody td { padding: 12px 20px; color: #3A2515; }
+.cart-row { cursor: pointer; }
 
 .item-name { font-weight: 500; }
 .item-meta { font-size: 11px; color: #9A7858; }
@@ -1683,6 +2242,38 @@ ${payLines}
   border-radius: 6px; padding: 5px 9px;
 }
 
+/* Credit Card Surcharge */
+.cc-surcharge-check {
+  display: flex; align-items: center; gap: 7px;
+  margin-top: 10px; font-size: 12px; color: #6B4A30;
+  font-family: 'Outfit', sans-serif; cursor: pointer; user-select: none;
+}
+.cc-surcharge-check input[type="checkbox"] {
+  width: 15px; height: 15px; accent-color: #9B6B3A; cursor: pointer;
+}
+
+/* Additional Payments */
+.add-pay-row {
+  display: grid; grid-template-columns: 1.3fr 1fr auto; gap: 6px;
+  align-items: center; margin-bottom: 6px;
+}
+.add-pay-row .fld-inp { margin-bottom: 0; }
+.add-pay-rm {
+  width: 26px; height: 26px; border-radius: 7px;
+  border: 1px solid rgba(184,64,64,0.25); background: rgba(184,64,64,0.06);
+  color: #B84040; font-size: 15px; line-height: 1; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; transition: all 0.12s;
+}
+.add-pay-rm:hover { background: rgba(184,64,64,0.12); border-color: rgba(184,64,64,0.4); }
+.btn-add-payment {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  width: 100%; background: #F5EFE4; border: 1px dashed rgba(155,107,58,0.35);
+  border-radius: 8px; padding: 8px; font-size: 12px; font-weight: 500;
+  color: #9B6B3A; font-family: 'Outfit', sans-serif; cursor: pointer;
+  transition: all 0.12s; margin-top: 2px;
+}
+.btn-add-payment:hover { background: #EDE0CC; border-color: #9B6B3A; }
+
 /* Change */
 .change-row {
   display: flex; justify-content: space-between; align-items: center;
@@ -1774,11 +2365,8 @@ ${payLines}
   font-family: 'Outfit', sans-serif;
 }
 .receipt-hdr { text-align: center; margin-bottom: 4px; }
-.receipt-brand {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 22px; font-weight: 600;
-  color: #9B6B3A; letter-spacing: 0.1em;
-}
+.receipt-emblem { display: flex; align-items: center; justify-content: center; margin: 0 auto 6px; }
+.receipt-emblem-logo { width: 84px; height: 84px; object-fit: cover; border-radius: 50%; }
 .receipt-sub {
   font-size: 10px; letter-spacing: 0.15em;
   text-transform: uppercase; color: #9A7858; margin-top: 2px;
@@ -1801,6 +2389,7 @@ ${payLines}
 .ri-left { flex: 1; }
 .ri-name { font-size: 12px; font-weight: 500; color: #3A2515; }
 .ri-code { font-size: 10px; color: #9A7858; font-family: monospace; }
+.ri-details { font-size: 9.5px; color: #9A7858; margin-top: 1px; }
 .ri-price { font-size: 12px; font-weight: 600; color: #3A2515; }
 .receipt-break { margin-top: 4px; }
 .rb-row {
@@ -1859,23 +2448,14 @@ ${payLines}
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 8px;
+  margin: 0 auto 20px;
 }
 
 .terms-emblem-logo {
-  width: 72px;
-  height: 72px;
+  width: 120px;
+  height: 120px;
   object-fit: cover;
   border-radius: 50%;
-}
-
-.terms-brand {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 18px;
-  font-weight: 600;
-  letter-spacing: 0.22em;
-  color: #3A2515;
-  margin-bottom: 20px;
 }
 
 .terms-title {
@@ -1975,6 +2555,67 @@ ${payLines}
   transition: background 0.13s;
 }
 .btn-terms-agree:hover { background: #C49455; }
+
+/* Item Detail Modal */
+.item-detail-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(58,37,21,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+.item-detail-modal {
+  position: relative;
+  background: #FDFAF6;
+  border-radius: 16px;
+  padding: 24px;
+  width: 320px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 40px rgba(58,37,21,0.25);
+  font-family: 'Outfit', sans-serif;
+}
+.item-detail-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9A7858;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 7px;
+  transition: all 0.12s;
+}
+.item-detail-close:hover { background: rgba(155,107,58,0.12); color: #6B4A30; }
+.item-detail-name {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: #3A2515;
+  padding-right: 24px;
+}
+.item-detail-price { font-size: 15px; font-weight: 600; color: #9B6B3A; margin-top: 2px; }
+.item-detail-divider { height: 1px; background: rgba(155,107,58,0.16); margin: 14px 0; }
+.item-detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 0;
+  font-size: 12.5px;
+  color: #3A2515;
+  border-bottom: 1px solid rgba(155,107,58,0.1);
+}
+.item-detail-row span:first-child { color: #9A7858; flex-shrink: 0; }
+.item-detail-row span:last-child { text-align: right; }
+.item-detail-row.item-detail-cert { align-items: flex-start; }
+.item-detail-row.item-detail-cert span:last-child { max-width: 62%; word-break: break-word; }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 4px; }

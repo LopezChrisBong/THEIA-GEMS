@@ -22,8 +22,25 @@
                   </h3>
                 </v-col>
 
-                <v-col cols="12" md="6" class="mb-4">
+                <v-col cols="12" md="4" class="mb-4">
+                  <v-select
+                    v-model="planType"
+                    :items="planTypeOptions"
+                    item-title="label"
+                    item-value="value"
+                    label="Plan Type"
+                    outlined
+                    dense
+                    color="primary"
+                    hint="Layaway or installment plan"
+                    persistent-hint
+                    @update:modelValue="onPlanTypeChange"
+                  />
+                </v-col>
+
+                <v-col cols="12" md="8" class="mb-4">
                   <v-autocomplete
+                    v-if="planType === 'layaway'"
                     v-model="layawayPlanId"
                     :items="layawayPlans"
                     :item-title="(item) => item.planNumber"
@@ -34,6 +51,20 @@
                     dense
                     color="primary"
                     hint="Select the layaway plan"
+                    persistent-hint
+                  />
+                  <v-autocomplete
+                    v-else
+                    v-model="installmentPlanId"
+                    :items="installmentPlans"
+                    :item-title="(item) => item.planNumber"
+                    item-value="id"
+                    label="Installment Plan"
+                    :rules="[formRules.required]"
+                    outlined
+                    dense
+                    color="primary"
+                    hint="Select the installment plan"
                     persistent-hint
                   />
                 </v-col>
@@ -289,7 +320,9 @@ export default {
       loading: false,
 
       id: null,
+      planType: 'layaway',
       layawayPlanId: null,
+      installmentPlanId: null,
       customerId: null,
       reminderType: 'upcoming',
       status: 'pending',
@@ -303,7 +336,13 @@ export default {
       notes: null,
 
       layawayPlans: [],
+      installmentPlans: [],
       customers: [],
+
+      planTypeOptions: [
+        { label: "Layaway", value: "layaway" },
+        { label: "Installment", value: "installment" },
+      ],
 
       reminderTypeOptions: [
         { label: "Upcoming", value: "upcoming" },
@@ -344,7 +383,9 @@ export default {
 
         if (data && data.id) {
           this.id = data.id;
+          this.planType = data.installmentPlanId ? 'installment' : 'layaway';
           this.layawayPlanId = data.layawayPlanId;
+          this.installmentPlanId = data.installmentPlanId;
           this.customerId = data.customerId;
           this.reminderType = data.reminderType || 'upcoming';
           this.status = data.status || 'pending';
@@ -366,7 +407,9 @@ export default {
   methods: {
     resetForm() {
       this.id = null;
+      this.planType = 'layaway';
       this.layawayPlanId = null;
+      this.installmentPlanId = null;
       this.customerId = null;
       this.reminderType = 'upcoming';
       this.status = 'pending';
@@ -407,6 +450,11 @@ export default {
       return `${year}-${month}-${day}T${hours}:${minutes}`;
     },
 
+    onPlanTypeChange() {
+      this.layawayPlanId = null;
+      this.installmentPlanId = null;
+    },
+
     loadDropdownData() {
       this.axiosCall("/layaway-plans", "GET")
         .then((res) => {
@@ -415,6 +463,14 @@ export default {
           }
         })
         .catch((error) => console.error("Failed to load layaway plans:", error));
+
+      this.axiosCall("/installment-plans", "GET")
+        .then((res) => {
+          if (res && res.data) {
+            this.installmentPlans = res.data;
+          }
+        })
+        .catch((error) => console.error("Failed to load installment plans:", error));
 
       this.axiosCall("/customers", "GET")
         .then((res) => {
@@ -436,7 +492,8 @@ export default {
 
       this.loading = true;
       const data = {
-        layawayPlanId: this.layawayPlanId,
+        layawayPlanId: this.planType === 'layaway' ? this.layawayPlanId : null,
+        installmentPlanId: this.planType === 'installment' ? this.installmentPlanId : null,
         customerId: this.customerId,
         reminderType: this.reminderType,
         status: this.status,
@@ -483,7 +540,8 @@ export default {
 
       this.loading = true;
       const data = {
-        layawayPlanId: this.layawayPlanId,
+        layawayPlanId: this.planType === 'layaway' ? this.layawayPlanId : null,
+        installmentPlanId: this.planType === 'installment' ? this.installmentPlanId : null,
         customerId: this.customerId,
         reminderType: this.reminderType,
         status: this.status,

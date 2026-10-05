@@ -354,12 +354,14 @@ export default {
         { label: "Paid", value: "paid" },
         { label: "Partial", value: "partial" },
         { label: "Layaway", value: "layaway" },
+        { label: "Installment", value: "installment" },
         { label: "Refunded", value: "refunded" },
       ],
 
       saleTypeOptions: [
         { label: "Regular", value: "regular" },
         { label: "Layaway", value: "layaway" },
+        { label: "Installment", value: "installment" },
         { label: "Consignment", value: "consignment" },
       ],
 

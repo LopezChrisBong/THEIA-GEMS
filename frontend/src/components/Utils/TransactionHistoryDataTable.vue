@@ -244,7 +244,7 @@ export default {
     },
 
     formatModule(tableName) {
-      const map = { sales: "Sales", transfers: "Transfers", jewelry_items: "Items", consignment_items: "Consignment", layaway_plans: "Layaway" };
+      const map = { sales: "Sales", transfers: "Transfers", jewelry_items: "Items", consignment_items: "Consignment", layaway_plans: "Layaway", installment_plans: "Installment" };
       return map[tableName] || tableName;
     },
 

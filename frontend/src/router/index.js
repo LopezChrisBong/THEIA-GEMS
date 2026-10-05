@@ -34,6 +34,8 @@ import SaleItems from '@/components/sale-items/SaleItems.vue';
 import Payments from '@/views/Pages/Payments.vue';
 import LayawayPlans from '@/views/Pages/LayawayPlans.vue';
 import LayawayPayments from '@/components/layaway-payments/LayawayPayments.vue';
+import InstallmentPlans from '@/views/Pages/InstallmentPlans.vue';
+import InstallmentPayments from '@/components/installment-payments/InstallmentPayments.vue';
 import PaymentReminders from '@/views/Pages/PaymentReminders.vue';
 import PromotionalMessages from '@/views/Pages/PromotionalMessages.vue';
 import InventoryLogs from '@/views/Pages/InventoryLogs.vue';
@@ -276,6 +278,16 @@ const routes = [
         path: "layaway-payments",
         component: LayawayPayments,
         meta: { title: "Layaway Payments", authRequired: true },
+      },
+      {
+        path: "installment-plans",
+        component: InstallmentPlans,
+        meta: { title: "Installment Plans", authRequired: true },
+      },
+      {
+        path: "installment-payments",
+        component: InstallmentPayments,
+        meta: { title: "Installment Payments", authRequired: true },
       },
       {
         path: "payment-reminders",

@@ -153,8 +153,8 @@
           <div class="summary-icon-wrap">
             <v-icon size="18" color="#9B6B3A">mdi-clock-outline</v-icon>
           </div>
-          <div class="summary-val">{{ reportData.summary.partialCount + reportData.summary.layawayCount }}</div>
-          <div class="summary-lbl">Pending / Layaway</div>
+          <div class="summary-val">{{ reportData.summary.partialCount + reportData.summary.layawayCount + reportData.summary.installmentCount }}</div>
+          <div class="summary-lbl">Pending / Layaway / Installment</div>
         </div>
       </div>
 
@@ -309,10 +309,16 @@
                   <span class="s-badge s-type">{{ sale.saleType }}</span>
                 </td>
                 <td>
-                  <button class="btn-view-items" @click="openSaleView(sale)">
-                    <v-icon size="12">mdi-eye-outline</v-icon>
-                    Items
-                  </button>
+                  <div class="row-actions">
+                    <button class="btn-view-items" @click="openSaleView(sale)">
+                      <v-icon size="12">mdi-eye-outline</v-icon>
+                      Items
+                    </button>
+                    <button class="btn-view-items" @click="previewReceipt(sale)">
+                      <v-icon size="12">mdi-receipt-text-outline</v-icon>
+                      Receipt
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -409,6 +415,151 @@
         </div>
       </v-dialog>
 
+      <!-- Receipt Preview Dialog -->
+      <v-dialog v-model="receiptPreviewDialog" max-width="440px">
+        <v-card v-if="receiptPreviewData" class="receipt-view-card">
+          <button class="receipt-close-btn" @click="receiptPreviewDialog = false">
+            <v-icon size="16">mdi-close</v-icon>
+          </button>
+
+          <div class="rv-header">
+            <div class="rv-store">THEIA GEMS</div>
+            <div class="rv-store-sub">Official Receipt</div>
+            <div class="rv-divider-dots">· · · · · · · · · · · · · · · · · · ·</div>
+            <div class="rv-receipt-no">{{ receiptPreviewData.receiptNumber || 'No Receipt Recorded' }}</div>
+            <div class="rv-sale-no">Sale # {{ receiptPreviewData.sale?.saleNumber || '—' }}</div>
+            <div class="rv-date">{{ formatDateTime(receiptPreviewData.sale?.saleDate) }}</div>
+          </div>
+
+          <div class="rv-divider"></div>
+
+          <div class="rv-section">
+            <div class="rv-row">
+              <span class="rv-lbl">Branch</span>
+              <span class="rv-val">{{ receiptPreviewData.sale?.branch?.branchName || '—' }}</span>
+            </div>
+            <div class="rv-row" v-if="receiptPreviewData.sale?.customer">
+              <span class="rv-lbl">Customer</span>
+              <span class="rv-val">{{ receiptPreviewData.sale.customer.firstName }} {{ receiptPreviewData.sale.customer.lastName }}</span>
+            </div>
+          </div>
+
+          <div class="rv-divider"></div>
+
+          <div class="rv-section">
+            <div class="rv-items-header">Items Purchased</div>
+            <div v-if="receiptPreviewSaleItemsLoading" class="rv-items-loading">
+              <v-progress-circular indeterminate color="#9B6B3A" size="16" width="2" />
+            </div>
+            <template v-else-if="receiptPreviewSaleItems.length">
+              <div class="rv-item-row" v-for="si in receiptPreviewSaleItems" :key="si.id">
+                <div class="rv-item-left">
+                  <span class="rv-item-code">{{ si.jewelryItem?.itemCode || '—' }}</span>
+                  <span class="rv-item-desc">
+                    {{ [si.jewelryItem?.name, si.jewelryItem?.material].filter(Boolean).join(' · ') || si.jewelryItem?.itemCode || '—' }}
+                  </span>
+                  <span v-if="si.jewelryItem && formatJewelryDetails(si.jewelryItem)" class="rv-item-jdetails">
+                    {{ formatJewelryDetails(si.jewelryItem) }}
+                  </span>
+                </div>
+                <span class="rv-item-price">₱{{ formatNumber(si.lineTotal) }}</span>
+              </div>
+            </template>
+            <div v-else class="rv-items-empty">No item details recorded</div>
+          </div>
+
+          <div class="rv-divider"></div>
+
+          <div class="rv-section">
+            <div class="rv-row">
+              <span class="rv-lbl">Sale Type</span>
+              <span class="rv-val" style="text-transform:capitalize">{{ receiptPreviewData.sale?.saleType || '—' }}</span>
+            </div>
+            <div class="rv-row">
+              <span class="rv-lbl">Subtotal</span>
+              <span class="rv-val">₱{{ formatNumber(receiptPreviewData.sale?.subtotal) }}</span>
+            </div>
+            <div class="rv-row" v-if="Number(receiptPreviewData.sale?.discountAmount) > 0">
+              <span class="rv-lbl">Discount</span>
+              <span class="rv-val rv-discount">- ₱{{ formatNumber(receiptPreviewData.sale?.discountAmount) }}</span>
+            </div>
+            <div class="rv-row" v-if="Number(receiptPreviewData.sale?.taxAmount) > 0">
+              <span class="rv-lbl">VAT (12%)</span>
+              <span class="rv-val">₱{{ formatNumber(receiptPreviewData.sale?.taxAmount) }}</span>
+            </div>
+            <div class="rv-row" v-for="ap in receiptPreviewAdditionalPayments" :key="'rp-ap-' + ap.id">
+              <span class="rv-lbl">{{ ap.label }}</span>
+              <span class="rv-val">+ ₱{{ formatNumber(ap.amount) }}</span>
+            </div>
+            <div class="rv-row" v-if="receiptPreviewCcSurchargeAmt > 0">
+              <span class="rv-lbl">Credit Card Surcharge (+4%)</span>
+              <span class="rv-val">+ ₱{{ formatNumber(receiptPreviewCcSurchargeAmt) }}</span>
+            </div>
+          </div>
+
+          <div class="rv-divider"></div>
+
+          <div class="rv-total-row">
+            <span>TOTAL</span>
+            <span class="rv-total-amt">₱{{ formatNumber(receiptPreviewData.sale?.totalAmount) }}</span>
+          </div>
+
+          <div class="rv-section" style="margin-top:8px">
+            <div class="rv-row">
+              <span class="rv-lbl">Amount Paid</span>
+              <span class="rv-val">₱{{ formatNumber(receiptPreviewData.sale?.amountPaid) }}</span>
+            </div>
+            <div class="rv-row" v-if="Number(receiptPreviewData.sale?.changeAmount) > 0 && !receiptPreviewIsCreditCard">
+              <span class="rv-lbl">Change</span>
+              <span class="rv-val">₱{{ formatNumber(receiptPreviewData.sale?.changeAmount) }}</span>
+            </div>
+            <div class="rv-row">
+              <span class="rv-lbl">Status</span>
+              <span class="rv-val" style="text-transform:capitalize">{{ receiptPreviewData.sale?.paymentStatus || '—' }}</span>
+            </div>
+            <div class="rv-row" v-if="receiptPreviewInvoiceNumber">
+              <span class="rv-lbl">Invoice #</span>
+              <span class="rv-val">{{ receiptPreviewInvoiceNumber }}</span>
+            </div>
+          </div>
+
+          <div class="rv-divider"></div>
+
+          <div class="rv-section rv-print-info">
+            <div class="rv-row">
+              <span class="rv-lbl">Print Status</span>
+              <span class="rv-val">
+                <span class="repeat-badge" :class="receiptPreviewData.printedAt ? 'r-printed' : 'r-not-printed'">
+                  {{ receiptPreviewData.printedAt ? 'Printed' : 'Not Printed' }}
+                </span>
+              </span>
+            </div>
+            <div class="rv-row" v-if="receiptPreviewData.printedAt">
+              <span class="rv-lbl">Printed At</span>
+              <span class="rv-val">{{ formatDateTime(receiptPreviewData.printedAt) }}</span>
+            </div>
+            <div class="rv-row">
+              <span class="rv-lbl">Reprints</span>
+              <span class="rv-val">{{ receiptPreviewData.reprintCount || 0 }}</span>
+            </div>
+          </div>
+
+          <div class="rv-divider-dots" style="text-align:center;color:#C4A882;margin:12px 0 8px">· · · · · · · · · · · · · · · · · · ·</div>
+          <div class="rv-footer">Thank you for shopping at Theia Gems</div>
+
+          <div class="rv-actions">
+            <button class="btn-view-items" @click="printReceiptPreview">
+              <v-icon size="12">mdi-printer-outline</v-icon>
+              Print
+            </button>
+            <button class="btn-view-items" :disabled="savingReceiptPdf" @click="saveReceiptPreviewPdf">
+              <v-icon size="12">{{ savingReceiptPdf ? 'mdi-loading mdi-spin' : 'mdi-file-pdf-box' }}</v-icon>
+              {{ savingReceiptPdf ? "Saving..." : "Save PDF" }}
+            </button>
+          </div>
+        </v-card>
+      </v-dialog>
+
       <!-- Zero results -->
       <div class="empty-state" v-if="reportData.sales.length === 0">
         <div class="empty-icon">
@@ -432,6 +583,7 @@
 
 <script>
 import * as XLSX from 'xlsx';
+import { downloadReceiptPdf, money } from "@/utils/receiptPdf";
 
 export default {
   name: 'SalesReportPage',
@@ -449,6 +601,14 @@ export default {
     viewSale: null,
     viewSaleItems: [],
     viewSaleItemsLoading: false,
+    receiptPreviewDialog: false,
+    receiptPreviewData: null,
+    receiptPreviewSaleItems: [],
+    receiptPreviewSaleItemsLoading: false,
+    receiptPreviewPaymentMethod: null,
+    receiptPreviewInvoiceNumber: null,
+    receiptPreviewAdditionalPayments: [],
+    savingReceiptPdf: false,
     fadeAwayMessage: {
       show: false,
       type: 'success',
@@ -472,6 +632,17 @@ export default {
         [item.saleNumber, item.itemCode, item.barcode, item.category, item.name, item.description, item.branchName]
           .some((v) => v && String(v).toLowerCase().includes(q)),
       );
+    },
+
+    receiptPreviewIsCreditCard() {
+      return this.receiptPreviewPaymentMethod === "credit_card";
+    },
+    receiptPreviewAdditionalPaymentsTotal() {
+      return this.receiptPreviewAdditionalPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
+    },
+    receiptPreviewCcSurchargeAmt() {
+      if (!this.receiptPreviewData) return 0;
+      return this.deriveCcSurcharge(this.receiptPreviewData.sale || {}, this.receiptPreviewIsCreditCard, this.receiptPreviewAdditionalPaymentsTotal);
     },
   },
 
@@ -608,6 +779,7 @@ export default {
       rows.push(['Paid Orders', s.paidCount]);
       rows.push(['Partial Orders', s.partialCount]);
       rows.push(['Layaway Orders', s.layawayCount]);
+      rows.push(['Installment Orders', s.installmentCount]);
       rows.push([]);
 
       // Period breakdown
@@ -730,6 +902,278 @@ export default {
         month: 'short',
         day: 'numeric',
       });
+    },
+
+    formatDateTime(d) {
+      if (!d) return '—';
+      return new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    },
+
+    async previewReceipt(sale) {
+      this.receiptPreviewSaleItems = [];
+      this.receiptPreviewSaleItemsLoading = true;
+      this.receiptPreviewPaymentMethod = null;
+      this.receiptPreviewInvoiceNumber = null;
+      this.receiptPreviewAdditionalPayments = [];
+      this.receiptPreviewDialog = true;
+
+      let receipt = null;
+      try {
+        const r = await this.axiosCall(`/receipts/sale/${sale.id}`, 'GET');
+        receipt = r?.data || null;
+      } catch (_) { /* no receipt recorded yet for this sale */ }
+
+      this.receiptPreviewData = {
+        id: receipt?.id || null,
+        receiptNumber: receipt?.receiptNumber || null,
+        printedAt: receipt?.printedAt || null,
+        reprintCount: receipt?.reprintCount || 0,
+        sale,
+      };
+
+      this.axiosCall(`/sale-items/sale/${sale.id}`, 'GET')
+        .then((r) => { if (r && r.data) this.receiptPreviewSaleItems = r.data; })
+        .catch(() => {})
+        .finally(() => { this.receiptPreviewSaleItemsLoading = false; });
+
+      this.fetchSalePayment(sale.id).then((p) => {
+        this.receiptPreviewPaymentMethod = p?.paymentMethod || null;
+        this.receiptPreviewInvoiceNumber = p?.referenceNumber || null;
+      });
+      this.fetchSaleAdditionalPayments(sale.id).then((aps) => { this.receiptPreviewAdditionalPayments = aps; });
+    },
+
+    async fetchSalePayment(saleId) {
+      if (!saleId) return null;
+      try {
+        const r = await this.axiosCall(`/payments/sale/${saleId}`, "GET");
+        return r?.data?.[0] || null;
+      } catch (_) {
+        return null;
+      }
+    },
+
+    async fetchSaleAdditionalPayments(saleId) {
+      if (!saleId) return [];
+      try {
+        const r = await this.axiosCall(`/sale-additional-payments/sale/${saleId}`, "GET");
+        return r?.data || [];
+      } catch (_) {
+        return [];
+      }
+    },
+
+    // totalAmount = subtotal - discount + additional payments + surcharge. The surcharge has
+    // no dedicated column, so back it out from the sale's already-stored totals, after
+    // accounting for any itemized additional payments (which ARE stored separately).
+    deriveCcSurcharge(sale, isCreditCard, additionalPaymentsTotal = 0) {
+      if (!isCreditCard) return 0;
+      const baseTotal = Number(sale.subtotal || 0) - Number(sale.discountAmount || 0) + Number(additionalPaymentsTotal || 0);
+      const implied = Number(sale.totalAmount || 0) - baseTotal;
+      return implied > 0.01 ? implied : 0;
+    },
+
+    formatJewelryDetails(ji) {
+      return [
+        ji.category?.categoryName ? `Category: ${ji.category.categoryName}` : null,
+        ji.stoneType?.name ? `Diamond: ${ji.stoneType.name}` : null,
+        ji.carat ? `Carat: ${ji.carat}` : null,
+        ji.karat ? `Karat: ${ji.karat}` : null,
+        ji.color ? `Color: ${ji.color}` : null,
+        ji.certificateDetails ? `Cert: ${ji.certificateDetails}` : null,
+      ].filter(Boolean).join(" · ");
+    },
+
+    buildReceiptPreviewHtml() {
+      const item = this.receiptPreviewData;
+      if (!item) return null;
+      const fmt = (v) => "₱" + Number(v || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const sale = item.sale || {};
+      const saleItems = this.receiptPreviewSaleItems;
+      const paymentMethod = this.receiptPreviewPaymentMethod;
+      const invoiceNumber = this.receiptPreviewInvoiceNumber;
+      const additionalPayments = this.receiptPreviewAdditionalPayments;
+      const additionalPaymentsTotal = this.receiptPreviewAdditionalPaymentsTotal;
+
+      const customerName = sale.customer ? `${sale.customer.firstName} ${sale.customer.lastName}` : null;
+      const rawDate = sale.saleDate || item.printedAt;
+      const saleDate = rawDate ? new Date(rawDate).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" }) : "";
+      const isLayaway = sale.saleType === "layaway";
+      const isInstallment = sale.saleType === "installment";
+      const isCreditCard = paymentMethod === "credit_card";
+      const discountAmt = Number(sale.discountAmount || 0);
+      const taxAmt = Number(sale.taxAmount || 0);
+      const changeAmt = Number(sale.changeAmount || 0);
+      const ccSurchargeAmt = this.deriveCcSurcharge(sale, isCreditCard, additionalPaymentsTotal);
+      const reprints = item.reprintCount || 0;
+
+      const itemLines = saleItems.length
+        ? saleItems.map((si) => {
+            const ji = si.jewelryItem || {};
+            const isJewelry = !!(ji.jewelryTypeId || ji.stoneTypeId);
+            const name = ji.name || ji.description || ji.itemCode || "—";
+            const details = isJewelry
+              ? this.formatJewelryDetails(ji)
+              : [ji.name, ji.description ? ji.description.substring(0, 40) : ""].filter(Boolean).join(" · ");
+            return `<div class="row"><span class="iname">${name}</span><span class="iprice">${fmt(si.lineTotal)}</span></div>` +
+                   `<div class="icode">${ji.itemCode || ""}</div>` +
+                   (details ? `<div class="icode" style="margin-bottom:4px">${details}</div>` : "");
+          }).join("")
+        : '<div class="icode">No item details recorded</div>';
+
+      let payLines = `<div class="row"><span>Amount Paid</span><span>${fmt(sale.amountPaid)}</span></div>`;
+      if (changeAmt > 0 && !isCreditCard) payLines += `<div class="row"><span>Change</span><span>${fmt(changeAmt)}</span></div>`;
+      payLines += `<div class="row"><span>Status</span><span style="text-transform:capitalize">${(sale.paymentStatus || "").replace("_", " ")}</span></div>`;
+      if (invoiceNumber) payLines += `<div class="row"><span>Invoice #</span><span>${invoiceNumber}</span></div>`;
+      if (isInstallment) payLines += `<div class="row bold"><span>INSTALLMENT PLAN</span></div>`;
+      else if (isLayaway) payLines += `<div class="row bold"><span>LAYAWAY PLAN</span></div>`;
+
+      return `<!DOCTYPE html><html><head>
+<meta charset="UTF-8"><title>Receipt ${item.receiptNumber || sale.saleNumber || ""}</title>
+<style>
+  @page { size: 80mm auto; margin: 4mm 3mm; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Courier New', Courier, monospace; font-size: 11px; color: #000; width: 74mm; }
+  .center { text-align: center; }
+  .brand { font-size: 17px; font-weight: bold; letter-spacing: 5px; margin-bottom: 1px; }
+  .sub { font-size: 9px; letter-spacing: 3px; margin-bottom: 2px; }
+  .meta { font-size: 10px; margin: 2px 0; }
+  .hr { border: none; border-top: 1px dashed #000; margin: 5px 0; }
+  .hrs { border: none; border-top: 1px solid #000; margin: 5px 0; }
+  .row { display: flex; justify-content: space-between; margin: 2px 0; font-size: 11px; }
+  .iname { flex: 1; padding-right: 6px; overflow: hidden; }
+  .iprice { white-space: nowrap; font-weight: bold; }
+  .icode { font-size: 9px; color: #444; padding-left: 4px; margin-bottom: 3px; }
+  .total-row { display: flex; justify-content: space-between; font-size: 14px; font-weight: bold; margin: 4px 0; }
+  .bold { font-weight: bold; }
+  .footer { text-align: center; margin-top: 10px; font-size: 9px; line-height: 1.6; }
+</style>
+</head><body>
+<div class="center">
+  <div class="brand">THEIA GEMS</div>
+  <div class="sub">FINE JEWELRY</div>
+</div>
+<hr class="hrs">
+<div class="meta">Receipt: <b>${item.receiptNumber || "N/A"}</b></div>
+<div class="meta">Sale No: ${sale.saleNumber || "—"}</div>
+<div class="meta">Date: ${saleDate}</div>
+${customerName ? `<div class="meta">Customer: ${customerName}</div>` : ""}
+${reprints > 0 ? `<div class="meta" style="color:#555">Reprint #${reprints + 1}</div>` : ""}
+<hr class="hr">
+${itemLines}
+<hr class="hr">
+<div class="row"><span>Subtotal</span><span>${fmt(sale.subtotal)}</span></div>
+${discountAmt > 0 ? `<div class="row"><span>Discount</span><span>-${fmt(discountAmt)}</span></div>` : ""}
+${additionalPayments.map((ap) => `<div class="row"><span>${ap.label}</span><span>+${fmt(ap.amount)}</span></div>`).join("")}
+${ccSurchargeAmt > 0 ? `<div class="row"><span>Credit Card Surcharge (+4%)</span><span>+${fmt(ccSurchargeAmt)}</span></div>` : ""}
+${taxAmt > 0 ? `<div class="row"><span>VAT (12%)</span><span>${fmt(taxAmt)}</span></div>` : ""}
+<hr class="hrs">
+<div class="total-row"><span>TOTAL</span><span>${fmt(sale.totalAmount)}</span></div>
+<hr class="hr">
+${payLines}
+<hr class="hrs">
+<div class="footer">
+  <div>Thank you for your purchase!</div>
+  <div>Please come again.</div>
+  <div style="margin-top:4px;font-size:8px">This serves as your official receipt.</div>
+</div>
+</body></html>`;
+    },
+
+    buildReceiptPreviewData() {
+      const item = this.receiptPreviewData;
+      if (!item) return null;
+      const sale = item.sale || {};
+      const saleItems = this.receiptPreviewSaleItems;
+      const paymentMethod = this.receiptPreviewPaymentMethod;
+      const invoiceNumber = this.receiptPreviewInvoiceNumber;
+      const additionalPayments = this.receiptPreviewAdditionalPayments;
+      const additionalPaymentsTotal = this.receiptPreviewAdditionalPaymentsTotal;
+
+      const customerName = sale.customer ? `${sale.customer.firstName} ${sale.customer.lastName}` : null;
+      const rawDate = sale.saleDate || item.printedAt;
+      const saleDate = rawDate ? new Date(rawDate).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" }) : "";
+      const isLayaway = sale.saleType === "layaway";
+      const isInstallment = sale.saleType === "installment";
+      const isCreditCard = paymentMethod === "credit_card";
+      const discountAmt = Number(sale.discountAmount || 0);
+      const taxAmt = Number(sale.taxAmount || 0);
+      const changeAmt = Number(sale.changeAmount || 0);
+      const ccSurchargeAmt = this.deriveCcSurcharge(sale, isCreditCard, additionalPaymentsTotal);
+      const reprints = item.reprintCount || 0;
+
+      const items = saleItems.length
+        ? saleItems.map((si) => {
+            const ji = si.jewelryItem || {};
+            const isJewelry = !!(ji.jewelryTypeId || ji.stoneTypeId);
+            const name = ji.name || ji.description || ji.itemCode || "—";
+            const details = isJewelry
+              ? this.formatJewelryDetails(ji)
+              : [ji.name, ji.description ? ji.description.substring(0, 40) : ""].filter(Boolean).join(" · ");
+            return { name, code: ji.itemCode || "", details, price: si.lineTotal };
+          })
+        : [];
+
+      const paymentLines = [{ label: "Amount Paid", value: money(sale.amountPaid) }];
+      if (changeAmt > 0 && !isCreditCard) paymentLines.push({ label: "Change", value: money(changeAmt) });
+      paymentLines.push({ label: "Status", value: (sale.paymentStatus || "").replace("_", " ") });
+      if (invoiceNumber) paymentLines.push({ label: "Invoice #", value: invoiceNumber });
+      if (isInstallment) paymentLines.push({ label: "INSTALLMENT PLAN", value: null, bold: true });
+      else if (isLayaway) paymentLines.push({ label: "LAYAWAY PLAN", value: null, bold: true });
+
+      return {
+        receiptNumber: item.receiptNumber || sale.saleNumber,
+        saleNumber: sale.saleNumber,
+        saleDate,
+        customerName,
+        reprints,
+        items,
+        subtotal: sale.subtotal,
+        discountAmt,
+        taxAmt,
+        additionalPayments,
+        ccSurchargeAmt,
+        totalAmount: sale.totalAmount,
+        paymentLines,
+      };
+    },
+
+    printReceiptPreview() {
+      const html = this.buildReceiptPreviewHtml();
+      if (!html) return;
+      const win = window.open("", "_blank", "width=340,height=700,toolbar=0,menubar=0,scrollbars=1");
+      if (!win) {
+        this.fadeAwayMessage = { show: true, type: "error", header: "Popup Blocked", message: "Please allow popups to print receipts.", top: 10 };
+        return;
+      }
+      win.document.write(html);
+      win.document.close();
+      win.focus();
+      setTimeout(() => {
+        win.print();
+        win.onafterprint = () => win.close();
+      }, 250);
+      this.recordReceiptPrint();
+    },
+
+    async saveReceiptPreviewPdf() {
+      this.savingReceiptPdf = true;
+      try {
+        const d = this.buildReceiptPreviewData();
+        const filename = this.receiptPreviewData.receiptNumber || this.receiptPreviewData.sale?.saleNumber || "receipt";
+        downloadReceiptPdf(d, `Receipt-${filename}.pdf`);
+        this.recordReceiptPrint();
+      } catch (error) {
+        this.fadeAwayMessage = { show: true, type: "error", header: "Error", message: "Failed to generate PDF", top: 10 };
+      } finally {
+        this.savingReceiptPdf = false;
+      }
+    },
+
+    recordReceiptPrint() {
+      if (!this.receiptPreviewData?.id) return;
+      const userId = this.$store.state.user?.userID || this.$store.state.user?.id;
+      this.axiosCall("/receipts/" + this.receiptPreviewData.id + "/print", "POST", { printedBy: userId }).catch(() => {});
     },
   },
 };
@@ -1185,6 +1629,7 @@ export default {
 .s-paid     { background: rgba(61,122,90,0.1);   color: #3D7A5A; }
 .s-partial  { background: rgba(196,148,85,0.15); color: #9B6B3A; }
 .s-layaway  { background: rgba(80,100,160,0.1);  color: #4A5898; }
+.s-installment { background: rgba(139,111,160,0.14); color: #8B6FA0; }
 .s-refunded { background: rgba(120,120,140,0.12); color: #5A5A72; }
 .s-type     { background: rgba(155,107,58,0.08); color: #9A7858; }
 
@@ -1218,6 +1663,7 @@ export default {
 .empty-sub { font-size: 12px; color: #9A7858; }
 
 /* ─── View Items Button ─── */
+.row-actions { display: flex; align-items: center; gap: 6px; }
 .btn-view-items {
   display: inline-flex;
   align-items: center;
@@ -1350,4 +1796,129 @@ export default {
   font-size: 13px;
   gap: 10px;
 }
+
+/* ─── Receipt Preview ─── */
+.receipt-view-card {
+  border-radius: 16px !important;
+  overflow: hidden;
+  font-family: 'Outfit', sans-serif;
+  background: #FDFAF6;
+  padding: 24px 28px 20px;
+  position: relative;
+}
+.receipt-close-btn {
+  position: absolute; top: 14px; right: 14px;
+  background: none; border: none; cursor: pointer;
+  color: #9A7858; padding: 4px; border-radius: 6px;
+  display: flex; align-items: center; transition: color 0.12s;
+}
+.receipt-close-btn:hover { color: #B84040; }
+
+.rv-header { text-align: center; margin-bottom: 12px; }
+.rv-store {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px; font-weight: 600;
+  color: #9B6B3A; letter-spacing: 0.12em;
+}
+.rv-store-sub { font-size: 11px; color: #9A7858; letter-spacing: 0.14em; text-transform: uppercase; margin-top: 2px; }
+.rv-divider-dots { font-size: 11px; color: #C4A882; margin: 8px 0; letter-spacing: 0.1em; }
+.rv-receipt-no { font-family: monospace; font-size: 15px; font-weight: 700; color: #3A2515; margin-top: 6px; }
+.rv-sale-no { font-family: monospace; font-size: 11px; color: #9A7858; margin-top: 2px; }
+.rv-date { font-size: 11px; color: #9A7858; margin-top: 3px; }
+
+.rv-divider { height: 1px; background: rgba(155,107,58,0.16); margin: 10px 0; }
+
+.rv-section { padding: 4px 0; }
+.rv-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 5px 0; font-size: 13px; color: #3A2515;
+  border-bottom: 1px dashed rgba(155,107,58,0.1);
+}
+.rv-row:last-child { border-bottom: none; }
+.rv-lbl { color: #9A7858; font-size: 12px; }
+.rv-val { font-weight: 500; text-align: right; }
+.rv-discount { color: #3D7A5A; }
+
+.rv-total-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 10px 0 4px;
+  font-size: 13px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: #3A2515;
+}
+.rv-total-amt {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 28px; font-weight: 600; color: #9B6B3A;
+}
+
+.rv-print-info .rv-lbl { color: #9A7858; }
+.rv-footer { text-align: center; font-size: 11px; color: #9A7858; font-style: italic; padding-bottom: 4px; }
+
+.rv-items-header {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #9A7858;
+  margin-bottom: 6px;
+}
+.rv-item-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 5px 0;
+  border-bottom: 1px dashed rgba(155,107,58,0.1);
+  gap: 8px;
+}
+.rv-item-row:last-child { border-bottom: none; }
+.rv-item-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.rv-item-code {
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: #9B6B3A;
+}
+.rv-item-desc {
+  font-size: 12px;
+  color: #3A2515;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rv-item-jdetails {
+  display: block;
+  font-size: 10.5px;
+  color: #9A7858;
+  margin-top: 1px;
+}
+.rv-item-price {
+  font-size: 13px;
+  font-weight: 600;
+  color: #3A2515;
+  white-space: nowrap;
+}
+.rv-items-loading {
+  display: flex;
+  justify-content: center;
+  padding: 8px 0;
+}
+.rv-items-empty {
+  font-size: 11px;
+  color: #C4A882;
+  font-style: italic;
+  padding: 4px 0;
+}
+.rv-actions { display: flex; gap: 8px; margin-top: 14px; }
+.rv-actions .btn-view-items { flex: 1; justify-content: center; padding: 8px 10px; }
+.rv-actions .btn-view-items[disabled] { opacity: 0.6; cursor: default; }
+
+.repeat-badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+.r-printed { background: rgba(61,122,90,0.1); color: #3D7A5A; }
+.r-not-printed { background: rgba(155,107,58,0.1); color: #9B6B3A; }
 </style>

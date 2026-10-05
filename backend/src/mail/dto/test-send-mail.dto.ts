@@ -5,10 +5,15 @@ export const TEST_MAIL_TEMPLATES = [
   'layaway_overdue',
   'layaway_confirmation',
   'layaway_payment_confirmation',
+  'installment_reminder',
+  'installment_overdue',
+  'installment_confirmation',
+  'installment_payment_confirmation',
   'transfer_notification',
   'consignment_auth',
   'consignment_sold',
   'aged_consignment',
+  'low_stock',
   'promotional',
 ] as const;
 

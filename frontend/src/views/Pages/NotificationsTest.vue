@@ -91,6 +91,8 @@
             <option value="custom">Custom message</option>
             <option value="layaway_reminder">Layaway Reminder (sample)</option>
             <option value="layaway_overdue">Layaway Overdue (sample)</option>
+            <option value="installment_reminder">Installment Reminder (sample)</option>
+            <option value="installment_overdue">Installment Overdue (sample)</option>
           </select>
         </div>
         <div>
@@ -156,7 +158,7 @@ export default {
         {
           key: "run-all",
           title: "Run All Daily Checks",
-          desc: "Upcoming + overdue layaway reminders and aged consignment alert, in one sweep.",
+          desc: "Upcoming + overdue layaway and installment reminders, aged consignment alert, and low stock alert, in one sweep.",
           icon: "mdi-calendar-sync-outline",
           endpoint: "/scheduler/run-all",
           running: false,
@@ -184,11 +186,41 @@ export default {
           lastError: false,
         },
         {
+          key: "upcoming-installment",
+          title: "Upcoming Installment Reminders",
+          desc: "Emails/SMS customers whose next installment payment is due within 3 days.",
+          icon: "mdi-bell-outline",
+          endpoint: "/scheduler/upcoming-installment-reminders",
+          running: false,
+          lastResult: "",
+          lastError: false,
+        },
+        {
+          key: "overdue-installment",
+          title: "Overdue Installment Alerts",
+          desc: "Emails/SMS customers whose installment payment is already past due.",
+          icon: "mdi-alert-circle-outline",
+          endpoint: "/scheduler/overdue-installment-alerts",
+          running: false,
+          lastResult: "",
+          lastError: false,
+        },
+        {
           key: "consignment",
           title: "Aged Consignment Alert",
           desc: "Emails the owner a digest of consignment items unsold for 40+ days.",
           icon: "mdi-clock-alert-outline",
           endpoint: "/scheduler/aged-consignment-alerts",
+          running: false,
+          lastResult: "",
+          lastError: false,
+        },
+        {
+          key: "low-stock",
+          title: "Low Stock Alert",
+          desc: "Emails the owner a digest of categories with 20 or fewer items currently in stock.",
+          icon: "mdi-package-variant-closed",
+          endpoint: "/scheduler/low-stock-alerts",
           running: false,
           lastResult: "",
           lastError: false,
@@ -210,10 +242,15 @@ export default {
         { value: "layaway_overdue", label: "Layaway Payment Overdue" },
         { value: "layaway_confirmation", label: "Layaway Plan Created Confirmation" },
         { value: "layaway_payment_confirmation", label: "Layaway Payment Received Confirmation" },
+        { value: "installment_reminder", label: "Installment Payment Reminder (upcoming)" },
+        { value: "installment_overdue", label: "Installment Payment Overdue" },
+        { value: "installment_confirmation", label: "Installment Plan Created Confirmation" },
+        { value: "installment_payment_confirmation", label: "Installment Payment Received Confirmation" },
         { value: "transfer_notification", label: "Branch Transfer Notification" },
         { value: "consignment_auth", label: "Consignment Authenticity Result" },
         { value: "consignment_sold", label: "Consignment Item Sold Payout" },
         { value: "aged_consignment", label: "Aged Consignment Alert (Owner)" },
+        { value: "low_stock", label: "Low Stock Alert (Owner)" },
         { value: "promotional", label: "Promotional / Marketing Email" },
       ],
       emailTemplate: "layaway_reminder",
@@ -280,11 +317,14 @@ export default {
     summarizeJobResult(data) {
       if (!data) return "Done.";
       if (data.message) return data.message;
-      if (data.upcoming || data.overdue || data.agedConsignment || data.salesReport) {
+      if (data.upcoming || data.overdue || data.upcomingInstallment || data.overdueInstallment || data.agedConsignment || data.lowStock || data.salesReport) {
         const parts = [];
         if (data.upcoming) parts.push(`Upcoming: ${data.upcoming.message}`);
         if (data.overdue) parts.push(`Overdue: ${data.overdue.message}`);
+        if (data.upcomingInstallment) parts.push(`Upcoming Installment: ${data.upcomingInstallment.message}`);
+        if (data.overdueInstallment) parts.push(`Overdue Installment: ${data.overdueInstallment.message}`);
         if (data.agedConsignment) parts.push(`Aged Consignment: ${data.agedConsignment.message}`);
+        if (data.lowStock) parts.push(`Low Stock: ${data.lowStock.message}`);
         if (data.salesReport) parts.push(`Sales Report: ${data.salesReport.message}`);
         return parts.join(" / ");
       }
@@ -327,6 +367,10 @@ export default {
         this.testSmsMessage = `Layaway Reminder!\n\nHi Juan Dela Cruz! 💎✨\n\nJust a gentle reminder that your next payment for your layaway item amounting to ₱2,500.00 is due on June 25, 2026.\n\nIf you've already settled this payment, please disregard this message. Should you need any assistance, feel free to reach out. 🤍\n\nThank you for choosing Theia Gems.\n\nWear your Memories. Wear Theia Gems.\nCristy`;
       } else if (this.smsPreset === "layaway_overdue") {
         this.testSmsMessage = `Overdue Reminder!\n\nHi Juan Dela Cruz! 💎✨\n\nA gentle reminder that your payment for your layaway item amounting to ₱2,500.00 is already overdue.\n\nKindly settle the payment at your earliest convenience to avoid any delays with your layaway plan. If payment has already been made, please disregard this message.\n\nThank you! 🤍\nTheia Gems`;
+      } else if (this.smsPreset === "installment_reminder") {
+        this.testSmsMessage = `Installment Reminder!\n\nHi Juan Dela Cruz! 💎✨\n\nJust a gentle reminder that your next payment for your installment item amounting to ₱2,500.00 is due on June 25, 2026.\n\nIf you've already settled this payment, please disregard this message. Should you need any assistance, feel free to reach out. 🤍\n\nThank you for choosing Theia Gems.\n\nWear your Memories. Wear Theia Gems.\nCristy`;
+      } else if (this.smsPreset === "installment_overdue") {
+        this.testSmsMessage = `Overdue Reminder!\n\nHi Juan Dela Cruz! 💎✨\n\nA gentle reminder that your payment for your installment item amounting to ₱2,500.00 is already overdue.\n\nKindly settle the payment at your earliest convenience to avoid any delays with your installment plan. If payment has already been made, please disregard this message.\n\nThank you! 🤍\nTheia Gems`;
       } else {
         this.testSmsMessage = "";
       }

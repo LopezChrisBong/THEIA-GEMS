@@ -247,6 +247,7 @@ export default {
         { label: "Partial", value: "partial" },
         { label: "Deposit", value: "deposit" },
         { label: "Layaway", value: "layaway" },
+        { label: "Installment", value: "installment" },
         { label: "Refund", value: "refund" },
       ],
 

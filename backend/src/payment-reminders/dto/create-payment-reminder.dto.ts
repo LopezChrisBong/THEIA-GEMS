@@ -13,9 +13,13 @@ import {
 } from '../entities/payment-reminder.entity';
 
 export class CreatePaymentReminderDto {
-  @IsNotEmpty()
+  @IsOptional()
   @IsNumber()
-  layawayPlanId: number;
+  layawayPlanId?: number;
+
+  @IsOptional()
+  @IsNumber()
+  installmentPlanId?: number;
 
   @IsNotEmpty()
   @IsNumber()

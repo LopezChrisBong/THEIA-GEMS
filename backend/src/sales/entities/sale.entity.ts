@@ -17,12 +17,14 @@ export enum PaymentStatus {
   PAID = 'paid',
   PARTIAL = 'partial',
   LAYAWAY = 'layaway',
+  INSTALLMENT = 'installment',
   REFUNDED = 'refunded',
 }
 
 export enum SaleType {
   REGULAR = 'regular',
   LAYAWAY = 'layaway',
+  INSTALLMENT = 'installment',
   CONSIGNMENT = 'consignment',
 }
 

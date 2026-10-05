@@ -29,9 +29,12 @@ import { TransferItemsModule } from './transfer-items/transfer-items.module';
 import { CustomersModule } from './customers/customers.module';
 import { SalesModule } from './sales/sales.module';
 import { SaleItemsModule } from './sale-items/sale-items.module';
+import { SaleAdditionalPaymentsModule } from './sale-additional-payments/sale-additional-payments.module';
 import { PaymentsModule } from './payments/payments.module';
 import { LayawayPlansModule } from './layaway-plans/layaway-plans.module';
 import { LayawayPaymentsModule } from './layaway-payments/layaway-payments.module';
+import { InstallmentPlansModule } from './installment-plans/installment-plans.module';
+import { InstallmentPaymentsModule } from './installment-payments/installment-payments.module';
 import { PaymentRemindersModule } from './payment-reminders/payment-reminders.module';
 import { PromotionalMessagesModule } from './promotional-messages/promotional-messages.module';
 import { ReceiptsModule } from './receipts/receipts.module';
@@ -91,9 +94,12 @@ import { SchedulerModule } from './scheduler/scheduler.module';
     CustomersModule,
     SalesModule,
     SaleItemsModule,
+    SaleAdditionalPaymentsModule,
     PaymentsModule,
     LayawayPlansModule,
     LayawayPaymentsModule,
+    InstallmentPlansModule,
+    InstallmentPaymentsModule,
     PaymentRemindersModule,
     PromotionalMessagesModule,
     ReceiptsModule,

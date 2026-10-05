@@ -80,6 +80,13 @@ export class PaymentRemindersController {
     return this.paymentRemindersService.findByLayawayPlan(planId);
   }
 
+  @Get('installment-plan/:planId')
+  findByInstallmentPlan(
+    @Param('planId', ParseIntPipe) planId: number,
+  ): Promise<PaymentReminder[]> {
+    return this.paymentRemindersService.findByInstallmentPlan(planId);
+  }
+
   @Get('customer/:customerId')
   findByCustomer(
     @Param('customerId', ParseIntPipe) customerId: number,

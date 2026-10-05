@@ -47,7 +47,7 @@ export class PaymentRemindersService {
 
   async findAll(): Promise<PaymentReminder[]> {
     return this.paymentReminderRepository.find({
-      relations: ['layawayPlan', 'customer', 'sender'],
+      relations: ['layawayPlan', 'installmentPlan', 'customer', 'sender'],
       order: { scheduledDate: 'ASC' },
     });
   }
@@ -55,7 +55,7 @@ export class PaymentRemindersService {
   async findOne(id: number): Promise<PaymentReminder> {
     const reminder = await this.paymentReminderRepository.findOne({
       where: { id },
-      relations: ['layawayPlan', 'customer', 'sender'],
+      relations: ['layawayPlan', 'installmentPlan', 'customer', 'sender'],
     });
     if (!reminder) {
       throw new NotFoundException(`Payment reminder with ID ${id} not found`);
@@ -71,10 +71,18 @@ export class PaymentRemindersService {
     });
   }
 
+  async findByInstallmentPlan(installmentPlanId: number): Promise<PaymentReminder[]> {
+    return this.paymentReminderRepository.find({
+      where: { installmentPlanId },
+      relations: ['customer', 'sender'],
+      order: { scheduledDate: 'ASC' },
+    });
+  }
+
   async findByCustomer(customerId: number): Promise<PaymentReminder[]> {
     return this.paymentReminderRepository.find({
       where: { customerId },
-      relations: ['layawayPlan', 'sender'],
+      relations: ['layawayPlan', 'installmentPlan', 'sender'],
       order: { scheduledDate: 'ASC' },
     });
   }
@@ -82,7 +90,7 @@ export class PaymentRemindersService {
   async findByStatus(status: ReminderStatus): Promise<PaymentReminder[]> {
     return this.paymentReminderRepository.find({
       where: { status },
-      relations: ['layawayPlan', 'customer', 'sender'],
+      relations: ['layawayPlan', 'installmentPlan', 'customer', 'sender'],
       order: { scheduledDate: 'ASC' },
     });
   }
@@ -90,7 +98,7 @@ export class PaymentRemindersService {
   async findByType(type: ReminderType): Promise<PaymentReminder[]> {
     return this.paymentReminderRepository.find({
       where: { reminderType: type },
-      relations: ['layawayPlan', 'customer', 'sender'],
+      relations: ['layawayPlan', 'installmentPlan', 'customer', 'sender'],
       order: { scheduledDate: 'ASC' },
     });
   }
@@ -102,7 +110,7 @@ export class PaymentRemindersService {
         status: ReminderStatus.PENDING,
         scheduledDate: LessThanOrEqual(now),
       },
-      relations: ['layawayPlan', 'customer'],
+      relations: ['layawayPlan', 'installmentPlan', 'customer'],
       order: { scheduledDate: 'ASC' },
     });
   }
@@ -117,7 +125,7 @@ export class PaymentRemindersService {
       where: {
         scheduledDate: Between(startOfDay, endOfDay),
       },
-      relations: ['layawayPlan', 'customer'],
+      relations: ['layawayPlan', 'installmentPlan', 'customer'],
       order: { scheduledDate: 'ASC' },
     });
   }

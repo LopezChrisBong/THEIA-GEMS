@@ -5,7 +5,7 @@
     <div class="topbar">
       <div class="topbar-brand">
         <div class="brand-gem">
-          <div class="gem-diamond"></div>
+          <img src="/img/theia-logo.png" alt="Theia Gems" class="brand-logo-img" />
         </div>
         <div>
           <div class="brand-name">Theia Gems</div>
@@ -211,7 +211,7 @@
         <!-- ACTIVE LAYAWAYS -->
         <div class="dash-card">
           <div class="card-title">Active Layaway Plans</div>
-          <div class="card-sub" style="margin-top:3px;margin-bottom:14px">Ongoing installment plans</div>
+          <div class="card-sub" style="margin-top:3px;margin-bottom:14px">Ongoing layaway plans</div>
           <div class="inv-grid">
             <div class="inv-stat">
               <div class="inv-val">{{ layawayStats.active }}</div>
@@ -223,6 +223,26 @@
             </div>
             <div class="inv-stat">
               <div class="inv-val warn-val">{{ layawayStats.overdue }}</div>
+              <div class="inv-lbl">Overdue</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ACTIVE INSTALLMENTS -->
+        <div class="dash-card">
+          <div class="card-title">Active Installment Plans</div>
+          <div class="card-sub" style="margin-top:3px;margin-bottom:14px">Ongoing installment plans</div>
+          <div class="inv-grid">
+            <div class="inv-stat">
+              <div class="inv-val">{{ installmentStats.active }}</div>
+              <div class="inv-lbl">Active Plans</div>
+            </div>
+            <div class="inv-stat">
+              <div class="inv-val">₱{{ formatNumber(installmentStats.totalBalance) }}</div>
+              <div class="inv-lbl">Total Remaining</div>
+            </div>
+            <div class="inv-stat">
+              <div class="inv-val warn-val">{{ installmentStats.overdue }}</div>
               <div class="inv-lbl">Overdue</div>
             </div>
           </div>
@@ -271,10 +291,12 @@ export default {
       inventoryStats: [
         { label: "In Stock", value: "—" },
         { label: "On Layaway", value: "—" },
+        { label: "On Installment", value: "—" },
         { label: "Consignment", value: "—" },
       ],
 
       layawayStats: { active: 0, overdue: 0, totalBalance: 0 },
+      installmentStats: { active: 0, overdue: 0, totalBalance: 0 },
     };
   },
 
@@ -377,6 +399,7 @@ export default {
         this.loadRecentSales(),
         this.loadInventory(),
         this.loadLayaways(),
+        this.loadInstallments(),
         this.loadCustomers(),
       ]);
     },
@@ -444,12 +467,13 @@ export default {
       let grand = 0;
       for (const s of sales) {
         const t = s.saleType || "regular";
-        totals[t] = (totals[t] || 0) + Number(s.totalAmount || 0);
-        grand += Number(s.totalAmount || 0);
+        totals[t] = (totals[t] || 0) + Number(s.amountPaid || 0);
+        grand += Number(s.amountPaid || 0);
       }
       const palette = {
         regular: this.darkMode ? "#C9A35B" : "#9B6B3A",
         layaway: "#5B7C9C",
+        installment: "#8B6FA0",
         consignment: "#5E8C73",
       };
       let offset = 0;
@@ -491,10 +515,12 @@ export default {
           const all = res.data;
           const inStock = all.filter(i => i.status === "IN_STOCK").length;
           const layaway = all.filter(i => i.status === "LAYAWAY").length;
+          const installment = all.filter(i => i.status === "INSTALLMENT").length;
           const consign = all.filter(i => i.status === "CONSIGNMENT").length;
           this.inventoryStats = [
             { label: "On Hand / Available", value: String(inStock) },
             { label: "On Layaway", value: String(layaway) },
+            { label: "On Installment", value: String(installment) },
             { label: "Consignment", value: String(consign) },
           ];
         }
@@ -522,6 +548,25 @@ export default {
           this.kpis[3].up = overdue === 0;
           this.kpis[3].sparkLine = this.flatSparkLine(active.length);
           this.kpis[3].sparkArea = this.flatSparkArea(active.length);
+        }
+      } catch (_) { /* ignore */ }
+    },
+
+    async loadInstallments() {
+      try {
+        const url = this.selectedBranch ? `/installment-plans/branch/${this.selectedBranch}` : "/installment-plans";
+        const res = await this.axiosCall(url, "GET");
+        if (res && res.data) {
+          const plans = res.data;
+          const active = plans.filter(p => p.status === "active");
+          const today = new Date(); today.setHours(0, 0, 0, 0);
+          const overdue = active.filter(p => {
+            if (!p.nextPaymentDate) return false;
+            const due = new Date(p.nextPaymentDate); due.setHours(0, 0, 0, 0);
+            return today > due;
+          }).length;
+          const totalBalance = active.reduce((s, p) => s + Number(p.remainingBalance || 0), 0);
+          this.installmentStats = { active: active.length, overdue, totalBalance };
         }
       } catch (_) { /* ignore */ }
     },
@@ -576,13 +621,14 @@ export default {
   border: 1px solid rgba(155,107,58,0.4);
   background: rgba(155,107,58,0.07);
   transition: background 0.3s, border-color 0.3s;
+  overflow: hidden;
 }
 .dark .brand-gem { border-color: rgba(201,163,91,0.5); background: rgba(201,163,91,0.07); }
-.gem-diamond {
-  width: 15px; height: 15px;
-  background: linear-gradient(135deg, #E3C485, #C9A35B);
-  transform: rotate(45deg);
-  border-radius: 2px;
+.brand-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 9px;
 }
 .brand-name {
   font-family: 'Cormorant Garamond', serif;
@@ -809,15 +855,16 @@ export default {
 }
 .dark .type-pill { background: rgba(201,163,91,0.08); color: #9A8B70; }
 .t-layaway { background: rgba(91,124,156,0.12); color: #5B7C9C; }
+.t-installment { background: rgba(139,111,160,0.14); color: #8B6FA0; }
 .t-consignment { background: rgba(94,140,115,0.12); color: #5E8C73; }
 
 .status-pip { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 500; text-transform: capitalize; }
 .p-paid { background: rgba(61,122,90,0.1); color: #3D7A5A; }
-.p-partial, .p-layaway { background: rgba(196,148,85,0.15); color: #9B6B3A; }
-.dark .p-partial, .dark .p-layaway { background: rgba(201,163,91,0.12); color: #C9A35B; }
+.p-partial, .p-layaway, .p-installment { background: rgba(196,148,85,0.15); color: #9B6B3A; }
+.dark .p-partial, .dark .p-layaway, .dark .p-installment { background: rgba(201,163,91,0.12); color: #C9A35B; }
 .p-refunded { background: rgba(120,120,140,0.12); color: #5A5A72; }
 
-.inv-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.inv-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(70px, 1fr)); gap: 10px; }
 .inv-stat {
   background: rgba(155,107,58,0.06); border: 1px solid rgba(155,107,58,0.1);
   border-radius: 12px; padding: 12px 14px; transition: background 0.3s, border-color 0.3s;

@@ -76,4 +76,35 @@ export class CategoriesService {
     const category = await this.findOne(id);
     await this.categoryRepository.remove(category);
   }
+
+  /**
+   * Categories whose current IN_STOCK item count is at or below `threshold`.
+   * Uses a LEFT JOIN so categories with zero in-stock items are included too.
+   */
+  async findLowStock(
+    threshold: number,
+  ): Promise<{ categoryId: number; categoryName: string; count: number }[]> {
+    const rows = await this.categoryRepository
+      .createQueryBuilder('category')
+      .leftJoin(
+        'jewelry_items',
+        'item',
+        'item.category_id = category.id AND item.status = :status AND item.is_active = :isActive',
+        { status: 'IN_STOCK', isActive: true },
+      )
+      .select('category.id', 'categoryId')
+      .addSelect('category.category_name', 'categoryName')
+      .addSelect('COUNT(item.id)', 'count')
+      .groupBy('category.id')
+      .addGroupBy('category.category_name')
+      .having('COUNT(item.id) <= :threshold', { threshold })
+      .orderBy('COUNT(item.id)', 'ASC')
+      .getRawMany();
+
+    return rows.map((r) => ({
+      categoryId: Number(r.categoryId),
+      categoryName: r.categoryName,
+      count: Number(r.count),
+    }));
+  }
 }

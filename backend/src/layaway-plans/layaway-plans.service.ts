@@ -64,7 +64,7 @@ export class LayawayPlansService {
     const plan = await this.findOne(saved.id);
     if (plan.customer) {
       const customerName = `${plan.customer.firstName} ${plan.customer.lastName}`;
-      const smsBody = `Hi ${customerName}, your Theia Gems installment plan (${saved.planNumber}) has been created. Monthly payment: ₱${Number(saved.monthlyPayment).toFixed(2)} for ${createLayawayPlanDto.numberOfPayments} months. Next due: ${this.fmtDate(saved.nextPaymentDate)}. Thank you!`;
+      const smsBody = `Hi ${customerName}, your Theia Gems layaway plan (${saved.planNumber}) has been created. Monthly payment: ₱${Number(saved.monthlyPayment).toFixed(2)} for ${createLayawayPlanDto.numberOfPayments} months. Next due: ${this.fmtDate(saved.nextPaymentDate)}. Thank you!`;
       if (plan.customer.email) {
         this.mailService.sendLayawayConfirmation({
           to: plan.customer.email,
