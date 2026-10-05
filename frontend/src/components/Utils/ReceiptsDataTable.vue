@@ -143,6 +143,9 @@
                 <span class="rv-item-desc">
                   {{ [si.jewelryItem?.name, si.jewelryItem?.material].filter(Boolean).join(' · ') || si.jewelryItem?.itemCode || '—' }}
                 </span>
+                <span v-if="si.jewelryItem && formatJewelryDetails(si.jewelryItem)" class="rv-item-jdetails">
+                  {{ formatJewelryDetails(si.jewelryItem) }}
+                </span>
               </div>
               <span class="rv-item-price">₱{{ formatNumber(si.lineTotal) }}</span>
             </div>
@@ -170,6 +173,14 @@
             <span class="rv-lbl">VAT (12%)</span>
             <span class="rv-val">₱{{ formatNumber(viewData.sale?.taxAmount) }}</span>
           </div>
+          <div class="rv-row" v-for="ap in viewAdditionalPayments" :key="'view-ap-' + ap.id">
+            <span class="rv-lbl">{{ ap.label }}</span>
+            <span class="rv-val">+ ₱{{ formatNumber(ap.amount) }}</span>
+          </div>
+          <div class="rv-row" v-if="viewCcSurchargeAmt > 0">
+            <span class="rv-lbl">Credit Card Surcharge (+4%)</span>
+            <span class="rv-val">+ ₱{{ formatNumber(viewCcSurchargeAmt) }}</span>
+          </div>
         </div>
 
         <div class="rv-divider"></div>
@@ -186,13 +197,17 @@
             <span class="rv-lbl">Amount Paid</span>
             <span class="rv-val">₱{{ formatNumber(viewData.sale?.amountPaid) }}</span>
           </div>
-          <div class="rv-row" v-if="Number(viewData.sale?.changeAmount) > 0">
+          <div class="rv-row" v-if="Number(viewData.sale?.changeAmount) > 0 && !viewIsCreditCard">
             <span class="rv-lbl">Change</span>
             <span class="rv-val">₱{{ formatNumber(viewData.sale?.changeAmount) }}</span>
           </div>
           <div class="rv-row">
             <span class="rv-lbl">Status</span>
             <span class="rv-val" style="text-transform:capitalize">{{ viewData.sale?.paymentStatus || '—' }}</span>
+          </div>
+          <div class="rv-row" v-if="viewInvoiceNumber">
+            <span class="rv-lbl">Invoice #</span>
+            <span class="rv-val">{{ viewInvoiceNumber }}</span>
           </div>
         </div>
 
@@ -255,7 +270,7 @@ export default {
   data: () => ({
     search: "", filterPrint: null, data: [], deleteData: null, updateData: null,
     loading: false, deleting: false, action: null, dialogConfirmDelete: false,
-    dialogView: false, viewData: null, saleItems: [], saleItemsLoading: false,
+    dialogView: false, viewData: null, viewPaymentMethod: null, viewInvoiceNumber: null, viewAdditionalPayments: [], saleItems: [], saleItemsLoading: false,
     savingPdfId: null,
     fadeAwayMessage: { show: false, type: "success", header: "Success", message: "", top: 10 },
   }),
@@ -271,6 +286,16 @@ export default {
         );
       }
       return result;
+    },
+    viewIsCreditCard() {
+      return this.viewPaymentMethod === "credit_card";
+    },
+    viewAdditionalPaymentsTotal() {
+      return this.viewAdditionalPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
+    },
+    viewCcSurchargeAmt() {
+      if (!this.viewData) return 0;
+      return this.deriveCcSurcharge(this.viewData.sale || {}, this.viewIsCreditCard, this.viewAdditionalPaymentsTotal);
     },
   },
   mounted() {
@@ -297,6 +322,9 @@ export default {
     viewItem(item) {
       this.viewData = item;
       this.saleItems = [];
+      this.viewPaymentMethod = null;
+      this.viewInvoiceNumber = null;
+      this.viewAdditionalPayments = [];
       this.dialogView = true;
       if (item.sale?.id) {
         this.saleItemsLoading = true;
@@ -304,7 +332,49 @@ export default {
           .then((r) => { if (r && r.data) this.saleItems = r.data; })
           .catch(() => {})
           .finally(() => { this.saleItemsLoading = false; });
+        this.fetchSalePayment(item.sale.id).then((p) => {
+          this.viewPaymentMethod = p?.paymentMethod || null;
+          this.viewInvoiceNumber = p?.referenceNumber || null;
+        });
+        this.fetchSaleAdditionalPayments(item.sale.id).then((aps) => { this.viewAdditionalPayments = aps; });
       }
+    },
+    async fetchSalePayment(saleId) {
+      if (!saleId) return null;
+      try {
+        const r = await this.axiosCall(`/payments/sale/${saleId}`, "GET");
+        return r?.data?.[0] || null;
+      } catch (_) {
+        return null;
+      }
+    },
+    async fetchSaleAdditionalPayments(saleId) {
+      if (!saleId) return [];
+      try {
+        const r = await this.axiosCall(`/sale-additional-payments/sale/${saleId}`, "GET");
+        return r?.data || [];
+      } catch (_) {
+        return [];
+      }
+    },
+    // totalAmount = subtotal - discount + additional payments + surcharge. The surcharge has
+    // no dedicated column, so back it out from the sale's already-stored totals, after
+    // accounting for any itemized additional payments (which ARE stored separately).
+    deriveCcSurcharge(sale, isCreditCard, additionalPaymentsTotal = 0) {
+      if (!isCreditCard) return 0;
+      const baseTotal = Number(sale.subtotal || 0) - Number(sale.discountAmount || 0) + Number(additionalPaymentsTotal || 0);
+      const implied = Number(sale.totalAmount || 0) - baseTotal;
+      return implied > 0.01 ? implied : 0;
+    },
+    formatJewelryDetails(ji) {
+      return [
+        ji.category?.categoryName ? `Category: ${ji.category.categoryName}` : null,
+        ji.stoneType?.name ? `Diamond: ${ji.stoneType.name}` : null,
+        ji.carat ? `Carat: ${ji.carat}` : null,
+        ji.karat ? `Karat: ${ji.karat}` : null,
+        ji.color ? `Color: ${ji.color}` : null,
+        ji.certificateDetails ? `Cert: ${ji.certificateDetails}` : null,
+      ].filter(Boolean).join(" · ");
     },
     async buildReceiptHtml(item) {
       const fmt = (v) => "₱" + Number(v || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -317,15 +387,23 @@ export default {
           saleItems = r?.data || [];
         } catch (_) { /* ignore */ }
       }
+      const payment = await this.fetchSalePayment(item.sale?.id);
+      const paymentMethod = payment?.paymentMethod || null;
+      const invoiceNumber = payment?.referenceNumber || null;
+      const additionalPayments = await this.fetchSaleAdditionalPayments(item.sale?.id);
+      const additionalPaymentsTotal = additionalPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
 
       const sale = item.sale || {};
       const customerName = sale.customer ? `${sale.customer.firstName} ${sale.customer.lastName}` : null;
       const rawDate = sale.saleDate || item.printedAt;
       const saleDate = rawDate ? new Date(rawDate).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" }) : "";
-      const isInstallment = sale.saleType === "layaway";
+      const isLayaway = sale.saleType === "layaway";
+      const isInstallment = sale.saleType === "installment";
+      const isCreditCard = paymentMethod === "credit_card";
       const discountAmt = Number(sale.discountAmount || 0);
       const taxAmt = Number(sale.taxAmount || 0);
       const changeAmt = Number(sale.changeAmount || 0);
+      const ccSurchargeAmt = this.deriveCcSurcharge(sale, isCreditCard, additionalPaymentsTotal);
       const reprints = item.reprintCount || 0;
 
       const itemLines = saleItems.length
@@ -333,12 +411,9 @@ export default {
             const ji = si.jewelryItem || {};
             const isJewelry = !!(ji.jewelryTypeId || ji.stoneTypeId);
             const name = ji.name || ji.description || ji.itemCode || "—";
-            let details = "";
-            if (isJewelry) {
-              details = [ji.stoneType?.name].filter(Boolean).join(" · ");
-            } else {
-              details = [ji.name, ji.description ? ji.description.substring(0, 40) : ""].filter(Boolean).join(" · ");
-            }
+            const details = isJewelry
+              ? this.formatJewelryDetails(ji)
+              : [ji.name, ji.description ? ji.description.substring(0, 40) : ""].filter(Boolean).join(" · ");
             return `<div class="row"><span class="iname">${name}</span><span class="iprice">${fmt(si.lineTotal)}</span></div>` +
                    `<div class="icode">${ji.itemCode || ""}</div>` +
                    (details ? `<div class="icode" style="margin-bottom:4px">${details}</div>` : "");
@@ -346,9 +421,11 @@ export default {
         : '<div class="icode">No item details recorded</div>';
 
       let payLines = `<div class="row"><span>Amount Paid</span><span>${fmt(sale.amountPaid)}</span></div>`;
-      if (changeAmt > 0) payLines += `<div class="row"><span>Change</span><span>${fmt(changeAmt)}</span></div>`;
+      if (changeAmt > 0 && !isCreditCard) payLines += `<div class="row"><span>Change</span><span>${fmt(changeAmt)}</span></div>`;
       payLines += `<div class="row"><span>Status</span><span style="text-transform:capitalize">${(sale.paymentStatus || "").replace("_", " ")}</span></div>`;
+      if (invoiceNumber) payLines += `<div class="row"><span>Invoice #</span><span>${invoiceNumber}</span></div>`;
       if (isInstallment) payLines += `<div class="row bold"><span>INSTALLMENT PLAN</span></div>`;
+      else if (isLayaway) payLines += `<div class="row bold"><span>LAYAWAY PLAN</span></div>`;
 
       const html = `<!DOCTYPE html><html><head>
 <meta charset="UTF-8"><title>Receipt ${item.receiptNumber}</title>
@@ -386,6 +463,8 @@ ${itemLines}
 <hr class="hr">
 <div class="row"><span>Subtotal</span><span>${fmt(sale.subtotal)}</span></div>
 ${discountAmt > 0 ? `<div class="row"><span>Discount</span><span>-${fmt(discountAmt)}</span></div>` : ""}
+${additionalPayments.map((ap) => `<div class="row"><span>${ap.label}</span><span>+${fmt(ap.amount)}</span></div>`).join("")}
+${ccSurchargeAmt > 0 ? `<div class="row"><span>Credit Card Surcharge (+4%)</span><span>+${fmt(ccSurchargeAmt)}</span></div>` : ""}
 ${taxAmt > 0 ? `<div class="row"><span>VAT (12%)</span><span>${fmt(taxAmt)}</span></div>` : ""}
 <hr class="hrs">
 <div class="total-row"><span>TOTAL</span><span>${fmt(sale.totalAmount)}</span></div>
@@ -411,15 +490,23 @@ ${payLines}
           saleItems = r?.data || [];
         } catch (_) { /* ignore */ }
       }
+      const payment = await this.fetchSalePayment(item.sale?.id);
+      const paymentMethod = payment?.paymentMethod || null;
+      const invoiceNumber = payment?.referenceNumber || null;
+      const additionalPayments = await this.fetchSaleAdditionalPayments(item.sale?.id);
+      const additionalPaymentsTotal = additionalPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
 
       const sale = item.sale || {};
       const customerName = sale.customer ? `${sale.customer.firstName} ${sale.customer.lastName}` : null;
       const rawDate = sale.saleDate || item.printedAt;
       const saleDate = rawDate ? new Date(rawDate).toLocaleString("en-PH", { dateStyle: "medium", timeStyle: "short" }) : "";
-      const isInstallment = sale.saleType === "layaway";
+      const isLayaway = sale.saleType === "layaway";
+      const isInstallment = sale.saleType === "installment";
+      const isCreditCard = paymentMethod === "credit_card";
       const discountAmt = Number(sale.discountAmount || 0);
       const taxAmt = Number(sale.taxAmount || 0);
       const changeAmt = Number(sale.changeAmount || 0);
+      const ccSurchargeAmt = this.deriveCcSurcharge(sale, isCreditCard, additionalPaymentsTotal);
       const reprints = item.reprintCount || 0;
 
       const items = saleItems.length
@@ -428,16 +515,18 @@ ${payLines}
             const isJewelry = !!(ji.jewelryTypeId || ji.stoneTypeId);
             const name = ji.name || ji.description || ji.itemCode || "—";
             const details = isJewelry
-              ? [ji.stoneType?.name].filter(Boolean).join(" · ")
+              ? this.formatJewelryDetails(ji)
               : [ji.name, ji.description ? ji.description.substring(0, 40) : ""].filter(Boolean).join(" · ");
             return { name, code: ji.itemCode || "", details, price: si.lineTotal };
           })
         : [];
 
       const paymentLines = [{ label: "Amount Paid", value: money(sale.amountPaid) }];
-      if (changeAmt > 0) paymentLines.push({ label: "Change", value: money(changeAmt) });
+      if (changeAmt > 0 && !isCreditCard) paymentLines.push({ label: "Change", value: money(changeAmt) });
       paymentLines.push({ label: "Status", value: (sale.paymentStatus || "").replace("_", " ") });
+      if (invoiceNumber) paymentLines.push({ label: "Invoice #", value: invoiceNumber });
       if (isInstallment) paymentLines.push({ label: "INSTALLMENT PLAN", value: null, bold: true });
+      else if (isLayaway) paymentLines.push({ label: "LAYAWAY PLAN", value: null, bold: true });
 
       return {
         receiptNumber: item.receiptNumber,
@@ -449,6 +538,8 @@ ${payLines}
         subtotal: sale.subtotal,
         discountAmt,
         taxAmt,
+        additionalPayments,
+        ccSurchargeAmt,
         totalAmount: sale.totalAmount,
         paymentLines,
       };
@@ -636,6 +727,12 @@ td.mono, .mono { font-family: monospace; font-size: 12px; color: #9B6B3A; font-w
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+.rv-item-jdetails {
+  display: block;
+  font-size: 10.5px;
+  color: #9A7858;
+  margin-top: 1px;
 }
 .rv-item-price {
   font-size: 13px;

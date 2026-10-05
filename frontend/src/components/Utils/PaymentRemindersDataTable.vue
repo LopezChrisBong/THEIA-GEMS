@@ -4,7 +4,7 @@
     <div class="page-header">
       <div>
         <div class="page-heading">Payment Reminders</div>
-        <div class="page-sub">Manage layaway payment reminders and notification history</div>
+        <div class="page-sub">Manage layaway and installment payment reminders and notification history</div>
       </div>
       <div class="header-actions">
         <div class="search-wrap">
@@ -43,7 +43,8 @@
         <table class="cust-table" v-if="!loading">
           <thead>
             <tr>
-              <th @click="sortBy('layawayPlan')">Plan #</th>
+              <th @click="sortBy('planNumber')">Plan #</th>
+              <th class="text-center">Plan Type</th>
               <th @click="sortBy('customer')">Customer</th>
               <th @click="sortBy('reminderType')" class="text-center">Type</th>
               <th @click="sortBy('status')" class="text-center">Status</th>
@@ -56,7 +57,12 @@
           </thead>
           <tbody>
             <tr v-for="item in paginatedData" :key="item.id">
-              <td class="mono">{{ item.layawayPlan?.planNumber || '—' }}</td>
+              <td class="mono">{{ item.layawayPlan?.planNumber || item.installmentPlan?.planNumber || '—' }}</td>
+              <td class="text-center">
+                <span class="plan-type-badge" :class="item.installmentPlanId ? 'pt-installment' : 'pt-layaway'">
+                  {{ item.installmentPlanId ? 'Installment' : 'Layaway' }}
+                </span>
+              </td>
               <td>
                 <span class="cust-name" v-if="item.customer">{{ item.customer.firstName }} {{ item.customer.lastName }}</span>
                 <span v-else class="dim">—</span>
@@ -96,7 +102,7 @@
               </td>
             </tr>
             <tr v-if="filteredData.length === 0">
-              <td colspan="9">
+              <td colspan="10">
                 <div class="empty-state">
                   <div class="empty-icon"><v-icon size="20" color="#9B6B3A">mdi-bell-outline</v-icon></div>
                   <div class="empty-title">No payment reminders found</div>
@@ -183,14 +189,14 @@ export default {
       if (this.search) {
         const q = this.search.toLowerCase();
         result = result.filter(r =>
-          [r.layawayPlan?.planNumber, r.customer?.firstName, r.customer?.lastName]
+          [r.layawayPlan?.planNumber, r.installmentPlan?.planNumber, r.customer?.firstName, r.customer?.lastName]
             .filter(Boolean).some(f => String(f).toLowerCase().includes(q))
         );
       }
       result.sort((a, b) => {
-        let va = this.sortKey === 'layawayPlan' ? (a.layawayPlan?.planNumber || '') :
+        let va = this.sortKey === 'planNumber' ? (a.layawayPlan?.planNumber || a.installmentPlan?.planNumber || '') :
                  this.sortKey === 'customer' ? (a.customer?.firstName || '') : (a[this.sortKey] ?? '');
-        let vb = this.sortKey === 'layawayPlan' ? (b.layawayPlan?.planNumber || '') :
+        let vb = this.sortKey === 'planNumber' ? (b.layawayPlan?.planNumber || b.installmentPlan?.planNumber || '') :
                  this.sortKey === 'customer' ? (b.customer?.firstName || '') : (b[this.sortKey] ?? '');
         if (typeof va === 'string') va = va.toLowerCase();
         if (typeof vb === 'string') vb = vb.toLowerCase();
@@ -295,6 +301,11 @@ export default {
 .amt-col { font-weight: 600; color: #9B6B3A; }
 .overdue-date { color: #B84040; font-size: 12px; font-weight: 600; }
 .overdue-dot { font-size: 8px; }
+
+/* Plan type badges */
+.plan-type-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; }
+.pt-layaway { background: rgba(91,124,156,0.12); color: #5B7C9C; }
+.pt-installment { background: rgba(139,111,160,0.14); color: #8B6FA0; }
 
 /* Reminder type badges */
 .type-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 500; }

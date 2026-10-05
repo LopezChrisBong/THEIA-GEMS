@@ -217,6 +217,19 @@ export class SalesService {
     return this.saleRepository.save(sale);
   }
 
+  /**
+   * Accumulates cash actually collected on a layaway/installment sale as each
+   * monthly payment comes in, without touching paymentStatus — the plan's own
+   * (interest-aware) status is the source of truth for "is this paid off",
+   * since amountPaid can exceed the interest-free totalAmount before the plan
+   * is actually complete.
+   */
+  async addPayment(id: number, amount: number): Promise<Sale> {
+    const sale = await this.findOne(id);
+    sale.amountPaid = Number(sale.amountPaid) + Number(amount);
+    return this.saleRepository.save(sale);
+  }
+
   async remove(id: number): Promise<void> {
     const sale = await this.findOne(id);
     await this.saleRepository.remove(sale);
@@ -356,7 +369,7 @@ export class SalesService {
       });
     }
 
-    const totalRevenue = sales.reduce((s, r) => s + Number(r.totalAmount), 0);
+    const totalRevenue = sales.reduce((s, r) => s + Number(r.amountPaid), 0);
 
     const summary = {
       totalOrders: sales.length,
@@ -371,6 +384,9 @@ export class SalesService {
       ).length,
       layawayCount: sales.filter(
         (s) => s.paymentStatus === PaymentStatus.LAYAWAY,
+      ).length,
+      installmentCount: sales.filter(
+        (s) => s.paymentStatus === PaymentStatus.INSTALLMENT,
       ).length,
     };
 
@@ -409,7 +425,7 @@ export class SalesService {
       if (!groups[key])
         groups[key] = { label, orders: 0, revenue: 0, discount: 0 };
       groups[key].orders += 1;
-      groups[key].revenue += Number(sale.totalAmount);
+      groups[key].revenue += Number(sale.amountPaid);
       groups[key].discount += Number(sale.discountAmount);
     }
 
@@ -437,7 +453,7 @@ export class SalesService {
     const query = this.saleRepository
       .createQueryBuilder('sale')
       .select('COUNT(*)', 'saleCount')
-      .addSelect('SUM(sale.totalAmount)', 'totalAmount')
+      .addSelect('SUM(sale.amountPaid)', 'totalAmount')
       .addSelect('SUM(sale.discountAmount)', 'totalDiscount')
       .where('sale.saleDate BETWEEN :start AND :end', {
         start: startOfDay,

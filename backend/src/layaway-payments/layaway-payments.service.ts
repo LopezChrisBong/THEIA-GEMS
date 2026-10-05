@@ -5,6 +5,7 @@ import { LayawayPayment } from './entities/layaway-payment.entity';
 import { CreateLayawayPaymentDto } from './dto/create-layaway-payment.dto';
 import { UpdateLayawayPaymentDto } from './dto/update-layaway-payment.dto';
 import { LayawayPlansService } from '../layaway-plans/layaway-plans.service';
+import { SalesService } from '../sales/sales.service';
 
 @Injectable()
 export class LayawayPaymentsService {
@@ -12,6 +13,7 @@ export class LayawayPaymentsService {
     @InjectRepository(LayawayPayment)
     private readonly layawayPaymentRepository: Repository<LayawayPayment>,
     private readonly layawayPlansService: LayawayPlansService,
+    private readonly salesService: SalesService,
   ) {}
 
   async create(
@@ -45,6 +47,10 @@ export class LayawayPaymentsService {
       plan.id,
       createLayawayPaymentDto.amount,
     );
+
+    // Reflect the cash actually collected on the parent sale, so Sales Report /
+    // Dashboard revenue tracks real payments instead of the full item price.
+    await this.salesService.addPayment(plan.saleId, createLayawayPaymentDto.amount);
 
     return savedPayment;
   }

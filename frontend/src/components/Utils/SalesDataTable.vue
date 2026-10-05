@@ -21,6 +21,7 @@
         <button class="filter-chip" :class="{ on: filterStatus === null }" @click="filterStatus = null">All</button>
         <button class="filter-chip" :class="{ on: filterStatus === 'paid' }" @click="filterStatus = 'paid'">Paid</button>
         <button class="filter-chip" :class="{ on: filterStatus === 'layaway' }" @click="filterStatus = 'layaway'">Layaway</button>
+        <button class="filter-chip" :class="{ on: filterStatus === 'installment' }" @click="filterStatus = 'installment'">Installment</button>
         <button class="filter-chip" :class="{ on: filterStatus === 'partial' }" @click="filterStatus = 'partial'">Partial</button>
         <button class="filter-chip" :class="{ on: filterStatus === 'refunded' }" @click="filterStatus = 'refunded'">Refunded</button>
         <div class="filter-spacer" />
@@ -437,12 +438,12 @@ export default {
     },
 
     getPaymentClass(status) {
-      const map = { paid: "r-paid", partial: "r-partial", layaway: "r-layaway", refunded: "r-refunded" };
+      const map = { paid: "r-paid", partial: "r-partial", layaway: "r-layaway", installment: "r-installment", refunded: "r-refunded" };
       return map[status] || "r-default";
     },
 
     getTypeClass(type) {
-      const map = { regular: "r-regular", layaway: "r-layaway", consignment: "r-consign" };
+      const map = { regular: "r-regular", layaway: "r-layaway", installment: "r-installment", consignment: "r-consign" };
       return map[type] || "r-default";
     },
 
@@ -549,6 +550,7 @@ export default {
 .r-paid { background: rgba(61,122,90,0.1); color: #3D7A5A; }
 .r-partial { background: rgba(200,150,40,0.12); color: #9B6B3A; }
 .r-layaway { background: rgba(90,122,155,0.12); color: #5A7A9B; }
+.r-installment { background: rgba(139,111,160,0.14); color: #8B6FA0; }
 .r-refunded { background: rgba(184,64,64,0.08); color: #B84040; }
 .r-regular { background: rgba(155,107,58,0.1); color: #9B6B3A; }
 .r-consign { background: rgba(130,80,160,0.1); color: #7A4A9B; }

@@ -77,7 +77,9 @@ function buildOps(d, measureDoc) {
 
   row("Subtotal", money(d.subtotal));
   if (d.discountAmt > 0) row("Discount", `-${money(d.discountAmt)}`);
+  (d.additionalPayments || []).forEach((ap) => row(ap.label, `+${money(ap.amount)}`));
   if (d.taxAmt > 0) row("VAT (12%)", money(d.taxAmt));
+  if (d.ccSurchargeAmt > 0) row("Credit Card Surcharge (+4%)", `+${money(d.ccSurchargeAmt)}`);
   hr(false);
   row("TOTAL", money(d.totalAmount), { size: 12, bold: true });
   hr(true);

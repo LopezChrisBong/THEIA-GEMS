@@ -38,6 +38,38 @@ const SAMPLE_DEFAULTS: Record<string, Record<string, any>> = {
     nextPaymentDate: 'August 22, 2026',
     isCompleted: false,
   },
+  installment_reminder: {
+    customerName: 'Juan Dela Cruz',
+    planNumber: 'INS-20260622-0001',
+    amountDue: 2500,
+    dueDate: 'June 25, 2026',
+    daysLeft: 3,
+  },
+  installment_overdue: {
+    customerName: 'Juan Dela Cruz',
+    planNumber: 'INS-20260622-0001',
+    amountDue: 2500,
+    dueDate: 'June 15, 2026',
+    daysOverdue: 7,
+  },
+  installment_confirmation: {
+    customerName: 'Juan Dela Cruz',
+    planNumber: 'INS-20260622-0001',
+    totalAmount: 25000,
+    downPayment: 5000,
+    remainingBalance: 20000,
+    monthlyPayment: 2500,
+    numberOfPayments: 8,
+    nextPaymentDate: 'July 22, 2026',
+  },
+  installment_payment_confirmation: {
+    customerName: 'Juan Dela Cruz',
+    planNumber: 'INS-20260622-0001',
+    amountPaid: 2500,
+    remainingBalance: 17500,
+    nextPaymentDate: 'August 22, 2026',
+    isCompleted: false,
+  },
   transfer_notification: {
     recipientName: 'BGC Branch',
     transferNumber: 'TR-20260622-0001',
@@ -71,6 +103,14 @@ const SAMPLE_DEFAULTS: Record<string, Record<string, any>> = {
         daysHeld: 40,
         sellingPrice: 45000,
       },
+    ],
+  },
+  low_stock: {
+    threshold: 20,
+    categories: [
+      { categoryName: 'Rings', count: 12 },
+      { categoryName: 'Necklaces', count: 0 },
+      { categoryName: 'Earrings', count: 18 },
     ],
   },
   promotional: {
@@ -110,6 +150,18 @@ export class MailController {
       case 'layaway_payment_confirmation':
         await this.mailService.sendLayawayPaymentConfirmation(params as any);
         break;
+      case 'installment_reminder':
+        await this.mailService.sendInstallmentReminder(params as any);
+        break;
+      case 'installment_overdue':
+        await this.mailService.sendInstallmentOverdue(params as any);
+        break;
+      case 'installment_confirmation':
+        await this.mailService.sendInstallmentConfirmation(params as any);
+        break;
+      case 'installment_payment_confirmation':
+        await this.mailService.sendInstallmentPaymentConfirmation(params as any);
+        break;
       case 'transfer_notification':
         await this.mailService.sendTransferNotification(params as any);
         break;
@@ -121,6 +173,9 @@ export class MailController {
         break;
       case 'aged_consignment':
         await this.mailService.sendAgedConsignmentReminder(params as any);
+        break;
+      case 'low_stock':
+        await this.mailService.sendLowStockAlert(params as any);
         break;
       case 'promotional':
         await this.mailService.sendPromotional(params as any);

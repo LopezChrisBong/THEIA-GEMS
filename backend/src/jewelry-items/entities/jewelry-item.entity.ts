@@ -32,6 +32,7 @@ export enum JewelryItemStatus {
   TRANSFERRED = 'TRANSFERRED',
   CONSIGNMENT = 'CONSIGNMENT',
   LAYAWAY = 'LAYAWAY',
+  INSTALLMENT = 'INSTALLMENT',
   PULLED_OUT = 'PULLED_OUT',
   RESERVED = 'RESERVED',
   FOR_PREORDER = 'FOR_PREORDER',
@@ -159,6 +160,9 @@ export class JewelryItem {
 
   @Column({ name: 'notes', type: 'text', nullable: true })
   notes: string;
+
+  @Column({ name: 'certificate_details', type: 'text', nullable: true })
+  certificateDetails: string;
 
   @Column({ name: 'is_active', type: 'boolean', default: true })
   isActive: boolean;

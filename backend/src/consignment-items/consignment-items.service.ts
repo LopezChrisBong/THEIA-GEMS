@@ -49,7 +49,7 @@ export class ConsignmentItemsService {
 
   async findAll(): Promise<ConsignmentItem[]> {
     return this.consignmentItemRepository.find({
-      relations: ['jewelryItem', 'jewelryItem.category', 'branch'],
+      relations: ['jewelryItem', 'jewelryItem.category', 'jewelryItem.stoneType', 'branch'],
       order: { createdAt: 'DESC' },
     });
   }

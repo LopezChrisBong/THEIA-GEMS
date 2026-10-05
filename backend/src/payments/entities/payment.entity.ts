@@ -26,6 +26,7 @@ export enum PaymentType {
   PARTIAL = 'partial',
   DEPOSIT = 'deposit',
   LAYAWAY = 'layaway',
+  INSTALLMENT = 'installment',
   REFUND = 'refund',
 }
 

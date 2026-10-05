@@ -142,9 +142,15 @@ export default {
         },
         {
           key: "layaway",
-          title: "Layaway / Installment",
-          desc: "Tests the partial-payment and installment-plan footer.",
+          title: "Layaway",
+          desc: "Tests the partial-payment and layaway-plan footer.",
           icon: "mdi-calendar-clock-outline",
+        },
+        {
+          key: "installment",
+          title: "Installment",
+          desc: "Tests the partial-payment and installment-plan footer.",
+          icon: "mdi-calendar-multiple-check",
         },
         {
           key: "reprint",
@@ -194,13 +200,26 @@ export default {
       return "₱" + Number(v || 0).toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     },
 
+    formatJewelryDetails(ji) {
+      return [
+        ji.category?.categoryName ? `Category: ${ji.category.categoryName}` : null,
+        ji.stoneType?.name ? `Diamond: ${ji.stoneType.name}` : null,
+        ji.carat ? `Carat: ${ji.carat}` : null,
+        ji.karat ? `Karat: ${ji.karat}` : null,
+        ji.color ? `Color: ${ji.color}` : null,
+        ji.certificateDetails ? `Cert: ${ji.certificateDetails}` : null,
+      ].filter(Boolean).join(" · ");
+    },
+
     // Adapts the local `d` shape (built for buildReceiptHtml/print) into the
     // paymentLines-based shape the vector-text PDF generator expects.
     toPdfData(d) {
       const paymentLines = [{ label: "Amount Paid", value: money(d.amountPaid) }];
-      if (d.changeAmt > 0) paymentLines.push({ label: "Change", value: money(d.changeAmt) });
+      if (d.changeAmt > 0 && !d.isCreditCard) paymentLines.push({ label: "Change", value: money(d.changeAmt) });
       paymentLines.push({ label: "Status", value: (d.paymentStatus || "").replace("_", " ") });
+      if (d.invoiceNumber) paymentLines.push({ label: "Invoice #", value: d.invoiceNumber });
       if (d.isInstallment) paymentLines.push({ label: "INSTALLMENT PLAN", value: null, bold: true });
+      else if (d.isLayaway) paymentLines.push({ label: "LAYAWAY PLAN", value: null, bold: true });
       return { ...d, paymentLines };
     },
 
@@ -215,9 +234,11 @@ export default {
         : '<div class="icode">No item details recorded</div>';
 
       let payLines = `<div class="row"><span>Amount Paid</span><span>${this.fmt(d.amountPaid)}</span></div>`;
-      if (d.changeAmt > 0) payLines += `<div class="row"><span>Change</span><span>${this.fmt(d.changeAmt)}</span></div>`;
+      if (d.changeAmt > 0 && !d.isCreditCard) payLines += `<div class="row"><span>Change</span><span>${this.fmt(d.changeAmt)}</span></div>`;
       payLines += `<div class="row"><span>Status</span><span style="text-transform:capitalize">${(d.paymentStatus || "").replace("_", " ")}</span></div>`;
+      if (d.invoiceNumber) payLines += `<div class="row"><span>Invoice #</span><span>${d.invoiceNumber}</span></div>`;
       if (d.isInstallment) payLines += `<div class="row bold"><span>INSTALLMENT PLAN</span></div>`;
+      else if (d.isLayaway) payLines += `<div class="row bold"><span>LAYAWAY PLAN</span></div>`;
 
       return `<!DOCTYPE html><html><head>
 <meta charset="UTF-8"><title>Receipt ${d.receiptNumber}</title>
@@ -257,6 +278,8 @@ ${itemLines}
 <hr class="hr">
 <div class="row"><span>Subtotal</span><span>${this.fmt(d.subtotal)}</span></div>
 ${d.discountAmt > 0 ? `<div class="row"><span>Discount</span><span>-${this.fmt(d.discountAmt)}</span></div>` : ""}
+${(d.additionalPayments || []).map((ap) => `<div class="row"><span>${ap.label}</span><span>+${this.fmt(ap.amount)}</span></div>`).join("")}
+${d.ccSurchargeAmt > 0 ? `<div class="row"><span>Credit Card Surcharge (+4%)</span><span>+${this.fmt(d.ccSurchargeAmt)}</span></div>` : ""}
 ${d.taxAmt > 0 ? `<div class="row"><span>VAT (12%)</span><span>${this.fmt(d.taxAmt)}</span></div>` : ""}
 <hr class="hrs">
 <div class="total-row"><span>TOTAL</span><span>${this.fmt(d.totalAmount)}</span></div>
@@ -296,7 +319,7 @@ ${payLines}
           receiptNumber: "TEST-0001", saleNumber: "SN-TEST-0001", saleDate: now,
           customerName: "Juan Dela Cruz", reprints: 0, items: baseItems,
           subtotal: 526790, discountAmt: 0, taxAmt: 0, totalAmount: 526790,
-          amountPaid: 526790, changeAmt: 0, paymentStatus: "paid", isInstallment: false, isTest: true,
+          amountPaid: 526790, changeAmt: 0, paymentStatus: "paid", isLayaway: false, isInstallment: false, isTest: true,
         };
       }
       if (preset.key === "discount") {
@@ -306,7 +329,7 @@ ${payLines}
           customerName: "Maria Santos", reprints: 0, items: baseItems,
           subtotal, discountAmt, taxAmt, totalAmount: subtotal - discountAmt + taxAmt,
           amountPaid: subtotal - discountAmt + taxAmt, changeAmt: 0, paymentStatus: "paid",
-          isInstallment: false, isTest: true,
+          isLayaway: false, isInstallment: false, isTest: true,
         };
       }
       if (preset.key === "layaway") {
@@ -314,14 +337,22 @@ ${payLines}
           receiptNumber: "TEST-0003", saleNumber: "SN-TEST-0003", saleDate: now,
           customerName: "Pedro Reyes", reprints: 0, items: [baseItems[0]],
           subtotal: 329890, discountAmt: 0, taxAmt: 0, totalAmount: 329890,
-          amountPaid: 100000, changeAmt: 0, paymentStatus: "partial", isInstallment: true, isTest: true,
+          amountPaid: 100000, changeAmt: 0, paymentStatus: "partial", isLayaway: true, isInstallment: false, isTest: true,
+        };
+      }
+      if (preset.key === "installment") {
+        return {
+          receiptNumber: "TEST-0005", saleNumber: "SN-TEST-0005", saleDate: now,
+          customerName: "Liza Cruz", reprints: 0, items: [baseItems[1]],
+          subtotal: 196900, discountAmt: 0, taxAmt: 0, totalAmount: 196900,
+          amountPaid: 60000, changeAmt: 0, paymentStatus: "partial", isLayaway: false, isInstallment: true, isTest: true,
         };
       }
       return {
         receiptNumber: "TEST-0004", saleNumber: "SN-TEST-0004", saleDate: now,
         customerName: "Ana Lim", reprints: 1, items: baseItems,
         subtotal: 526790, discountAmt: 0, taxAmt: 0, totalAmount: 526790,
-        amountPaid: 526790, changeAmt: 5000, paymentStatus: "paid", isInstallment: false, isTest: true,
+        amountPaid: 526790, changeAmt: 5000, paymentStatus: "paid", isLayaway: false, isInstallment: false, isTest: true,
       };
     },
 
@@ -353,8 +384,32 @@ ${payLines}
         const r = await this.axiosCall(`/sale-items/sale/${item.sale.id}`, "GET");
         saleItems = r?.data || [];
       }
+      let paymentMethod = null;
+      let invoiceNumber = null;
+      if (item.sale?.id) {
+        try {
+          const pr = await this.axiosCall(`/payments/sale/${item.sale.id}`, "GET");
+          paymentMethod = pr?.data?.[0]?.paymentMethod || null;
+          invoiceNumber = pr?.data?.[0]?.referenceNumber || null;
+        } catch (_) { /* ignore */ }
+      }
+      let additionalPayments = [];
+      if (item.sale?.id) {
+        try {
+          const apr = await this.axiosCall(`/sale-additional-payments/sale/${item.sale.id}`, "GET");
+          additionalPayments = apr?.data || [];
+        } catch (_) { /* ignore */ }
+      }
+      const additionalPaymentsTotal = additionalPayments.reduce((s, p) => s + Number(p.amount || 0), 0);
 
       const sale = item.sale || {};
+      const isCreditCard = paymentMethod === "credit_card";
+      // totalAmount = subtotal - discount + additional payments + surcharge; the surcharge has
+      // no dedicated column, so back it out from the sale's already-stored totals, after
+      // accounting for any itemized additional payments (which ARE stored separately).
+      const baseTotal = Number(sale.subtotal || 0) - Number(sale.discountAmount || 0) + additionalPaymentsTotal;
+      const impliedSurcharge = isCreditCard ? Number(sale.totalAmount || 0) - baseTotal : 0;
+      const ccSurchargeAmt = impliedSurcharge > 0.01 ? impliedSurcharge : 0;
       const customerName = sale.customer ? `${sale.customer.firstName} ${sale.customer.lastName}` : null;
       const rawDate = sale.saleDate || item.printedAt;
 
@@ -364,7 +419,7 @@ ${payLines}
             const isJewelry = !!(ji.jewelryTypeId || ji.stoneTypeId);
             const name = ji.name || ji.description || ji.itemCode || "—";
             const details = isJewelry
-              ? [ji.stoneType?.name].filter(Boolean).join(" · ")
+              ? this.formatJewelryDetails(ji)
               : [ji.name, ji.description ? ji.description.substring(0, 40) : ""].filter(Boolean).join(" · ");
             return { name, code: ji.itemCode || "", details, price: si.lineTotal };
           })
@@ -382,11 +437,16 @@ ${payLines}
           subtotal: sale.subtotal,
           discountAmt: Number(sale.discountAmount || 0),
           taxAmt: Number(sale.taxAmount || 0),
+          additionalPayments,
+          ccSurchargeAmt,
           totalAmount: sale.totalAmount,
           amountPaid: sale.amountPaid,
           changeAmt: Number(sale.changeAmount || 0),
           paymentStatus: sale.paymentStatus,
-          isInstallment: sale.saleType === "layaway",
+          invoiceNumber,
+          isLayaway: sale.saleType === "layaway",
+          isInstallment: sale.saleType === "installment",
+          isCreditCard,
           isTest: true,
         },
       };

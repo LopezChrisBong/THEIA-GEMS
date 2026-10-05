@@ -641,6 +641,7 @@ export default {
       { label: "Consignment", value: "CONSIGNMENT" },
       { label: "Sold", value: "SOLD" },
       { label: "Layaway", value: "LAYAWAY" },
+      { label: "Installment", value: "INSTALLMENT" },
       { label: "Transferred", value: "TRANSFERRED" },
     ],
     data: [],
@@ -820,6 +821,7 @@ export default {
         TRANSFERRED: "orange",
         CONSIGNMENT: "purple",
         LAYAWAY: "cyan",
+        INSTALLMENT: "deep-purple",
         PULLED_OUT: "grey",
         RESERVED: "amber",
       };
@@ -1509,6 +1511,7 @@ td.dim { color: #9A7858; font-size: 12px; }
 .st-TRANSFERRED { background: rgba(204,122,53,0.12); color: #C4720E; }
 .st-CONSIGNMENT { background: rgba(140,110,180,0.14); color: #7A569B; }
 .st-LAYAWAY { background: rgba(70,150,160,0.12); color: #2E8E9C; }
+.st-INSTALLMENT { background: rgba(139,111,160,0.14); color: #8B6FA0; }
 .st-PULLED_OUT { background: rgba(120,120,140,0.12); color: #5A5A72; }
 .st-RESERVED { background: rgba(196,148,85,0.15); color: #9B6B3A; }
 

@@ -140,6 +140,7 @@ const STATUS_LABELS = {
   TRANSFERRED: 'Transferred',
   CONSIGNMENT: 'Consignment',
   LAYAWAY:     'Layaway',
+  INSTALLMENT: 'Installment',
   RESERVED:    'Reserved',
 };
 
@@ -297,6 +298,7 @@ export default {
 .s-transferred { background: rgba(100,80,160,0.1);  color: #6450A0; }
 .s-consignment { background: rgba(155,120,58,0.1);  color: #9B783A; }
 .s-layaway     { background: rgba(58,120,155,0.1);  color: #3A789B; }
+.s-installment { background: rgba(139,111,160,0.14); color: #8B6FA0; }
 .s-reserved    { background: rgba(155,58,58,0.1);   color: #9B3A3A; }
 
 /* Empty state */

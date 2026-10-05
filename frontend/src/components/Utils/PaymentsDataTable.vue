@@ -312,6 +312,7 @@ export default {
         case 'partial': return 'warning';
         case 'deposit': return 'info';
         case 'layaway': return 'primary';
+        case 'installment': return 'deep-purple';
         case 'refund': return 'error';
         default: return 'grey';
       }

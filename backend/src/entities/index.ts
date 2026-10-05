@@ -15,9 +15,12 @@ import { UserRole } from 'src/user-role/entities/user-role.entity';
 import { UserType } from 'src/user-type/entities/user-type.entity';
 import { Sale } from 'src/sales/entities/sale.entity';
 import { SaleItem } from 'src/sale-items/entities/sale-item.entity';
+import { SaleAdditionalPayment } from 'src/sale-additional-payments/entities/sale-additional-payment.entity';
 import { Payment } from 'src/payments/entities/payment.entity';
 import { LayawayPlan } from 'src/layaway-plans/entities/layaway-plan.entity';
 import { LayawayPayment } from 'src/layaway-payments/entities/layaway-payment.entity';
+import { InstallmentPlan } from 'src/installment-plans/entities/installment-plan.entity';
+import { InstallmentPayment } from 'src/installment-payments/entities/installment-payment.entity';
 import { PaymentReminder } from 'src/payment-reminders/entities/payment-reminder.entity';
 import { PromotionalMessage } from 'src/promotional-messages/entities/promotional-message.entity';
 import { Receipt } from 'src/receipts/entities/receipt.entity';
@@ -48,9 +51,12 @@ const entities = [
   Customer,
   Sale,
   SaleItem,
+  SaleAdditionalPayment,
   Payment,
   LayawayPlan,
   LayawayPayment,
+  InstallmentPlan,
+  InstallmentPayment,
   PaymentReminder,
   PromotionalMessage,
   Receipt,
@@ -82,9 +88,12 @@ export {
   Customer,
   Sale,
   SaleItem,
+  SaleAdditionalPayment,
   Payment,
   LayawayPlan,
   LayawayPayment,
+  InstallmentPlan,
+  InstallmentPayment,
   PaymentReminder,
   PromotionalMessage,
   Receipt,

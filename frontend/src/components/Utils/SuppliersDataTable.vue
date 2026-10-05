@@ -389,5 +389,6 @@ td.dim { color: #9A7858; font-size: 12px; }
 .s-sold { background: rgba(90,122,155,0.12); color: #5A7A9B; }
 .s-transferred { background: rgba(200,120,40,0.12); color: #C87828; }
 .s-layaway { background: rgba(100,170,200,0.12); color: #4A9AB8; }
+.s-installment { background: rgba(139,111,160,0.14); color: #8B6FA0; }
 .s-pulled_out { background: rgba(150,150,150,0.12); color: #888; }
 </style>

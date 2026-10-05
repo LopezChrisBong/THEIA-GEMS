@@ -124,6 +124,10 @@ export class CreateJewelryItemDto {
   @IsOptional()
   notes?: string;
 
+  @IsString()
+  @IsOptional()
+  certificateDetails?: string;
+
   @IsBoolean()
   @IsOptional()
   isActive?: boolean;

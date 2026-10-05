@@ -8,6 +8,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { LayawayPlan } from '../../layaway-plans/entities/layaway-plan.entity';
+import { InstallmentPlan } from '../../installment-plans/entities/installment-plan.entity';
 import { Customer } from '../../customers/entities/customer.entity';
 import { Users } from '../../auth/entities/auth.entity';
 
@@ -37,12 +38,19 @@ export class PaymentReminder {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column({ name: 'layaway_plan_id' })
-  layawayPlanId: number;
+  @Column({ name: 'layaway_plan_id', nullable: true })
+  layawayPlanId: number | null;
 
-  @ManyToOne(() => LayawayPlan, { onDelete: 'CASCADE' })
+  @ManyToOne(() => LayawayPlan, { onDelete: 'CASCADE', nullable: true })
   @JoinColumn({ name: 'layaway_plan_id' })
   layawayPlan: LayawayPlan;
+
+  @Column({ name: 'installment_plan_id', nullable: true })
+  installmentPlanId: number | null;
+
+  @ManyToOne(() => InstallmentPlan, { onDelete: 'CASCADE', nullable: true })
+  @JoinColumn({ name: 'installment_plan_id' })
+  installmentPlan: InstallmentPlan;
 
   @Column({ name: 'customer_id' })
   customerId: number;
