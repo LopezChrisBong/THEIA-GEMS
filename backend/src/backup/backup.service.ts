@@ -3,7 +3,7 @@ import { spawn } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as zlib from 'zlib';
-import { google } from 'googleapis';
+import { drive, auth } from '@googleapis/drive';
 
 @Injectable()
 export class BackupService {
@@ -86,11 +86,11 @@ export class BackupService {
   }
 
   private getDriveClient(keyPath: string) {
-    const auth = new google.auth.GoogleAuth({
+    const googleAuth = new auth.GoogleAuth({
       keyFile: keyPath,
       scopes: ['https://www.googleapis.com/auth/drive.file'],
     });
-    return google.drive({ version: 'v3', auth });
+    return drive({ version: 'v3', auth: googleAuth });
   }
 
   private async uploadToDrive(filePath: string, filename: string, folderId: string, keyPath: string): Promise<string> {
