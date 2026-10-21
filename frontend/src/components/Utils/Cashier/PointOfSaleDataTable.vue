@@ -970,7 +970,8 @@ export default {
           (i) =>
             (i.itemCode || "").toLowerCase().includes(q) ||
             (i.barcode || "").toLowerCase().includes(q) ||
-            (i.name || "").toLowerCase().includes(q)
+            (i.name || "").toLowerCase().includes(q) ||
+            (i.description || "").toLowerCase().includes(q)
         )
         .slice(0, 6);
       this.showDropdown = this.searchResults.length > 0;
@@ -1000,7 +1001,9 @@ export default {
             (i.itemCode || "").toLowerCase() === q ||
             (i.barcode || "").toLowerCase() === q ||
             (i.itemCode || "").toLowerCase().includes(q) ||
-            (i.barcode || "").toLowerCase().includes(q)
+            (i.barcode || "").toLowerCase().includes(q) ||
+            (i.name || "").toLowerCase().includes(q) ||
+            (i.description || "").toLowerCase().includes(q)
         );
         if (match) {
           this.addToCart(match);
@@ -1752,7 +1755,7 @@ export default {
 <style>
   @page { size: 80mm auto; margin: 4mm 3mm; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Courier New', Courier, monospace; font-size: 11px; color: #000; width: 74mm; }
+  body { font-family: 'Courier New', Courier, monospace; font-size: 11px; color: #000; width: 74mm; font-weight: bold; }
   .center { text-align: center; }
   .brand { font-size: 17px; font-weight: bold; letter-spacing: 5px; margin-bottom: 1px; }
   .sub { font-size: 9px; letter-spacing: 3px; margin-bottom: 2px; }

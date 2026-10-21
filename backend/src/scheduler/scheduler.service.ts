@@ -12,6 +12,7 @@ import { BranchesService } from '../branches/branches.service';
 import { PaymentsService } from '../payments/payments.service';
 import { Payment, PaymentMethod } from '../payments/entities/payment.entity';
 import { Branch } from '../branches/entities/branch.entity';
+import { BackupService } from '../backup/backup.service';
 
 const REMINDER_DAYS = 3; // send reminder 3 days before due date
 const AGED_CONSIGNMENT_DAYS = 40; // alert owner once a consignment item has sat unsold this long
@@ -49,6 +50,7 @@ export class SchedulerService {
     private readonly salesService: SalesService,
     private readonly branchesService: BranchesService,
     private readonly paymentsService: PaymentsService,
+    private readonly backupService: BackupService,
   ) {}
 
   private fmtDate(d: Date | string | null): string {
@@ -314,6 +316,18 @@ export class SchedulerService {
     } catch (e) {
       this.logger.error('sendLowStockAlerts error', e);
       return { count: 0, message: e?.message || 'sendLowStockAlerts failed' };
+    }
+  }
+
+  /** Dumps the database and uploads it to Google Drive. Not yet scheduled — trigger manually via POST /scheduler/weekly-backup until a cron schedule is added. */
+  async sendWeeklyBackup(): Promise<{ count: number; message: string }> {
+    try {
+      const result = await this.backupService.runWeeklyBackup();
+      this.logger[result.success ? 'log' : 'warn'](result.message);
+      return { count: result.success ? 1 : 0, message: result.message };
+    } catch (e) {
+      this.logger.error('sendWeeklyBackup error', e);
+      return { count: 0, message: e?.message || 'sendWeeklyBackup failed' };
     }
   }
 
