@@ -57,4 +57,9 @@ export class SchedulerController {
   dailySalesReport() {
     return this.schedulerService.sendDailySalesReportEmail();
   }
+
+  @Post('weekly-backup')
+  weeklyBackup() {
+    return this.schedulerService.sendWeeklyBackup();
+  }
 }

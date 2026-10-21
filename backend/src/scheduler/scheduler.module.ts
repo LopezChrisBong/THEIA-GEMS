@@ -11,6 +11,7 @@ import { SmsModule } from '../sms/sms.module';
 import { SalesModule } from '../sales/sales.module';
 import { BranchesModule } from '../branches/branches.module';
 import { PaymentsModule } from '../payments/payments.module';
+import { BackupModule } from '../backup/backup.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { PaymentsModule } from '../payments/payments.module';
     SalesModule,
     BranchesModule,
     PaymentsModule,
+    BackupModule,
   ],
   controllers: [SchedulerController],
   providers: [SchedulerService],
