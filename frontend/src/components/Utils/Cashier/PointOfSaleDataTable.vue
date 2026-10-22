@@ -41,6 +41,7 @@
             <div class="sr-left">
               <span class="sr-code">{{ item.itemCode }}</span>
               <span class="sr-name">{{ item.name || item.material || '—' }}</span>
+              <span v-if="item.description" class="sr-desc">{{ item.description }}</span>
             </div>
             <span class="sr-price">{{ formatCurrency(item.price) }}</span>
           </div>
@@ -2011,6 +2012,7 @@ ${payLines}
 .sr-left { display: flex; flex-direction: column; }
 .sr-code { font-size: 12px; font-weight: 600; color: #9B6B3A; font-family: monospace; }
 .sr-name { font-size: 11px; color: #9A7858; margin-top: 1px; }
+.sr-desc { font-size: 10px; color: #B5A28A; margin-top: 1px; }
 .sr-price { font-size: 12px; font-weight: 600; color: #3A2515; }
 
 /* ─── Table ─── */
