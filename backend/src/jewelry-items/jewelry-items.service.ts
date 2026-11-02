@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -68,6 +69,15 @@ export class JewelryItemsService {
   }
 
   async create(createJewelryItemDto: CreateJewelryItemDto): Promise<JewelryItem> {
+    const existing = await this.jewelryItemRepository.findOne({
+      where: { itemCode: createJewelryItemDto.itemCode },
+    });
+    if (existing) {
+      throw new ConflictException(
+        `Item code "${createJewelryItemDto.itemCode}" already exists in this branch or any other branch.`,
+      );
+    }
+
     if (createJewelryItemDto.parentItemId) {
       const parentItem = await this.jewelryItemRepository.findOne({
         where: { id: createJewelryItemDto.parentItemId },
@@ -160,7 +170,24 @@ export class JewelryItemsService {
   }
 
   async update(id: number, updateJewelryItemDto: UpdateJewelryItemDto): Promise<JewelryItem> {
-    const jewelryItem = await this.findOne(id);
+    // Loaded without relations on purpose: if a relation (e.g. jewelryType) is eagerly
+    // attached here, TypeORM derives the FK column from that stale relation object on
+    // save() and silently discards the new *Id value from the DTO.
+    const jewelryItem = await this.jewelryItemRepository.findOne({ where: { id } });
+    if (!jewelryItem) {
+      throw new NotFoundException(`JewelryItem with ID ${id} not found`);
+    }
+
+    if (updateJewelryItemDto.itemCode && updateJewelryItemDto.itemCode !== jewelryItem.itemCode) {
+      const existing = await this.jewelryItemRepository.findOne({
+        where: { itemCode: updateJewelryItemDto.itemCode },
+      });
+      if (existing) {
+        throw new ConflictException(
+          `Item code "${updateJewelryItemDto.itemCode}" already exists in this branch or any other branch.`,
+        );
+      }
+    }
 
     if (updateJewelryItemDto.parentItemId) {
       if (updateJewelryItemDto.parentItemId === id) {
@@ -177,7 +204,8 @@ export class JewelryItemsService {
     }
 
     Object.assign(jewelryItem, updateJewelryItemDto);
-    return this.jewelryItemRepository.save(jewelryItem);
+    await this.jewelryItemRepository.save(jewelryItem);
+    return this.findOne(id);
   }
 
   async bulkImport(items: BulkImportJewelryItemDto[]): Promise<{ imported: number; errors: string[] }> {

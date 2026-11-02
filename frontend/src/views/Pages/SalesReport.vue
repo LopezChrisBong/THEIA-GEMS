@@ -1037,6 +1037,8 @@ export default {
   .center { text-align: center; }
   .brand { font-size: 17px; font-weight: bold; letter-spacing: 5px; margin-bottom: 1px; }
   .sub { font-size: 9px; letter-spacing: 3px; margin-bottom: 2px; }
+  .hdr-tin { font-size: 8px; margin-bottom: 1px; }
+  .hdr-addr { font-size: 7.5px; line-height: 1.3; margin-bottom: 3px; padding: 0 4px; }
   .meta { font-size: 10px; margin: 2px 0; }
   .hr { border: none; border-top: 1px dashed #000; margin: 5px 0; }
   .hrs { border: none; border-top: 1px solid #000; margin: 5px 0; }
@@ -1050,6 +1052,8 @@ export default {
 </style>
 </head><body>
 <div class="center">
+  ${sale.branch?.vatTin ? `<div class="hdr-tin">VAT Reg. TIN: ${sale.branch.vatTin}</div>` : ""}
+  ${sale.branch?.address ? `<div class="hdr-addr">${sale.branch.address}</div>` : ""}
   <div class="brand">THEIA GEMS</div>
   <div class="sub">FINE JEWELRY</div>
 </div>
@@ -1135,6 +1139,8 @@ ${payLines}
         ccSurchargeAmt,
         totalAmount: sale.totalAmount,
         paymentLines,
+        branchVatTin: sale.branch?.vatTin || null,
+        branchAddress: sale.branch?.address || null,
       };
     },
 

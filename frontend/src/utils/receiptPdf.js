@@ -17,6 +17,8 @@ import { jsPDF } from "jspdf";
  *   paymentLines: [{ label, value, bold }],
  *   isTest,      // optional — adds a "TEST PRINT" banner
  *   policy,      // optional — array of paragraph strings (plain text, no HTML) appended at the end
+ *   branchVatTin,  // optional — the selling branch's VAT registration TIN
+ *   branchAddress, // optional — the selling branch's address
  * }
  */
 
@@ -49,6 +51,12 @@ function buildOps(d, measureDoc) {
     wrapped.forEach((wLine) => line(wLine, { size, dim: opts.dim }));
   };
 
+  if (d.branchVatTin) center(`VAT Reg. TIN: ${d.branchVatTin}`, 6.5, "normal");
+  if (d.branchAddress) {
+    measureDoc.setFont("courier", "normal");
+    measureDoc.setFontSize(6);
+    measureDoc.splitTextToSize(d.branchAddress, CONTENT_WIDTH).forEach((wLine) => center(wLine, 6, "normal"));
+  }
   center("THEIA GEMS", 15, "bold");
   center("FINE JEWELRY", 7.5, "normal");
   hr(false);
