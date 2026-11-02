@@ -25,6 +25,11 @@ export class CreateBranchDto {
 
   @IsString()
   @IsOptional()
+  @MaxLength(50)
+  vatTin?: string;
+
+  @IsString()
+  @IsOptional()
   @MaxLength(20)
   @Matches(/^[\d\s\-\+\(\)]*$/, {
     message: 'Phone number can only contain digits, spaces, hyphens, plus signs, and parentheses',

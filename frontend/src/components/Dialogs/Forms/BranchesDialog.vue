@@ -56,6 +56,19 @@
                   />
                 </v-col>
 
+                <v-col cols="12" class="mb-4">
+                  <v-text-field
+                    v-model="vatTin"
+                    label="VAT Reg. TIN"
+                    outlined
+                    dense
+                    clearable
+                    color="primary"
+                    hint="Enter the branch's VAT registration TIN (printed on receipts)"
+                    persistent-hint
+                  />
+                </v-col>
+
                 <v-col cols="12" md="6" class="mb-4">
                   <v-text-field
                     v-model="phone"
@@ -169,6 +182,7 @@ export default {
       branchName: null,
       branchCode: null,
       address: null,
+      vatTin: null,
       phone: null,
       email: null,
       isActive: true,
@@ -194,6 +208,7 @@ export default {
           this.branchName = data.branchName;
           this.branchCode = data.branchCode;
           this.address = data.address;
+          this.vatTin = data.vatTin;
           this.phone = data.phone;
           this.email = data.email;
           this.isActive = data.isActive ?? true;
@@ -211,6 +226,7 @@ export default {
       this.branchName = null;
       this.branchCode = null;
       this.address = null;
+      this.vatTin = null;
       this.phone = null;
       this.email = null;
       this.isActive = true;
@@ -230,6 +246,7 @@ export default {
         branchName: this.branchName,
         branchCode: this.branchCode,
         address: this.address,
+        vatTin: this.vatTin,
         phone: this.phone,
         email: this.email,
         isActive: this.isActive,
@@ -270,6 +287,7 @@ export default {
         branchName: this.branchName,
         branchCode: this.branchCode,
         address: this.address,
+        vatTin: this.vatTin,
         phone: this.phone,
         email: this.email,
         isActive: this.isActive,

@@ -249,6 +249,8 @@ export default {
   .center { text-align: center; }
   .brand { font-size: 17px; font-weight: bold; letter-spacing: 5px; margin-bottom: 1px; }
   .sub { font-size: 9px; letter-spacing: 3px; margin-bottom: 2px; }
+  .hdr-tin { font-size: 8px; margin-bottom: 1px; }
+  .hdr-addr { font-size: 7.5px; line-height: 1.3; margin-bottom: 3px; padding: 0 4px; }
   .meta { font-size: 10px; margin: 2px 0; }
   .hr { border: none; border-top: 1px dashed #000; margin: 5px 0; }
   .hrs { border: none; border-top: 1px solid #000; margin: 5px 0; }
@@ -264,6 +266,8 @@ export default {
 </head><body>
 ${d.isTest ? '<div class="test-banner">*** TEST PRINT — NOT A REAL RECEIPT ***</div>' : ""}
 <div class="center">
+  ${d.branchVatTin ? `<div class="hdr-tin">VAT Reg. TIN: ${d.branchVatTin}</div>` : ""}
+  ${d.branchAddress ? `<div class="hdr-addr">${d.branchAddress}</div>` : ""}
   <div class="brand">THEIA GEMS</div>
   <div class="sub">FINE JEWELRY</div>
 </div>
@@ -313,9 +317,15 @@ ${payLines}
         { name: "LANA", code: "LG866", details: "Lab Grown", price: 329890 },
         { name: "NICOLE", code: "LG795", details: "Lab Grown", price: 196900 },
       ];
+      // Sample branch header, just for visually QA-ing the dynamic VAT TIN/address lines on this test page.
+      const sampleBranch = {
+        branchVatTin: "651-395-711-0000",
+        branchAddress: "Unit 12, Park Triangle Mall, Rizal Drive, BGC, Taguig City",
+      };
 
       if (preset.key === "regular") {
         return {
+          ...sampleBranch,
           receiptNumber: "TEST-0001", saleNumber: "SN-TEST-0001", saleDate: now,
           customerName: "Juan Dela Cruz", reprints: 0, items: baseItems,
           subtotal: 526790, discountAmt: 0, taxAmt: 0, totalAmount: 526790,
@@ -325,6 +335,7 @@ ${payLines}
       if (preset.key === "discount") {
         const subtotal = 526790, discountAmt = 20000, taxAmt = (subtotal - discountAmt) * 0.12;
         return {
+          ...sampleBranch,
           receiptNumber: "TEST-0002", saleNumber: "SN-TEST-0002", saleDate: now,
           customerName: "Maria Santos", reprints: 0, items: baseItems,
           subtotal, discountAmt, taxAmt, totalAmount: subtotal - discountAmt + taxAmt,
@@ -334,6 +345,7 @@ ${payLines}
       }
       if (preset.key === "layaway") {
         return {
+          ...sampleBranch,
           receiptNumber: "TEST-0003", saleNumber: "SN-TEST-0003", saleDate: now,
           customerName: "Pedro Reyes", reprints: 0, items: [baseItems[0]],
           subtotal: 329890, discountAmt: 0, taxAmt: 0, totalAmount: 329890,
@@ -342,6 +354,7 @@ ${payLines}
       }
       if (preset.key === "installment") {
         return {
+          ...sampleBranch,
           receiptNumber: "TEST-0005", saleNumber: "SN-TEST-0005", saleDate: now,
           customerName: "Liza Cruz", reprints: 0, items: [baseItems[1]],
           subtotal: 196900, discountAmt: 0, taxAmt: 0, totalAmount: 196900,
@@ -349,6 +362,7 @@ ${payLines}
         };
       }
       return {
+        ...sampleBranch,
         receiptNumber: "TEST-0004", saleNumber: "SN-TEST-0004", saleDate: now,
         customerName: "Ana Lim", reprints: 1, items: baseItems,
         subtotal: 526790, discountAmt: 0, taxAmt: 0, totalAmount: 526790,
@@ -448,6 +462,8 @@ ${payLines}
           isInstallment: sale.saleType === "installment",
           isCreditCard,
           isTest: true,
+          branchVatTin: sale.branch?.vatTin || null,
+          branchAddress: sale.branch?.address || null,
         },
       };
     },

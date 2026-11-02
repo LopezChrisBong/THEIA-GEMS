@@ -26,6 +26,9 @@ export class Branch {
   @Column({ name: 'address', type: 'text', nullable: true })
   address: string;
 
+  @Column({ name: 'vat_tin', type: 'varchar', length: 50, nullable: true })
+  vatTin: string;
+
   @Column({ name: 'phone', type: 'varchar', length: 20, nullable: true })
   phone: string;
 
